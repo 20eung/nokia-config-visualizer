@@ -1,4 +1,4 @@
-import type { NokiaDevice, NokiaInterface, NokiaPort } from '../types';
+import type { NokiaDevice, NokiaInterface } from '../types';
 
 // Helper: Clean descriptions
 function cleanDesc(text: string | undefined): string {

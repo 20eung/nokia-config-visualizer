@@ -90,8 +90,9 @@ function findPeerAndRoutes(device: NokiaDevice, intf: NokiaInterface): { peerIp:
   }
 
   // Find static routes with next-hop in this subnet
+  const interfaceIp = intf.ipAddress;
   device.staticRoutes.forEach(route => {
-    if (isIpInSubnet(route.nextHop, intf.ipAddress)) {
+    if (interfaceIp && isIpInSubnet(route.nextHop, interfaceIp)) {
       const nextHopIp = route.nextHop;
       if (nextHopIp !== network.ip) {
         peerIp = nextHopIp;
@@ -138,7 +139,7 @@ function getHostsInNetwork(ip: string, prefixLen: number): string[] {
   const networkData = parseNetwork(`${ip}/${prefixLen}`);
   if (!networkData) return [];
 
-  const numHosts = Math.pow(2, 32 - prefixLen);
+  // numHosts variable removed as it was unused
   const hosts: string[] = [];
 
   // For /30, there are 2 usable hosts (indices 1 and 2)
