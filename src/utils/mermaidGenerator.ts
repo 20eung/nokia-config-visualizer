@@ -92,7 +92,7 @@ function findPeerAndRoutes(device: NokiaDevice, intf: NokiaInterface): { peerIp:
   // Find static routes with next-hop in this subnet
   const interfaceIp = intf.ipAddress as string;
   device.staticRoutes.forEach(route => {
-    if (interfaceIp && isIpInSubnet(route.nextHop, interfaceIp)) {
+    if (isIpInSubnet(route.nextHop, interfaceIp)) {
       const nextHopIp = route.nextHop;
       if (nextHopIp !== network.ip) {
         peerIp = nextHopIp;
