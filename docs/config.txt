@@ -1,6 +1,6 @@
-A:SKNet_Pangyo_7750SR_I_BB3# This terminal has been idle for 2.5 minutes
+A:ABC_Seoul_7750SR_I_BB3# This terminal has been idle for 2.5 minutes
 It will be logged out if it remains idle for another 2.5 minutes
-A:SKNet_Pangyo_7750SR_I_BB3# admin display-config 
+A:ABC_Seoul_7750SR_I_BB3# admin display-config 
 # TiMOS-C-12.0.R4 cpm/hops64 ALCATEL SR 7750 Copyright (c) 2000-2014 Alcatel-Lucent.
 # All rights reserved. All use subject to applicable license agreements.
 # Built on Tue Jul 29 16:26:06 PDT 2014 by builder in /rel12.0/b1/R4/panos/main
@@ -13,8 +13,8 @@ configure
 echo "System Configuration"
 #--------------------------------------------------
     system
-        name "SKNet_Pangyo_7750SR_I_BB3"
-        location "Pangyo_ITC_2F_B"
+        name "ABC_Seoul_7750SR_I_BB3"
+        location "Seoul_ITC_2F_B"
         chassis-mode d
         dns
         exit
@@ -33,8 +33,8 @@ echo "System Configuration"
         exit
         time
             ntp
-                server 203.235.222.174 prefer
-                server 203.235.222.195
+                server 213.245.222.174 prefer
+                server 213.245.222.195
                 no shutdown
             exit
             sntp
@@ -59,105 +59,105 @@ echo "System Security Configuration"
                     default-action permit
                     entry 36
                         description "permit_SNMP"
-                        src-ip 203.235.222.0/26
+                        src-ip 213.245.222.0/26
                         protocol udp
                         dst-port 161 65535
                         action permit
                     exit
                     entry 37
                         description "permit_SNMP"
-                        src-ip 203.235.222.64/26
+                        src-ip 213.245.222.64/26
                         protocol udp
                         dst-port 161 65535
                         action permit
                     exit
                     entry 38
                         description "permit_SNMP"
-                        src-ip 203.235.222.128/26
+                        src-ip 213.245.222.128/26
                         protocol udp
                         dst-port 161 65535
                         action permit
                     exit
                     entry 39
                         description "permit_SNMP"
-                        src-ip 203.235.222.192/26
+                        src-ip 213.245.222.192/26
                         protocol udp
                         dst-port 161 65535
                         action permit
                     exit
                     entry 40
                         description "permit_SNMP"
-                        src-ip 3.36.27.212/32
+                        src-ip 13.46.27.212/32
                         protocol udp
                         dst-port 161 65535
                         action permit
                     exit
                     entry 42
                         description "permit_SNMP"
-                        src-ip 54.180.133.250/32
+                        src-ip 64.190.133.250/32
                         protocol udp
                         dst-port 161 65535
                         action permit
                     exit
                     entry 45
                         description "permit_SNMP"
-                        src-ip 3.39.70.47/32
+                        src-ip 13.49.70.47/32
                         protocol udp
                         dst-port 161 65535
                         action permit
                     exit
                     entry 59
                         description "permit_Telnet"
-                        src-ip 203.235.222.0/26
+                        src-ip 213.245.222.0/26
                         protocol tcp
                         dst-port 23 65535
                         action permit
                     exit
                     entry 60
                         description "permit_Telnet"
-                        src-ip 203.235.222.64/26
+                        src-ip 213.245.222.64/26
                         protocol tcp
                         dst-port 23 65535
                         action permit
                     exit
                     entry 61
                         description "permit_Telnet"
-                        src-ip 203.235.222.128/26
+                        src-ip 213.245.222.128/26
                         protocol tcp
                         dst-port 23 65535
                         action permit
                     exit
                     entry 62
                         description "permit_Telnet"
-                        src-ip 203.235.222.192/26
+                        src-ip 213.245.222.192/26
                         protocol tcp
                         dst-port 23 65535
                         action permit
                     exit
                     entry 5620
                         description "permit_Telnet_5620SAM"
-                        src-ip 203.235.222.63/32
+                        src-ip 213.245.222.63/32
                         protocol tcp
                         dst-port 22 65534
                         action permit
                     exit
                     entry 5621
                         description "permit_SNMP_5620SAM"
-                        src-ip 203.235.222.63/32
+                        src-ip 213.245.222.63/32
                         protocol udp
                         dst-port 161 65535
                         action permit
                     exit
                     entry 5622
                         description "permit_SNMP_5620SAM_2"
-                        src-ip 10.230.243.5/32
+                        src-ip 20.240.243.5/32
                         protocol udp
                         dst-port 161 65535
                         action permit
                     exit
                     entry 5623
                         description "permit_Telnet_5620SAM_2"
-                        src-ip 10.230.243.5/32
+                        src-ip 20.240.243.5/32
                         protocol tcp
                         dst-port 22 65534
                         action permit
@@ -207,8 +207,8 @@ echo "System Security Configuration"
             tacplus
                 accounting
                 authorization 
-                server 1 address 203.235.222.9 secret "3IOn08vDueZTRMjxDUr6w." hash2
-                server 2 address 203.235.222.137 secret "3IOn08vDuebARPXdrqWddE" hash2
+                server 1 address 213.245.222.9 secret "3IOn08vDueZTRMjxDUr6w." hash2
+                server 2 address 213.245.222.137 secret "3IOn08vDuebARPXdrqWddE" hash2
             exit
             no user "admin"
             user "skcc"
@@ -220,11 +220,11 @@ echo "System Security Configuration"
                 exit
                 snmp
                     authentication none
-                    group "SKCC"
+                    group "XYZCC"
                 exit
             exit
             snmp
-                access group "SKCC" security-model usm security-level no-auth-no-privacy read "iso" write "iso" notify "iso"
+                access group "XYZCC" security-model usm security-level no-auth-no-privacy read "iso" write "iso" notify "iso"
                 community "sKi/aAVW06AmDXCxOzZMG." hash2 r version both
             exit
             per-peer-queuing
@@ -242,7 +242,7 @@ echo "System Login Control Configuration"
     system
         login-control
             idle-timeout 5
-            pre-login-message " %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\r                               - W A R N I N G -\n\r                     You are trying to connect SK-Net Network. \n\r        A notice that any unauthorized use of the system is unlawful,\n\r            and may be subject to civil and/or criminal penalties.\n\r %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% "
+            pre-login-message " %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\r                               - W A R N I N G -\n\r                     You are trying to connect ABC Network. \n\r        A notice that any unauthorized use of the system is unlawful,\n\r            and may be subject to civil and/or criminal penalties.\n\r %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% "
         exit
     exit
 #--------------------------------------------------
@@ -265,26 +265,26 @@ echo "Log Configuration"
         event-control "video" 2010 suppress
         event-control "vrtr" 2034 generate
         syslog 7
-            address 203.235.222.194
+            address 213.245.222.194
             facility local4
-            log-prefix "SKNetPangyo7750SRBB3"
+            log-prefix "ABCSeoul7750SRBB3"
         exit 
         syslog 8
-            address 203.235.222.195
+            address 213.245.222.195
             facility local4
-            log-prefix "SKNetPangyo7750SRBB3"
+            log-prefix "ABCSeoul7750SRBB3"
         exit 
         syslog 9
-            address 203.235.223.191
+            address 213.245.223.191
             facility local4
         exit 
         snmp-trap-group 98
             description "5620sam"
-            trap-target "000C2947B776:main1" address 203.235.222.63 snmpv2c notify-community "g10ry2HXs3trap98"
-            trap-target "203.235.222.194:162" address 203.235.222.194 snmpv2c notify-community "g10ry2HXs3"
-            trap-target "203.235.222.195:162" address 203.235.222.195 snmpv2c notify-community "g10ry2HXs3"
-            trap-target "trap1v3" address 203.235.222.194 snmpv3 notify-community "g10ry2HXs3"
-            trap-target "trap2v3" address 203.235.222.195 snmpv3 notify-community "g10ry2HXs3"
+            trap-target "000C2947B776:main1" address 213.245.222.63 snmpv2c notify-community "g10ry2HXs3trap98"
+            trap-target "213.245.222.194:162" address 213.245.222.194 snmpv2c notify-community "g10ry2HXs3"
+            trap-target "213.245.222.195:162" address 213.245.222.195 snmpv2c notify-community "g10ry2HXs3"
+            trap-target "trap1v3" address 213.245.222.194 snmpv3 notify-community "g10ry2HXs3"
+            trap-target "trap2v3" address 213.245.222.195 snmpv3 notify-community "g10ry2HXs3"
         exit 
         log-id 7 
             time-format local
@@ -322,49 +322,49 @@ echo "Filter Match lists Configuration"
     filter 
         match-list
             ip-prefix-list "Akamai_Destination" create
-                prefix 23.5.165.221/32
+                prefix 33.15.165.221/32
             exit
             ip-prefix-list "CacheServer_ACL" create
-                prefix 52.44.115.17/32
-                prefix 203.235.222.0/24
-                prefix 211.45.57.232/32
-                prefix 211.45.60.0/24
-                prefix 211.45.60.1/32
-                prefix 211.45.60.2/32
-                prefix 211.45.60.3/32
-                prefix 211.45.60.4/32
-                prefix 211.45.60.5/32
-                prefix 211.45.60.6/32
-                prefix 211.45.60.7/32
-                prefix 211.45.60.8/32
-                prefix 211.45.60.9/32
-                prefix 211.45.60.10/32
-                prefix 211.45.62.1/32
-                prefix 216.130.192.136/29
-                prefix 216.130.204.136/29
+                prefix 62.54.115.17/32
+                prefix 213.245.222.0/24
+                prefix 221.55.57.232/32
+                prefix 221.55.60.0/24
+                prefix 221.55.60.1/32
+                prefix 221.55.60.2/32
+                prefix 221.55.60.3/32
+                prefix 221.55.60.4/32
+                prefix 221.55.60.5/32
+                prefix 221.55.60.6/32
+                prefix 221.55.60.7/32
+                prefix 221.55.60.8/32
+                prefix 221.55.60.9/32
+                prefix 221.55.60.10/32
+                prefix 221.55.62.1/32
+                prefix 226.140.192.136/29
+                prefix 226.140.204.136/29
             exit
-            ip-prefix-list "SKN_Filter_Deny" create
-                prefix 80.82.77.0/24
-                prefix 89.248.165.0/24
+            ip-prefix-list "XYZN_Filter_Deny" create
+                prefix 90.92.77.0/24
+                prefix 99.253.165.0/24
             exit
-            ip-prefix-list "SKN_Filter_Permit" create
-                prefix 203.235.220.0/22
-                prefix 210.211.95.234/32
-                prefix 210.211.95.235/32
-                prefix 211.45.33.140/30
-                prefix 211.45.33.144/30
+            ip-prefix-list "XYZN_Filter_Permit" create
+                prefix 213.245.220.0/22
+                prefix 220.221.95.234/32
+                prefix 220.221.95.235/32
+                prefix 221.55.33.140/30
+                prefix 221.55.33.144/30
             exit
             ip-prefix-list "Webex_Customer" create
-                prefix 10.100.100.0/24
-                prefix 49.50.63.182/32
+                prefix 20.110.100.0/24
+                prefix 59.60.63.182/32
             exit
             ip-prefix-list "Webex_Dst" create
-                prefix 69.26.176.0/20
-                prefix 114.29.192.0/19
-                prefix 150.253.192.0/19
-                prefix 150.253.240.0/20
-                prefix 170.133.176.0/20
-                prefix 210.4.192.0/20
+                prefix 79.36.176.0/20
+                prefix 124.39.192.0/19
+                prefix 160.253.192.0/19
+                prefix 160.253.240.0/20
+                prefix 180.143.176.0/20
+                prefix 220.14.192.0/20
             exit
         exit
     exit 
@@ -379,7 +379,7 @@ echo "System Security Cpm Hw Filters and PKI Configuration"
                         action accept
                         description "NTP_Server"
                         match protocol udp
-                            src-ip 203.235.222.174/32
+                            src-ip 213.245.222.174/32
                             src-port 123 65535
                         exit
                     exit
@@ -387,7 +387,7 @@ echo "System Security Cpm Hw Filters and PKI Configuration"
                         action accept
                         description "NTP_Server"
                         match protocol udp
-                            src-ip 203.235.222.195/32
+                            src-ip 213.245.222.195/32
                             src-port 123 65535
                         exit
                     exit
@@ -416,7 +416,7 @@ echo "Cflowd Configuration"
         active-timeout 1
         inactive-timeout 10
         rate 2000
-        collector 182.50.32.34 version 9
+        collector 192.60.32.34 version 9
         exit
     exit 
 #--------------------------------------------------
@@ -466,77 +466,77 @@ echo "Card Configuration"
 echo "Port Configuration"
 #--------------------------------------------------
     port 1/1/1
-        description "To-SKNet_Pangyo_7750SR_I3"
+        description "To-ABC_Seoul_7750SR_I3"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 1/1/2
-        description "To-SKNet_Pangyo_7750SR_I4"
+        description "To-ABC_Seoul_7750SR_I4"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 1/1/3
-        description "SK C&C Internet #1: Connect to Pangyo3F via MPLS(5G)"
+        description "XYZ C&C Internet #1: Connect to Seoul3F via MPLS(5G)"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 1/1/4
-        description "To-SKNet-Pangyo-TMS-1(TMS2800)"
+        description "To-ABC-Seoul-TMS-1(TMS2800)"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 1/2/1
-        description "SKNet_PG_DDC2F_Internet_10G_1(DDC2F_BB1:1/1/1)"
+        description "ABC_SE_Busan2F_Internet_10G_1(Busan2F_BB1:1/1/1)"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 1/2/2
-        description "To-SKNet_Green_7750SR_I_BB1:P1/1/2"
+        description "To-ABC_Inchon_7750SR_I_BB1:P1/1/2"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 1/2/3
-        description "GongyuOffice_Pangyo_Internet_10G_1"
+        description "GongyuOffice_Seoul_Internet_10G_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 1/2/4
-        description "To-SKNet_Pangyo_7750SR_I_BB4"
+        description "To-ABC_Seoul_7750SR_I_BB4"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/1
-        description "SKI_SAN_MGMT(Brocade)_1"
+        description "XYZI_SAN_MGMT(Brocade)_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/2
-        description "SKN_Pangyo2F_Internet_1"
+        description "XYZN_Seoul2F_Internet_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/3
-        description "To-SKNet_Green_7750SR_I_BB1:P3/1/9"
+        description "To-ABC_Inchon_7750SR_I_BB1:P3/1/9"
         ethernet
             mode access
         exit
@@ -550,56 +550,56 @@ echo "Port Configuration"
         no shutdown
     exit
     port 3/1/5
-        description "SKEncar_Encar.com-Internet_1G_1"
+        description "XYZEncar_Encar.com-Internet_1G_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/6
-        description "SKBP_AWS_VPN_Internet_20M_1"
+        description "XYZBP_AWS_VPN_Internet_20M_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/7
-        description "SKHC_Pangyo_Internet_100M_1"
+        description "XYZHC_Seoul_Internet_100M_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/8
-        description "Riverbed_CX3070_Pangyo_Internet"
+        description "Riverbed_CX3070_Seoul_Internet"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/9
-        description "SK E&S_Cloud SD-WAN_Internet_1"
+        description "XYZ E&S_Cloud SD-WAN_Internet_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/10
-        description "SKMagic_Internet_PG_SAMIL_500M_1"
+        description "XYZMagic_Internet_SE_SAMIL_500M_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/11
-        description "SKChemical_Pangyo_Internet_1"
+        description "XYZChemical_Seoul_Internet_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/12
-        description "KCAR_Pangyo_Internet_3-1_100M"
+        description "KCAR_Seoul_Internet_3-1_100M"
         ethernet
             mode access
         exit
@@ -611,49 +611,49 @@ echo "Port Configuration"
         exit
     exit
     port 3/1/14
-        description "To-SKC_Suwon_Internet_1"
+        description "To-XYZC_Suwon_Internet_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/15
-        description "SKSecurities_Co._Internet_1"
+        description "XYZSecurities_Co._Internet_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/16
-        description "SK-Net_PG2F_CMI_SDWAN_2"
+        description "ABC_SE2F_CMI_SDWAN_2"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/17
-        description "To-KRBD05-BGPS01-6509L3:Te2/2(SKP_Internet_1)"
+        description "To-KRBD05-BGPS01-6509L3:Te2/2(XYZP_Internet_1)"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/18
-        description "SKE&S_PangyoITC2F_E&S_Internet_1G_1"
+        description "XYZE&S_SeoulITC2F_E&S_Internet_1G_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/19
-        description "SKRentcar_Internet_PG_SAMIL_500M_1"
+        description "XYZRentcar_Internet_SE_SAMIL_500M_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/1/20
-        description "KCAR_Pangyo_Internet_3-2_100M"
+        description "KCAR_Seoul_Internet_3-2_100M"
         ethernet
             mode access
         exit
@@ -681,7 +681,7 @@ echo "Port Configuration"
         no shutdown
     exit
     port 3/1/24
-        description "To-SKNet_Pangyo_7750SR_I_BB4(L2)"
+        description "To-ABC_Seoul_7750SR_I_BB4(L2)"
         ethernet
             mode access
             encap-type dot1q
@@ -696,7 +696,7 @@ echo "Port Configuration"
         no shutdown
     exit
     port 3/2/2
-        description "SKNS_Ufit_Internet"
+        description "XYZNS_Ufit_Internet"
         ethernet
             mode access
             no autonegotiate
@@ -704,7 +704,7 @@ echo "Port Configuration"
         no shutdown
     exit
     port 3/2/3
-        description "SKInc_PG2F_SD-WAN_Internet_100M_1"
+        description "XYZInc_SE2F_SD-WAN_Internet_100M_1"
         ethernet
             mode access
         exit
@@ -717,14 +717,14 @@ echo "Port Configuration"
         exit
     exit
     port 3/2/5
-        description "SKBP_Internet_Pangyo_500M_1"
+        description "XYZBP_Internet_Seoul_500M_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/2/6
-        description "SKT_T2_Internet_1"
+        description "XYZT_T2_Internet_1"
         ethernet
             mode access
         exit
@@ -738,14 +738,14 @@ echo "Port Configuration"
         no shutdown
     exit
     port 3/2/8
-        description "SKCC_Edge DT_100M_Internet"
+        description "XYZCC_Edge DT_100M_Internet"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/2/9
-        description "SKShieldus_Internet_1_100M"
+        description "XYZShieldus_Internet_1_100M"
         ethernet
             mode access
             no autonegotiate
@@ -753,7 +753,7 @@ echo "Port Configuration"
         no shutdown
     exit
     port 3/2/10
-        description "FSKL&S(ConvergedLogistics)_Internet_Pangyo-HQ_200M"
+        description "FXYZL&S(ConvergedLogistics)_Internet_Seoul-HQ_200M"
         ethernet
             mode access
             no autonegotiate
@@ -761,14 +761,14 @@ echo "Port Configuration"
         no shutdown
     exit
     port 3/2/11
-        description "To-SKNet-Pangyo-TMS-1_MGMT(TMS2800)"
+        description "To-ABC-Seoul-TMS-1_MGMT(TMS2800)"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/2/12
-        description "To-SKNet-Pangyo-TMS-1_MGMT(CP6000-5)"
+        description "To-ABC-Seoul-TMS-1_MGMT(CP6000-5)"
         ethernet
             mode access
         exit
@@ -783,14 +783,14 @@ echo "Port Configuration"
         no shutdown
     exit
     port 3/2/14
-        description "Connected to PG2F_Blackhole_R_1"
+        description "Connected to SE2F_Blackhole_R_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 3/2/15
-        description "To_SKHY_PGA_2F_FG500E_1 "
+        description "To_XYZHY_SEA_2F_FG500E_1 "
         ethernet
             mode access
         exit
@@ -809,7 +809,7 @@ echo "Port Configuration"
         no shutdown
     exit
     port 3/2/18
-        description "SKBP_Newjersey_UTM_internet_SKENS_Houston,Singapore_backup"
+        description "XYZBP_Newjersey_UTM_internet_XYZENS_Houston,Singapore_backup"
         ethernet
             mode access
             mtu 1440
@@ -817,7 +817,7 @@ echo "Port Configuration"
         no shutdown
     exit
     port 3/2/19
-        description "To-SKNet_Pangyo_7210SAS_HUVIS"
+        description "To-ABC_Seoul_7210SAS_HUVIS"
         ethernet
             mode access
         exit
@@ -831,7 +831,7 @@ echo "Port Configuration"
         no shutdown
     exit
     port 3/2/21
-        description "SKE&S_HQ_Internet_1"
+        description "XYZE&S_HQ_Internet_1"
         ethernet
             mode access
         exit
@@ -845,7 +845,7 @@ echo "Port Configuration"
         no shutdown
     exit
     port 3/2/23
-        description "SkC&C_Pangyo2F_MobileCenter_100M_Internet"
+        description "SkC&C_Seoul2F_MobileCenter_100M_Internet"
         ethernet
             mode access
         exit
@@ -866,7 +866,7 @@ echo "Port Configuration"
         no shutdown
     exit
     port 4/1/2
-        description "SKB_Internet(Akamai)"
+        description "XYZB_Internet(Akamai)"
         ethernet
             mode access
         exit
@@ -972,7 +972,7 @@ echo "Port Configuration"
         exit
     exit
     port 4/1/22
-        description "SKCC_PGA3F_VSP8404_CoLo_1G_1"
+        description "XYZCC_SEA3F_VSP8404_CoLo_1G_1"
         ethernet
             mode access
         exit
@@ -1084,7 +1084,7 @@ echo "Port Configuration"
         exit
     exit
     port 4/2/20
-        description "SKBT_IPSec_MGMT_1"
+        description "XYZBT_IPSec_MGMT_1"
         ethernet
             mode access
         exit
@@ -1111,21 +1111,21 @@ echo "Port Configuration"
         exit
     exit
     port 5/1/1
-        description "SKI_Pangyo_to_DDC_Internet_10G_1(Backup)"
+        description "XYZI_Seoul_to_Busan_Internet_10G_1(Backup)"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 5/1/2
-        description "To-SK-Net_Gyowon_7750SR-7_I_BB1_P1/1/2"
+        description "To-ABC_Gyowon_7750SR-7_I_BB1_P1/1/2"
         ethernet
             mode access
         exit
         no shutdown
     exit
     port 5/1/3
-        description "To-SKNet_Pangyo_7750SR_I_BB5"
+        description "To-ABC_Seoul_7750SR_I_BB5"
         ethernet
             mode access
         exit
@@ -1242,8 +1242,8 @@ echo "QoS Policy Configuration"
 echo "Filter Configuration"
 #--------------------------------------------------
     filter 
-        redirect-policy "SKB_Internet(Akamai)_PBR" create
-            destination 175.126.68.105 create
+        redirect-policy "XYZB_Internet(Akamai)_PBR" create
+            destination 185.136.68.105 create
                 ping-test
                     interval 3
                 exit
@@ -1255,19 +1255,19 @@ echo "Filter Configuration"
             default-action forward
             entry 10 create
                 match 
-                    src-ip 127.0.0.0/8
+                    src-ip 137.10.0.0/8
                 exit 
                 action drop
             exit 
             entry 20 create
                 match 
-                    src-ip 224.0.0.0/4
+                    src-ip 234.10.0.0/4
                 exit 
                 action drop
             exit 
             entry 30 create
                 match 
-                    src-ip 0.0.0.0/8
+                    src-ip 10.10.0.0/8
                 exit 
                 action drop
             exit 
@@ -1283,19 +1283,19 @@ echo "Filter Configuration"
             description "Webex_Filter" 
             entry 10 create
                 match 
-                    src-ip 127.0.0.0/8
+                    src-ip 137.10.0.0/8
                 exit 
                 action drop
             exit 
             entry 20 create
                 match 
-                    src-ip 224.0.0.0/4
+                    src-ip 234.10.0.0/4
                 exit 
                 action drop
             exit 
             entry 30 create
                 match 
-                    src-ip 0.0.0.0/8
+                    src-ip 10.10.0.0/8
                 exit 
                 action drop
             exit 
@@ -1310,30 +1310,30 @@ echo "Filter Configuration"
                     dst-ip ip-prefix-list "Webex_Dst"
                     src-ip ip-prefix-list "Webex_Customer"
                 exit 
-                action forward next-hop 49.50.63.230
+                action forward next-hop 59.60.63.230
             exit 
         exit 
         ip-filter 110 create
             default-action forward
-            description "SK_Securities_Co._1433_22_Port" 
+            description "XYZ_Securities_Co._1433_22_Port" 
         exit 
         ip-filter 120 create
             default-action forward
             entry 10 create
                 match 
-                    src-ip 127.0.0.0/8
+                    src-ip 137.10.0.0/8
                 exit 
                 action drop
             exit 
             entry 20 create
                 match 
-                    src-ip 224.0.0.0/4
+                    src-ip 234.10.0.0/4
                 exit 
                 action drop
             exit 
             entry 30 create
                 match 
-                    src-ip 0.0.0.0/8
+                    src-ip 10.10.0.0/8
                 exit 
                 action drop
             exit 
@@ -1355,20 +1355,20 @@ echo "Filter Configuration"
             description "KCAR_Capital_Filter" 
             entry 50 create
                 match 
-                    src-ip 210.0.181.138/32
+                    src-ip 220.10.181.138/32
                 exit 
                 action drop
             exit 
             entry 60 create
                 match protocol udp
-                    dst-ip 49.50.63.142/32
+                    dst-ip 59.60.63.142/32
                     port eq 53
                 exit 
                 action drop
             exit 
             entry 70 create
                 match protocol tcp
-                    dst-ip 49.50.63.142/32
+                    dst-ip 59.60.63.142/32
                     port eq 53
                 exit 
                 action drop
@@ -1382,10 +1382,10 @@ echo "Filter Configuration"
         exit 
         ip-filter 150 create
             default-action forward
-            description "SKN_Filter" 
+            description "XYZN_Filter" 
             entry 10 create
                 match protocol icmp
-                    src-ip ip-prefix-list "SKN_Filter_Permit"
+                    src-ip ip-prefix-list "XYZN_Filter_Permit"
                 exit 
                 action forward
             exit 
@@ -1396,7 +1396,7 @@ echo "Filter Configuration"
             exit 
             entry 30 create
                 match 
-                    src-ip ip-prefix-list "SKN_Filter_Deny"
+                    src-ip ip-prefix-list "XYZN_Filter_Deny"
                 exit 
                 action drop
             exit 
@@ -1430,19 +1430,19 @@ echo "Filter Configuration"
             default-action forward
             entry 10 create
                 match 
-                    src-ip 127.0.0.0/8
+                    src-ip 137.10.0.0/8
                 exit 
                 action drop
             exit 
             entry 20 create
                 match 
-                    src-ip 224.0.0.0/4
+                    src-ip 234.10.0.0/4
                 exit 
                 action drop
             exit 
             entry 30 create
                 match 
-                    src-ip 0.0.0.0/8
+                    src-ip 10.10.0.0/8
                 exit 
                 action drop
             exit 
@@ -1455,9 +1455,9 @@ echo "Filter Configuration"
             entry 50 create
                 match 
                     dst-ip ip-prefix-list "Akamai_Destination"
-                    src-ip 211.45.37.25/32
+                    src-ip 221.55.37.25/32
                 exit 
-                action forward redirect-policy "SKB_Internet(Akamai)_PBR"
+                action forward redirect-policy "XYZB_Internet(Akamai)_PBR"
             exit 
         exit 
     exit 
@@ -1472,7 +1472,7 @@ echo "Router (Network Side) Configuration"
 #--------------------------------------------------
     router 
         interface "system"
-            address 210.211.95.234/32
+            address 220.221.95.234/32
             icmp
                 no mask-reply
                 no redirects
@@ -1485,135 +1485,135 @@ echo "Router (Network Side) Configuration"
 #--------------------------------------------------
 echo "Static Route Configuration"
 #--------------------------------------------------
-        static-route 49.50.33.128/25 next-hop 49.50.33.3 description "SK_Shieldus_Internet_1"
-        static-route 49.50.34.64/27 next-hop 49.50.35.42 description "SKBP_Pangyo_Internet"
-        static-route 49.50.34.160/27 next-hop 49.50.34.42 description "ConvergedLogistics_Internet"
-        static-route 49.50.46.64/26 next-hop 49.50.62.138 description "SKHC_PanGyo_100M_Internet_1"
-        static-route 49.50.47.0/24 next-hop 49.50.34.110 description "Infra_TechLab_100M_Internet"
-        static-route 49.50.48.0/24 next-hop 49.50.63.134 description "KCAR_Pangyo_Internet_1_100M"
-        static-route 49.50.55.0/24 next-hop 49.50.63.70 description "GongyuOffice_100M_Internet_1"
-        static-route 49.50.56.0/24 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 49.50.63.80/29 next-hop 49.50.63.70 description "GongyuOffice_UTM"
-        static-route 49.50.63.96/27 next-hop 49.50.63.90 description "Essencore_Internet_30M_Poc"
-        static-route 49.50.63.192/32 next-hop 49.50.34.110 description "Infra_TechLab_100M_Internet"
-        static-route 61.97.1.80/29 next-hop 49.50.35.108 preference 160 description "SKI_Internet_backup"
-        static-route 61.97.1.124/30 next-hop 211.45.51.110 description "Huvis_Ulsan"
-        static-route 61.97.1.176/29 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 61.97.1.224/28 next-hop 211.45.51.110 description "Huvis_Ulsan"
-        static-route 61.97.3.64/28 next-hop 49.50.35.108 preference 160
-        static-route 61.97.4.0/28 next-hop 61.97.4.18
-        static-route 61.97.6.0/24 next-hop 49.50.63.162 description "SKCC_Edge DT_100M_Internet"
-        static-route 61.97.8.8/29 next-hop 61.97.8.2 description "ADTCAPS_POC"
-        static-route 61.97.8.16/29 next-hop 61.97.8.2
-        static-route 61.97.9.128/27 next-hop 211.45.33.142 description "SKN-Internet"
-        static-route 61.97.10.136/29 next-hop 49.50.63.70
-        static-route 61.97.10.144/29 next-hop 49.50.63.70
-        static-route 124.66.177.0/25 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 124.66.186.0/24 next-hop 211.45.50.154 description "SK_Chemical_Pangyo_Internet_1"
-        static-route 124.66.188.0/25 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 124.66.188.128/25 next-hop 211.45.49.66
-        static-route 124.66.189.128/28 next-hop 211.45.49.66 description "SKCC-MPX(VDI)"
-        static-route 124.66.189.152/29 next-hop 211.45.49.66 description "SKCC-Internet Test bed"
-        static-route 124.66.189.192/27 next-hop 211.45.49.66 description "SKCC-Internet Test bed"
-        static-route 168.154.0.0/21 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.8.0/22 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.13.0/24 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 168.154.14.0/24 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.15.0/24 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.16.0/20 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.17.128/26 next-hop 49.50.35.108 preference 160 description "SKCorp-VIP-Internet_backup"
-        static-route 168.154.26.0/24 next-hop 49.50.35.108 preference 160 description "SKI_Internet_backup"
-        static-route 168.154.30.0/23 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 168.154.31.208/28 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.32.0/19 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.44.0/24 next-hop 49.50.35.108 preference 160 description "SKI_Internet_backup"
-        static-route 168.154.52.0/26 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 168.154.52.64/27 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 168.154.52.96/27 next-hop 49.50.35.108 description "SKI_Pangyo_to_DDC_Internet_10G_1(Backup)"
-        static-route 168.154.52.128/25 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 168.154.53.0/24 next-hop 49.50.35.108 preference 160 description "SKI_Internet_backup"
-        static-route 168.154.64.0/18 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.64.0/24 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 168.154.75.0/24 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 168.154.128.0/20 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.144.0/22 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.153.0/24 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.154.0/24 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.155.0/24 next-hop 49.50.35.108 preference 160 description "SKE_Security_Group_backup"
-        static-route 168.154.156.0/24 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.157.0/24 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 168.154.158.32/27 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 168.154.158.128/25 next-hop 49.50.35.108 preference 160 description "SKHC-Internet_backup"
-        static-route 168.154.159.0/24 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 168.154.160.0/21 next-hop 211.45.50.154 description "SKChemical-Internet"
-        static-route 168.154.168.0/23 next-hop 211.45.50.154 description "SKChemical_Ulsan"
-        static-route 168.154.170.0/23 next-hop 211.45.50.154 description "SKChemical-Internet"
-        static-route 168.154.172.0/23 next-hop 211.45.50.154 description "SKChemical-Internet"
-        static-route 168.154.174.0/24 next-hop 211.45.50.154 description "SKChemical-Internet"
-        static-route 168.154.182.0/24 next-hop 211.45.33.6 description "SKE&S Internet"
-        static-route 168.154.183.0/24 next-hop 211.45.51.110 description "Huvis_HQ"
-        static-route 168.154.183.0/25 next-hop 211.45.51.110 description "Huvis_HQ"
-        static-route 168.154.184.0/22 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 168.154.185.116/30 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 168.154.187.0/24 next-hop 49.50.35.108 preference 160 description "SKI-Internet(JP_LiBS)_backup"
-        static-route 168.154.189.0/24 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 168.154.190.0/23 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 168.154.192.0/19 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.227.0/24 next-hop 49.50.35.108 preference 160 description "SKCorp-Internet(Webex)_backup"
-        static-route 168.154.227.0/26 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.227.0/27 next-hop 49.50.35.108 preference 160 description "SKCorp_Internet_backup"
-        static-route 168.154.230.0/24 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 168.154.231.0/24 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 168.154.231.241/32 next-hop 49.50.35.108 preference 160 description "SKI Internet(10G)_backup"
-        static-route 168.154.231.242/32 next-hop 49.50.35.108 preference 160 description "SKI Internet(10G)_backup"
-        static-route 168.154.251.0/24 next-hop 49.50.35.108 preference 160 description "SKI-Internet_backup"
-        static-route 182.50.61.240/29 next-hop 49.50.35.108 preference 160 description "SKI Internet(10G)_VDIVPN_backup"
-        static-route 182.50.61.248/29 next-hop 49.50.35.108 preference 160 description "SKI Internet(10G)_VDIVPN_backup"
-        static-route 192.168.106.81/32 next-hop 49.50.35.108 preference 160 description "SKcorp-OilCardPay_backup"
-        static-route 192.168.129.32/32 next-hop 49.50.35.108 preference 160 description "SKcorp-OilCardPay_backup"
-        static-route 192.168.129.73/32 next-hop 49.50.35.108 preference 160 description "SKcorp-OilCardPay_backup"
-        static-route 203.235.192.0/21 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 203.235.192.0/24 next-hop 211.45.49.66 description "SKCC-Internet Test bed"
-        static-route 203.235.208.0/20 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 203.235.214.0/24 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 203.235.222.120/32 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 203.242.64.0/21 next-hop 49.50.35.66 description "SKC_Suwon_Internet_1"
-        static-route 203.242.72.0/21 next-hop 49.50.35.66 description "SKC_Suwon_Internet_1"
-        static-route 203.242.80.0/24 next-hop 49.50.35.66 description "SKC_Suwon_Internet_1"
-        static-route 203.242.120.0/22 next-hop 49.50.35.66 description "SKC_Suwon_Internet_1"
-        static-route 203.242.124.0/22 next-hop 49.50.35.66 description "SKC_Suwon_Internet_1"
-        static-route 210.211.91.0/24 next-hop 49.50.63.134 description "KCAR_Pangyo_Internet_1_100M"
-        static-route 210.211.92.0/24 next-hop 49.50.63.134 description "KCAR_Pangyo_Internet_1_100M"
-        static-route 210.211.94.0/24 next-hop 211.45.33.6 description "SKE&S Internet"
-        static-route 210.211.95.0/29 next-hop 49.50.35.108 preference 160
-        static-route 210.211.95.238/32 next-hop 211.45.51.110
-        static-route 211.45.33.208/28 next-hop 211.45.36.114 description "SKEncar_Internet"
-        static-route 211.45.34.128/25 next-hop 211.45.33.98 description "SKSecurities_Internet"
-        static-route 211.45.36.48/29 next-hop 211.45.36.114 description "SKEncar_Internet"
-        static-route 211.45.37.0/26 next-hop 211.45.36.114 description "SKEncar_Internet"
-        static-route 211.45.39.128/26 next-hop 211.45.36.58 description "SKMagic_Internet_PG_SAMIL"
-        static-route 211.45.39.192/26 next-hop 211.45.33.134 description "SKRentcar_Internet_PG_SAMIL"
-        static-route 211.45.46.0/24 next-hop 211.45.49.138 description "SKT_T2_Internet"
-        static-route 211.45.49.0/27 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 211.45.49.104/30 next-hop 61.97.4.18 description "SKCC(Essencore)"
-        static-route 211.45.49.112/28 next-hop 211.45.50.154 description "SK_Chemical_Pangyo_VPN&Mgmt_1"
-        static-route 211.45.49.232/29 next-hop 211.45.49.66 description "SKCC-SSLVPN"
-        static-route 211.45.50.8/29 next-hop 49.50.63.70 description "GongyuOffice_IPVC_Internet"
-        static-route 211.45.50.160/29 next-hop 211.45.50.154 description "SK_Chemical_Pangyo_Internet_1"
-        static-route 211.45.50.168/30 next-hop 211.45.50.154 description "SK_Chemical_Pangyo_Internet_1"
-        static-route 211.45.50.184/29 next-hop 211.45.50.154 description "SKChem_AWS_VPN_Test"
-        static-route 211.45.50.192/27 next-hop 211.45.50.154 description "SK_Chemical_Pangyo_Internet_1"
-        static-route 211.45.50.232/29 next-hop 211.45.51.110 description "Huvis_HQ"
-        static-route 211.45.50.240/30 next-hop 211.45.50.154 description "SK_Chemical_Test"
-        static-route 211.45.51.96/30 next-hop 211.45.51.110 description "Huvis_DaeJeon"
-        static-route 211.45.51.100/30 next-hop 211.45.51.110 description "Huvis_DaeGu"
-        static-route 211.45.51.116/30 next-hop 211.45.51.110 description "Huvis_jeonju"
-        static-route 211.45.51.128/28 next-hop 211.45.50.154 description "SK_Chemical_Pangyo_Internet_1"
-        static-route 211.45.57.64/26 next-hop 49.50.35.108 preference 160 description "SK_Lubricants_backup"
-        static-route 211.45.60.0/23 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 211.45.60.0/24 next-hop 211.45.49.66 description "SKCC-Internet"
-        static-route 211.45.61.0/24 next-hop 211.45.49.66 description "SKI_DDC_Temp_20210831"
-        static-route 211.45.62.0/24 next-hop 211.45.49.66 description "SKCC-Internet-0802"
+        static-route 59.60.33.128/25 next-hop 59.60.33.3 description "XYZ_Shieldus_Internet_1"
+        static-route 59.60.34.64/27 next-hop 59.60.35.42 description "XYZBP_Seoul_Internet"
+        static-route 59.60.34.160/27 next-hop 59.60.34.42 description "ConvergedLogistics_Internet"
+        static-route 59.60.46.64/26 next-hop 59.60.62.138 description "XYZHC_PanGyo_100M_Internet_1"
+        static-route 59.60.47.0/24 next-hop 59.60.34.110 description "Infra_TechLab_100M_Internet"
+        static-route 59.60.48.0/24 next-hop 59.60.63.134 description "KCAR_Seoul_Internet_1_100M"
+        static-route 59.60.55.0/24 next-hop 59.60.63.70 description "GongyuOffice_100M_Internet_1"
+        static-route 59.60.56.0/24 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 59.60.63.80/29 next-hop 59.60.63.70 description "GongyuOffice_UTM"
+        static-route 59.60.63.96/27 next-hop 59.60.63.90 description "Essencore_Internet_30M_Poc"
+        static-route 59.60.63.192/32 next-hop 59.60.34.110 description "Infra_TechLab_100M_Internet"
+        static-route 71.107.1.80/29 next-hop 59.60.35.108 preference 160 description "XYZI_Internet_backup"
+        static-route 71.107.1.124/30 next-hop 221.55.51.110 description "Huvis_Ulsan"
+        static-route 71.107.1.176/29 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 71.107.1.224/28 next-hop 221.55.51.110 description "Huvis_Ulsan"
+        static-route 71.107.3.64/28 next-hop 59.60.35.108 preference 160
+        static-route 71.107.4.0/28 next-hop 71.107.4.18
+        static-route 71.107.6.0/24 next-hop 59.60.63.162 description "XYZCC_Edge DT_100M_Internet"
+        static-route 71.107.8.8/29 next-hop 71.107.8.2 description "ADTCAPS_POC"
+        static-route 71.107.8.16/29 next-hop 71.107.8.2
+        static-route 71.107.9.128/27 next-hop 221.55.33.142 description "XYZN-Internet"
+        static-route 71.107.10.136/29 next-hop 59.60.63.70
+        static-route 71.107.10.144/29 next-hop 59.60.63.70
+        static-route 134.76.177.0/25 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 134.76.186.0/24 next-hop 221.55.50.154 description "XYZ_Chemical_Seoul_Internet_1"
+        static-route 134.76.188.0/25 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 134.76.188.128/25 next-hop 221.55.49.66
+        static-route 134.76.189.128/28 next-hop 221.55.49.66 description "XYZCC-MPX(VDI)"
+        static-route 134.76.189.152/29 next-hop 221.55.49.66 description "XYZCC-Internet Test bed"
+        static-route 134.76.189.192/27 next-hop 221.55.49.66 description "XYZCC-Internet Test bed"
+        static-route 178.164.0.0/21 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.8.0/22 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.13.0/24 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 178.164.14.0/24 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.15.0/24 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.16.0/20 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.17.128/26 next-hop 59.60.35.108 preference 160 description "XYZCorp-VIP-Internet_backup"
+        static-route 178.164.26.0/24 next-hop 59.60.35.108 preference 160 description "XYZI_Internet_backup"
+        static-route 178.164.30.0/23 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 178.164.31.208/28 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.32.0/19 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.44.0/24 next-hop 59.60.35.108 preference 160 description "XYZI_Internet_backup"
+        static-route 178.164.52.0/26 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 178.164.52.64/27 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 178.164.52.96/27 next-hop 59.60.35.108 description "XYZI_Seoul_to_Busan_Internet_10G_1(Backup)"
+        static-route 178.164.52.128/25 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 178.164.53.0/24 next-hop 59.60.35.108 preference 160 description "XYZI_Internet_backup"
+        static-route 178.164.64.0/18 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.64.0/24 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 178.164.75.0/24 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 178.164.128.0/20 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.144.0/22 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.153.0/24 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.154.0/24 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.155.0/24 next-hop 59.60.35.108 preference 160 description "XYZE_Security_Group_backup"
+        static-route 178.164.156.0/24 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.157.0/24 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 178.164.158.32/27 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 178.164.158.128/25 next-hop 59.60.35.108 preference 160 description "XYZHC-Internet_backup"
+        static-route 178.164.159.0/24 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 178.164.160.0/21 next-hop 221.55.50.154 description "XYZChemical-Internet"
+        static-route 178.164.168.0/23 next-hop 221.55.50.154 description "XYZChemical_Ulsan"
+        static-route 178.164.170.0/23 next-hop 221.55.50.154 description "XYZChemical-Internet"
+        static-route 178.164.172.0/23 next-hop 221.55.50.154 description "XYZChemical-Internet"
+        static-route 178.164.174.0/24 next-hop 221.55.50.154 description "XYZChemical-Internet"
+        static-route 178.164.182.0/24 next-hop 221.55.33.6 description "XYZE&S Internet"
+        static-route 178.164.183.0/24 next-hop 221.55.51.110 description "Huvis_HQ"
+        static-route 178.164.183.0/25 next-hop 221.55.51.110 description "Huvis_HQ"
+        static-route 178.164.184.0/22 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 178.164.185.116/30 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 178.164.187.0/24 next-hop 59.60.35.108 preference 160 description "XYZI-Internet(JP_LiBS)_backup"
+        static-route 178.164.189.0/24 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 178.164.190.0/23 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 178.164.192.0/19 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.227.0/24 next-hop 59.60.35.108 preference 160 description "XYZCorp-Internet(Webex)_backup"
+        static-route 178.164.227.0/26 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.227.0/27 next-hop 59.60.35.108 preference 160 description "XYZCorp_Internet_backup"
+        static-route 178.164.230.0/24 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 178.164.231.0/24 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 178.164.231.241/32 next-hop 59.60.35.108 preference 160 description "XYZI Internet(10G)_backup"
+        static-route 178.164.231.242/32 next-hop 59.60.35.108 preference 160 description "XYZI Internet(10G)_backup"
+        static-route 178.164.251.0/24 next-hop 59.60.35.108 preference 160 description "XYZI-Internet_backup"
+        static-route 192.60.61.240/29 next-hop 59.60.35.108 preference 160 description "XYZI Internet(10G)_VDIVPN_backup"
+        static-route 192.60.61.248/29 next-hop 59.60.35.108 preference 160 description "XYZI Internet(10G)_VDIVPN_backup"
+        static-route 202.178.106.81/32 next-hop 59.60.35.108 preference 160 description "XYZcorp-OilCardPay_backup"
+        static-route 202.178.129.32/32 next-hop 59.60.35.108 preference 160 description "XYZcorp-OilCardPay_backup"
+        static-route 202.178.129.73/32 next-hop 59.60.35.108 preference 160 description "XYZcorp-OilCardPay_backup"
+        static-route 213.245.192.0/21 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 213.245.192.0/24 next-hop 221.55.49.66 description "XYZCC-Internet Test bed"
+        static-route 213.245.208.0/20 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 213.245.214.0/24 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 213.245.222.120/32 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 213.252.64.0/21 next-hop 59.60.35.66 description "XYZC_Suwon_Internet_1"
+        static-route 213.252.72.0/21 next-hop 59.60.35.66 description "XYZC_Suwon_Internet_1"
+        static-route 213.252.80.0/24 next-hop 59.60.35.66 description "XYZC_Suwon_Internet_1"
+        static-route 213.252.120.0/22 next-hop 59.60.35.66 description "XYZC_Suwon_Internet_1"
+        static-route 213.252.124.0/22 next-hop 59.60.35.66 description "XYZC_Suwon_Internet_1"
+        static-route 220.221.91.0/24 next-hop 59.60.63.134 description "KCAR_Seoul_Internet_1_100M"
+        static-route 220.221.92.0/24 next-hop 59.60.63.134 description "KCAR_Seoul_Internet_1_100M"
+        static-route 220.221.94.0/24 next-hop 221.55.33.6 description "XYZE&S Internet"
+        static-route 220.221.95.0/29 next-hop 59.60.35.108 preference 160
+        static-route 220.221.95.238/32 next-hop 221.55.51.110
+        static-route 221.55.33.208/28 next-hop 221.55.36.114 description "XYZEncar_Internet"
+        static-route 221.55.34.128/25 next-hop 221.55.33.98 description "XYZSecurities_Internet"
+        static-route 221.55.36.48/29 next-hop 221.55.36.114 description "XYZEncar_Internet"
+        static-route 221.55.37.0/26 next-hop 221.55.36.114 description "XYZEncar_Internet"
+        static-route 221.55.39.128/26 next-hop 221.55.36.58 description "XYZMagic_Internet_SE_SAMIL"
+        static-route 221.55.39.192/26 next-hop 221.55.33.134 description "XYZRentcar_Internet_SE_SAMIL"
+        static-route 221.55.46.0/24 next-hop 221.55.49.138 description "XYZT_T2_Internet"
+        static-route 221.55.49.0/27 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 221.55.49.104/30 next-hop 71.107.4.18 description "XYZCC(Essencore)"
+        static-route 221.55.49.112/28 next-hop 221.55.50.154 description "XYZ_Chemical_Seoul_VPN&Mgmt_1"
+        static-route 221.55.49.232/29 next-hop 221.55.49.66 description "XYZCC-SSLVPN"
+        static-route 221.55.50.8/29 next-hop 59.60.63.70 description "GongyuOffice_IPVC_Internet"
+        static-route 221.55.50.160/29 next-hop 221.55.50.154 description "XYZ_Chemical_Seoul_Internet_1"
+        static-route 221.55.50.168/30 next-hop 221.55.50.154 description "XYZ_Chemical_Seoul_Internet_1"
+        static-route 221.55.50.184/29 next-hop 221.55.50.154 description "XYZChem_AWS_VPN_Test"
+        static-route 221.55.50.192/27 next-hop 221.55.50.154 description "XYZ_Chemical_Seoul_Internet_1"
+        static-route 221.55.50.232/29 next-hop 221.55.51.110 description "Huvis_HQ"
+        static-route 221.55.50.240/30 next-hop 221.55.50.154 description "XYZ_Chemical_Test"
+        static-route 221.55.51.96/30 next-hop 221.55.51.110 description "Huvis_DaeJeon"
+        static-route 221.55.51.100/30 next-hop 221.55.51.110 description "Huvis_DaeGu"
+        static-route 221.55.51.116/30 next-hop 221.55.51.110 description "Huvis_jeonju"
+        static-route 221.55.51.128/28 next-hop 221.55.50.154 description "XYZ_Chemical_Seoul_Internet_1"
+        static-route 221.55.57.64/26 next-hop 59.60.35.108 preference 160 description "XYZ_Lubricants_backup"
+        static-route 221.55.60.0/23 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 221.55.60.0/24 next-hop 221.55.49.66 description "XYZCC-Internet"
+        static-route 221.55.61.0/24 next-hop 221.55.49.66 description "XYZI_Busan_Temp_20210831"
+        static-route 221.55.62.0/24 next-hop 221.55.49.66 description "XYZCC-Internet-0802"
 #--------------------------------------------------
 echo "OSPFv2 Configuration"
 #--------------------------------------------------
@@ -1621,7 +1621,7 @@ echo "OSPFv2 Configuration"
             asbr
             reference-bandwidth 1000000
             export "OSPF_redistribution"
-            area 0.0.0.0
+            area 10.10.0.0
                 interface "system"
                     no shutdown
                 exit
@@ -1758,8 +1758,8 @@ echo "Service Configuration"
         exit
         ies 10 customer 1 create
             interface "p1/1/1" create
-                description "To-SKNet_Pangyo_7750SR_I3"
-                address 210.211.95.82/30
+                description "To-ABC_Seoul_7750SR_I3"
+                address 220.221.95.82/30
                 icmp
                     no mask-reply
                     no redirects
@@ -1772,8 +1772,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/2/10" create
-                description "FSKL&S(ConvergedLogistics)_Internet_Pangyo-HQ_200M"
-                address 49.50.34.41/30
+                description "FXYZL&S(ConvergedLogistics)_Internet_Seoul-HQ_200M"
+                address 59.60.34.41/30
                 icmp
                     no mask-reply
                     no redirects
@@ -1786,8 +1786,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p1/2/4" create
-                description "To-SKNet_Pangyo_7750SR_I_BB4"
-                address 210.211.95.97/30
+                description "To-ABC_Seoul_7750SR_I_BB4"
+                address 220.221.95.97/30
                 icmp
                     no mask-reply
                     no redirects
@@ -1800,9 +1800,9 @@ echo "Service Configuration"
                 exit
             exit
             interface "p1/1/2" create
-                description "To-SKNet_Pangyo_7750SR_I4"
+                description "To-ABC_Seoul_7750SR_I4"
                 enable-ingress-stats
-                address 210.211.95.90/30
+                address 220.221.95.90/30
                 icmp
                     no mask-reply
                     no redirects
@@ -1816,7 +1816,7 @@ echo "Service Configuration"
             exit
             interface "p3/2/13" create
                 description "FastWAN_Shenyang_Poc_20211020"
-                address 49.50.62.161/30
+                address 59.60.62.161/30
                 icmp
                     no mask-reply
                     no redirects
@@ -1829,24 +1829,24 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/2/3" create
-                description "SKInc_PG2F_SD-WAN_Internet_100M_1"
-                address 49.50.62.146/29
+                description "XYZInc_SE2F_SD-WAN_Internet_100M_1"
+                address 59.60.62.146/29
                 icmp
                     no mask-reply
                     no redirects
                     no unreachables
                 exit
                 vrrp 20
-                    backup 49.50.62.145
+                    backup 59.60.62.145
                     priority 110
                     ping-reply
                     traceroute-reply
                 exit
-                vpls "SKInc_PG2F_SD-WAN_Internet_100M_1"
+                vpls "XYZInc_SE2F_SD-WAN_Internet_100M_1"
                 exit
             exit
             interface "p3/2/2" create
-                description "SKNS_Ufit_Internet"
+                description "XYZNS_Ufit_Internet"
                 icmp
                     no mask-reply
                     no redirects
@@ -1861,7 +1861,7 @@ echo "Service Configuration"
             exit
             interface "p4/1/1" create
                 description "To_PeerApp_Cache Server_MGMT"
-                address 182.50.40.1/28
+                address 192.60.40.1/28
                 icmp
                     no mask-reply
                     no redirects
@@ -1874,8 +1874,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/2" create
-                description "SKN_Pangyo2F_Internet_1"
-                address 211.45.33.141/30
+                description "XYZN_Seoul2F_Internet_1"
+                address 221.55.33.141/30
                 icmp
                     no mask-reply
                     no redirects
@@ -1891,8 +1891,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p1/2/3" create
-                description "GongyuOffice_Pangyo_Internet_10G_1"
-                address 49.50.63.69/30
+                description "GongyuOffice_Seoul_Internet_10G_1"
+                address 59.60.63.69/30
                 icmp
                     no mask-reply
                     no redirects
@@ -1905,8 +1905,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/2/23" create
-                description "SkC&C_Pangyo2F_MobileCenter_100M_Internet"
-                address 49.50.35.1/27
+                description "SkC&C_Seoul2F_MobileCenter_100M_Internet"
+                address 59.60.35.1/27
                 icmp
                     no mask-reply
                     no redirects
@@ -1920,8 +1920,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/15" create
-                description "SKSecurities_Co._Internet_1"
-                address 211.45.33.97/28
+                description "XYZSecurities_Co._Internet_1"
+                address 221.55.33.97/28
                 icmp
                     no mask-reply
                     no redirects
@@ -1931,8 +1931,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/3" create
-                description "To-SKNet_Green_7750SR_I_BB1:P3/1/9"
-                address 210.211.95.169/30
+                description "To-ABC_Inchon_7750SR_I_BB1:P3/1/9"
+                address 220.221.95.169/30
                 icmp
                     no mask-reply
                     no redirects
@@ -1945,8 +1945,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/2/21" create
-                description "SKE&S_HQ_Internet_1"
-                address 211.45.33.5/30
+                description "XYZE&S_HQ_Internet_1"
+                address 221.55.33.5/30
                 icmp
                     no mask-reply
                     no redirects
@@ -1959,8 +1959,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/2/15" create
-                description "To_SKHY_PGA_2F_FG500E_1"
-                address 49.50.63.249/30
+                description "To_XYZHY_SEA_2F_FG500E_1"
+                address 59.60.63.249/30
                 icmp
                     no mask-reply
                     no redirects
@@ -1973,8 +1973,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/2/18" create
-                description "SKBP_Newjersey_UTM_internet_SKENS_Houston,Singapore_backup"
-                address 49.50.34.25/29
+                description "XYZBP_Newjersey_UTM_internet_XYZENS_Houston,Singapore_backup"
+                address 59.60.34.25/29
                 icmp
                     no mask-reply
                     no redirects
@@ -1987,8 +1987,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/5" create
-                description "SKEncar_Encar.com-Internet_1G_1"
-                address 211.45.36.113/30
+                description "XYZEncar_Encar.com-Internet_1G_1"
+                address 221.55.36.113/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2002,8 +2002,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p1/1/4" create
-                description "To-SKNet-Pangyo-TMS-1(TMS2800)"
-                address 182.50.32.29/30
+                description "To-ABC-Seoul-TMS-1(TMS2800)"
+                address 192.60.32.29/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2016,8 +2016,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/2/11" create
-                description "To-SKNet-Pangyo-TMS-1_MGMT(TMS2800_and_CP6000-5)"
-                address 182.50.32.33/29
+                description "To-ABC-Seoul-TMS-1_MGMT(TMS2800_and_CP6000-5)"
+                address 192.60.32.33/29
                 icmp
                     no mask-reply
                     no redirects
@@ -2027,8 +2027,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/2/5" create
-                description "SKBP_Internet_Pangyo_500M_1"
-                address 49.50.35.41/30
+                description "XYZBP_Internet_Seoul_500M_1"
+                address 59.60.35.41/30
                 sap 3/2/5 create
                     ingress
                         qos 500
@@ -2037,8 +2037,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/18" create
-                description "SKE&S_PangyoITC2F_E&S_Internet_1G_1"
-                address 211.45.51.145/29
+                description "XYZE&S_SeoulITC2F_E&S_Internet_1G_1"
+                address 221.55.51.145/29
                 icmp
                     no mask-reply
                     no redirects
@@ -2051,8 +2051,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/17" create
-                description "To-KRBD05-BGPS01-6509L3(SKP_Internet_1)"
-                address 49.50.35.49/30
+                description "To-KRBD05-BGPS01-6509L3(XYZP_Internet_1)"
+                address 59.60.35.49/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2065,8 +2065,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p1/2/1" create
-                description "SKNet_PG_DDC2F_Internet_10G_1(DDC2F_BB1:1/1/1)"
-                address 210.211.95.65/30
+                description "ABC_SE_Busan2F_Internet_10G_1(Busan2F_BB1:1/1/1)"
+                address 220.221.95.65/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2079,8 +2079,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/2/19" create
-                description "To-SKNet_Pangyo_7210SAS_HUVIS"
-                address 211.45.51.109/30
+                description "To-ABC_Seoul_7210SAS_HUVIS"
+                address 221.55.51.109/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2093,8 +2093,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/14" create
-                description "To-SKC_Suwon_Internet_1"
-                address 49.50.35.65/30
+                description "To-XYZC_Suwon_Internet_1"
+                address 59.60.35.65/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2108,7 +2108,7 @@ echo "Service Configuration"
             exit
             interface "p3/2/20" create
                 description "Infra_TechLab_100M_Internet"
-                address 49.50.34.105/29
+                address 59.60.34.105/29
                 icmp
                     no mask-reply
                     no redirects
@@ -2122,7 +2122,7 @@ echo "Service Configuration"
             exit
             interface "p3/2/17" create
                 description "Softlayer_BB3_TestServer"
-                address 49.50.34.145/30
+                address 59.60.34.145/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2135,15 +2135,15 @@ echo "Service Configuration"
                 exit
             exit
             interface "p5/1/1" create
-                description "SKI_Pangyo_to_DDC_Internet_10G_1(Backup)"
-                address 49.50.35.106/29
+                description "XYZI_Seoul_to_Busan_Internet_10G_1(Backup)"
+                address 59.60.35.106/29
                 icmp
                     no mask-reply
                     no redirects
                     no unreachables
                 exit
                 vrrp 10
-                    backup 49.50.35.105
+                    backup 59.60.35.105
                     priority 150
                     ping-reply
                     traceroute-reply
@@ -2153,7 +2153,7 @@ echo "Service Configuration"
             exit
             interface "p3/2/1" create
                 description "To_FortiAnalyzer 800F_1"
-                address 49.50.63.9/30
+                address 59.60.63.9/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2167,7 +2167,7 @@ echo "Service Configuration"
             exit
             interface "p3/2/7" create
                 description "KCAR_Capital_1_100M"
-                address 49.50.63.129/29
+                address 59.60.63.129/29
                 icmp
                     no mask-reply
                     no redirects
@@ -2185,8 +2185,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p1/2/2" create
-                description "To-SKNet_Green_7750SR_I_BB1:P1/1/2"
-                address 210.211.95.177/30
+                description "To-ABC_Inchon_7750SR_I_BB1:P1/1/2"
+                address 220.221.95.177/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2199,8 +2199,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/2/8" create
-                description "SKCC_Edge DT_100M_Internet"
-                address 49.50.63.161/30
+                description "XYZCC_Edge DT_100M_Internet"
+                address 59.60.63.161/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2214,8 +2214,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/2/14" create
-                description "Connected to PG2F_Blackhole_R_1"
-                address 211.45.51.161/30
+                description "Connected to SE2F_Blackhole_R_1"
+                address 221.55.51.161/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2229,7 +2229,7 @@ echo "Service Configuration"
             exit
             interface "p3/2/22" create
                 description "Essencore_Internet_200M_PoC"
-                address 49.50.63.89/29
+                address 59.60.63.89/29
                 icmp
                     no mask-reply
                     no redirects
@@ -2244,7 +2244,7 @@ echo "Service Configuration"
             exit
             interface "p3/2/24" create
                 description "UTM_60E_2_WAN1"
-                address 49.50.63.181/30
+                address 59.60.63.181/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2257,8 +2257,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/7" create
-                description "SKHC_PanGyo_100M_Internet_1"
-                address 49.50.62.137/30
+                description "XYZHC_PanGyo_100M_Internet_1"
+                address 59.60.62.137/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2272,7 +2272,7 @@ echo "Service Configuration"
             exit
             interface "p3/1/22" create
                 description "UTM_100E_2_Wan1_KINX_CDC"
-                address 49.50.63.241/30
+                address 59.60.63.241/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2286,14 +2286,14 @@ echo "Service Configuration"
             exit
             interface "p3/1/23" create
                 description "To-FortiGate-1000D_1_Port31"
-                address 49.50.63.226/29
+                address 59.60.63.226/29
                 icmp
                     no mask-reply
                     no redirects
                     no unreachables
                 exit
                 vrrp 10
-                    backup 49.50.63.225
+                    backup 59.60.63.225
                     priority 110
                     ping-reply
                     traceroute-reply
@@ -2302,8 +2302,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/8" create
-                description "Riverbed_CX3070_Pangyo_Internet"
-                address 49.50.63.209/29
+                description "Riverbed_CX3070_Seoul_Internet"
+                address 59.60.63.209/29
                 icmp
                     no mask-reply
                     no redirects
@@ -2316,8 +2316,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p1/1/3" create
-                description "SK C&C Internet #1: Connect to Pangyo3F via MPLS(5G)"
-                address 211.45.49.65/30
+                description "XYZ C&C Internet #1: Connect to Seoul3F via MPLS(5G)"
+                address 221.55.49.65/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2330,8 +2330,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/1" create
-                description "SKI_SAN_MGMT(Brocade)_1"
-                address 61.97.3.217/30
+                description "XYZI_SAN_MGMT(Brocade)_1"
+                address 71.107.3.217/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2345,7 +2345,7 @@ echo "Service Configuration"
             exit
             interface "p3/1/4" create
                 description "ADTCAPS_POC"
-                address 61.97.8.1/30
+                address 71.107.8.1/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2359,7 +2359,7 @@ echo "Service Configuration"
             exit
             interface "p3/1/16" create
                 description "To_Simyang_CMI_SDN_WAN_test_2"
-                address 49.50.62.157/30
+                address 59.60.62.157/30
                 sap 3/1/16 create
                     ingress
                         filter ip 10
@@ -2367,25 +2367,25 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/9" create
-                description "SK E&S_Cloud SD-WAN_Internet_1"
-                address 49.50.62.186/29
+                description "XYZ E&S_Cloud SD-WAN_Internet_1"
+                address 59.60.62.186/29
                 icmp
                     no mask-reply
                     no redirects
                     no unreachables
                 exit
                 vrrp 30
-                    backup 49.50.62.185
+                    backup 59.60.62.185
                     priority 110
                     ping-reply
                     traceroute-reply
                 exit
-                vpls "SK E&S_Cloud SD-WAN_Internet"
+                vpls "XYZ E&S_Cloud SD-WAN_Internet"
                 exit
             exit
             interface "p3/1/10" create
-                description "SKMagic_Internet_PG_SAMIL_500M_1"
-                address 211.45.36.57/30
+                description "XYZMagic_Internet_SE_SAMIL_500M_1"
+                address 221.55.36.57/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2398,8 +2398,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/11" create
-                description "SKChemical_Pangyo_Internet_1"
-                address 211.45.50.153/30
+                description "XYZChemical_Seoul_Internet_1"
+                address 221.55.50.153/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2412,26 +2412,26 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/12-p3/1/20" create
-                description "KCAR_Pangyo_Internet_3_100M"
-                address 49.50.34.241/30
+                description "KCAR_Seoul_Internet_3_100M"
+                address 59.60.34.241/30
                 icmp
                     no mask-reply
                     no redirects
                     no unreachables
                 exit
-                vpls "KCAR_Pangyo_Internet_3_100M"
+                vpls "KCAR_Seoul_Internet_3_100M"
                 exit
             exit
             interface "p3/1/21" create
                 description "Public Untact OnlinePT Internet(u-tower 20F)#1"
-                address 61.97.8.146/28
+                address 71.107.8.146/28
                 icmp
                     no mask-reply
                     no redirects
                     no unreachables
                 exit
                 vrrp 10
-                    backup 61.97.8.145
+                    backup 71.107.8.145
                     priority 110
                     ping-reply
                     traceroute-reply
@@ -2440,8 +2440,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/19" create
-                description "SKRentcar_Internet_PG_SAMIL_500M_1"
-                address 211.45.33.133/30
+                description "XYZRentcar_Internet_SE_SAMIL_500M_1"
+                address 221.55.33.133/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2454,8 +2454,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/2/6" create
-                description "SKT_T2_Internet_1"
-                address 211.45.49.137/30
+                description "XYZT_T2_Internet_1"
+                address 221.55.49.137/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2469,24 +2469,24 @@ echo "Service Configuration"
             exit
             interface "p4/1/9" create
                 description "To-FortiGate-1000D_1_Port22"
-                address 49.50.62.170/29
+                address 59.60.62.170/29
                 icmp
                     no mask-reply
                     no redirects
                     no unreachables
                 exit
                 vrrp 10
-                    backup 49.50.62.169
+                    backup 59.60.62.169
                     priority 110
                     ping-reply
                     traceroute-reply
                 exit
-                vpls "SKI-Global-WAN"
+                vpls "XYZI-Global-WAN"
                 exit
             exit
             interface "p4/1/2" create
-                description "SKB_Internet(Akamai)"
-                address 175.126.68.106/30
+                description "XYZB_Internet(Akamai)"
+                address 185.136.68.106/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2500,8 +2500,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p4/1/22" create
-                description "SKCC_PGA3F_VSP8404_CoLo_1G_1"
-                address 61.97.4.17/30
+                description "XYZCC_SEA3F_VSP8404_CoLo_1G_1"
+                address 71.107.4.17/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2514,8 +2514,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p4/2/20" create
-                description "SKBT_IPSec_MGMT_1"
-                address 211.45.50.81/30
+                description "XYZBT_IPSec_MGMT_1"
+                address 221.55.50.81/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2529,7 +2529,7 @@ echo "Service Configuration"
             exit
             interface "p4/1/3" create
                 description "To_SD_WAN_Nokia"
-                address 49.50.63.77/30
+                address 59.60.63.77/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2542,8 +2542,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p5/1/3" create
-                description "To-SKNet_Pangyo_7750SR_I_BB5"
-                address 210.211.95.53/30
+                description "To-ABC_Seoul_7750SR_I_BB5"
+                address 220.221.95.53/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2556,8 +2556,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/1/6" create
-                description "SKBP_AWS_VPN_Internet_20M_1"
-                address 49.50.35.113/30
+                description "XYZBP_AWS_VPN_Internet_20M_1"
+                address 59.60.35.113/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2570,8 +2570,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p5/1/2" create
-                description "To-SK-Net_Gyowon_7750SR-7_I_BB1_P1/1/2"
-                address 210.211.95.186/30
+                description "To-ABC_Gyowon_7750SR-7_I_BB1_P1/1/2"
+                address 220.221.95.186/30
                 icmp
                     no mask-reply
                     no redirects
@@ -2584,8 +2584,8 @@ echo "Service Configuration"
                 exit
             exit
             interface "p3/2/9" create
-                description "SKShieldus_Internet_1_100M"
-                address 49.50.33.1/25
+                description "XYZShieldus_Internet_1_100M"
+                address 59.60.33.1/25
                 icmp
                     no mask-reply
                     no redirects
@@ -2645,12 +2645,12 @@ echo "Service Configuration"
             no shutdown
         exit
         vpls 4043 customer 1 create
-            description "SKI-Global-WAN"
+            description "XYZI-Global-WAN"
             allow-ip-int-binding
             stp
                 shutdown
             exit
-            service-name "SKI-Global-WAN"
+            service-name "XYZI-Global-WAN"
             sap 3/1/24:1035 create
                 ingress
                     filter ip 10
@@ -2667,12 +2667,12 @@ echo "Service Configuration"
             no shutdown
         exit
         vpls 4059 customer 1 create
-            description "SKInc_PG2F_SD-WAN_Internet_100M_1"
+            description "XYZInc_SE2F_SD-WAN_Internet_100M_1"
             allow-ip-int-binding
             stp
                 shutdown
             exit
-            service-name "SKInc_PG2F_SD-WAN_Internet_100M_1"
+            service-name "XYZInc_SE2F_SD-WAN_Internet_100M_1"
             sap 3/1/24:1039 create
             exit
             sap 3/2/3 create
@@ -2684,12 +2684,12 @@ echo "Service Configuration"
             no shutdown
         exit
         vpls 4063 customer 1 create
-            description "SK E&S_Cloud SD-WAN_Internet"
+            description "XYZ E&S_Cloud SD-WAN_Internet"
             allow-ip-int-binding
             stp
                 shutdown
             exit
-            service-name "SK E&S_Cloud SD-WAN_Internet"
+            service-name "XYZ E&S_Cloud SD-WAN_Internet"
             sap 3/1/9 create
                 ingress
                     filter ip 10
@@ -2700,12 +2700,12 @@ echo "Service Configuration"
             no shutdown
         exit
         vpls 4065 customer 1 create
-            description "KCAR_Pangyo_Internet_3_100M"
+            description "KCAR_Seoul_Internet_3_100M"
             allow-ip-int-binding
             stp
                 shutdown
             exit
-            service-name "KCAR_Pangyo_Internet_3_100M"
+            service-name "KCAR_Seoul_Internet_3_100M"
             sap 3/1/12 create
                 ingress
                     qos 100
@@ -2750,7 +2750,7 @@ echo "Router (Service Side) Configuration"
 echo "OSPFv2 Configuration"
 #--------------------------------------------------
         ospf
-            area 0.0.0.0
+            area 10.10.0.0
                 interface "p1/1/1"
                     interface-type point-to-point
                     no shutdown
@@ -2808,16 +2808,16 @@ echo "Policy Configuration"
 #--------------------------------------------------
         policy-options
             begin
-            prefix-list "SK_Planet"
-                prefix 103.214.24.0/22 longer
-                prefix 144.48.40.0/22 longer
-                prefix 203.235.204.0/24 longer
-                prefix 203.235.206.0/24 longer
+            prefix-list "XYZ_Planet"
+                prefix 113.224.24.0/22 longer
+                prefix 154.58.40.0/22 longer
+                prefix 213.245.204.0/24 longer
+                prefix 213.245.206.0/24 longer
             exit
             prefix-list "default_route"
-                prefix 0.0.0.0/0 exact
+                prefix 10.10.0.0/0 exact
             exit
-            policy-statement "out_eBGP_SKN"
+            policy-statement "out_eBGP_XYZN"
                 entry 10
                     from
                         prefix-list "default_route"
@@ -2827,11 +2827,11 @@ echo "Policy Configuration"
                 exit
                 default-action reject
             exit
-            policy-statement "in_eBGP_SK_Planet"
+            policy-statement "in_eBGP_XYZ_Planet"
                 entry 10
                     from
                         protocol bgp
-                        prefix-list "SK_Planet"
+                        prefix-list "XYZ_Planet"
                     exit
                     action accept
                     exit
@@ -2842,7 +2842,7 @@ echo "Policy Configuration"
                 entry 100
                     from
                         protocol bgp
-                        neighbor 211.45.33.142
+                        neighbor 221.55.33.142
                     exit
                     action accept
                         next-hop-self
@@ -2856,7 +2856,7 @@ echo "Policy Configuration"
                     exit
                 exit
             exit
-            policy-statement "out_eBGP_SK_Planet"
+            policy-statement "out_eBGP_XYZ_Planet"
                 entry 10
                     from
                         prefix-list "default_route"
@@ -2899,57 +2899,57 @@ echo "BGP Configuration"
             damping
             multipath 16
             group "eBGP"
-                neighbor 211.45.33.142
-                    export "out_eBGP_SKN" 
+                neighbor 221.55.33.142
+                    export "out_eBGP_XYZN" 
                     peer-as 17570
                 exit
             exit
             group "iBGP"
                 export "iBGP_next-hop-self" 
                 peer-as 10049
-                neighbor 210.211.95.235
-                    description "To-SKNet_Pangyo_7750SR_I_BB4"
+                neighbor 220.221.95.235
+                    description "To-ABC_Seoul_7750SR_I_BB4"
                 exit
-                neighbor 210.211.95.236
-                    description "To-SKNet_Pangyo_7750SR_I3"
+                neighbor 220.221.95.236
+                    description "To-ABC_Seoul_7750SR_I3"
                 exit
-                neighbor 210.211.95.237
-                    description "To-SKNet_Pangyo_7750SR_I4"
+                neighbor 220.221.95.237
+                    description "To-ABC_Seoul_7750SR_I4"
                 exit
             exit
             group "iBGP-RRc"
-                cluster 210.211.95.234
+                cluster 220.221.95.234
                 export "iBGP_next-hop-self" 
                 peer-as 10049
-                neighbor 210.211.95.225
-                    description "To-SKNet_DDC2F_7750SR_I_BB1"
+                neighbor 220.221.95.225
+                    description "To-ABC_Busan2F_7750SR_I_BB1"
                 exit
-                neighbor 210.211.95.226
-                    description "To-SKNet_DDC2F_7750SR_I_BB2"
+                neighbor 220.221.95.226
+                    description "To-ABC_Busan2F_7750SR_I_BB2"
                 exit
-                neighbor 210.211.95.230
-                    description "To-SKNet_Pangyo_7750SR_I_BB5"
+                neighbor 220.221.95.230
+                    description "To-ABC_Seoul_7750SR_I_BB5"
                 exit
-                neighbor 210.211.95.231
-                    description "To-SKNet_Pangyo_7750SR_I_BB6"
+                neighbor 220.221.95.231
+                    description "To-ABC_Seoul_7750SR_I_BB6"
                 exit
-                neighbor 211.45.48.230
-                    description "To-SKNet_Green_7750SR_I_BB1"
+                neighbor 221.55.48.230
+                    description "To-ABC_Inchon_7750SR_I_BB1"
                 exit
-                neighbor 211.45.48.231
-                    description "To-SKNet_Green_7750SR_I_BB2"
+                neighbor 221.55.48.231
+                    description "To-ABC_Inchon_7750SR_I_BB2"
                 exit
-                neighbor 211.45.48.232
-                    description "To-SKNet_PG2F_Blackhole_R_1"
+                neighbor 221.55.48.232
+                    description "To-ABC_SE2F_Blackhole_R_1"
                 exit
-                neighbor 211.45.48.233
-                    description "To-SKNet_PG2F_Blackhole_R_2"
+                neighbor 221.55.48.233
+                    description "To-ABC_SE2F_Blackhole_R_2"
                 exit
-                neighbor 211.45.48.234
-                    description "To-SK-Net_Gyowon_7750SR-7_I_BB1"
+                neighbor 221.55.48.234
+                    description "To-ABC_Gyowon_7750SR-7_I_BB1"
                 exit
-                neighbor 211.45.48.235
-                    description "To-SK-Net_Gyowon_7750SR-7_I_BB2"
+                neighbor 221.55.48.235
+                    description "To-ABC_Gyowon_7750SR-7_I_BB2"
                 exit
             exit
             no shutdown

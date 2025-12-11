@@ -1,36 +1,42 @@
-# Task: Nokia Config Visualizer (Stage 1)
+# Task: Nokia Config Visualizer (단계 1)
 
-## Stage 1: Single Config Visualization
-- [x] Project Initialization
-    - [x] Create `implementation_plan.md`
-    - [x] Initialize Vite + React project
-    - [x] Install dependencies (mermaid, etc.)
-- [x] Core Logic Implementation
-    - [x] Design Data Model for functionality (Device, Interface, Port, Link)
-    - [x] Implement Nokia Config Parser (Text -> JSON)
-    - [x] Implement Mermaid Diagram Generator (JSON -> Mermaid Code)
-- [x] UI Development
-    - [x] Create File Upload Component
-    - [x] Create Interface Selection Component
-    - [x] Create Diagram Viewer Component
-    - [x] Apply Premium Design (CSS)
-- [x] Verification
-    - [x] Create dummy Nokia config for testing
-    - [x] Verify parsing logic
-    - [x] Verify diagram generation
-    - [x] User Review
-- [x] Bug Fixes
-    - [x] Fix Parser Duplication (OSPF/MPLS references)
-- [x] Debugging
-    - [x] Fix Regression: "No interfaces found" after parser update
-    - [x] Fix Unwanted Duplicate: Protocol context robustness
-- [x] Refinement
-    - [x] Deduplicate Interfaces (Merge attributes)
-    - [x] Sort Interface List (Natural sort)
-- [x] Enhancements
-    - [x] Fix Hostname "Unknown" Issue
-    - [x] Parse Static Routes
-    - [x] Update Diagram Labels (Port, QoS, SvcID, StaticRoute)
-    - [x] Infer/Display Remote Info
-- [x] Deployment
-    - [x] Upload to GitHub
+## 단계 1: 단일 설정 시각화
+- [x] 프로젝트 초기화
+    - [x] `implementation_plan.md` 생성
+    - [x] Vite + React 프로젝트 초기화
+    - [x] 의존성 설치 (mermaid 등)
+- [x] 핵심 로직 구현
+    - [x] 기능 구현을 위한 데이터 모델 설계 (장비, 인터페이스, 포트, 링크)
+    - [x] Nokia 설정 파서 구현 (Text -> JSON)
+    - [x] Mermaid 다이어그램 생성기 구현 (JSON -> Mermaid Code)
+- [x] UI 개발
+    - [x] 파일 업로드 컴포넌트 생성
+    - [x] 인터페이스 선택 컴포넌트 생성
+    - [x] 다이어그램 뷰어 컴포넌트 생성
+    - [x] 프리미엄 디자인 적용 (CSS)
+- [x] 검증
+    - [x] 테스트용 더미 Nokia 설정 생성
+    - [x] 파싱 로직 검증
+    - [x] 다이어그램 생성 검증
+    - [x] 사용자 리뷰
+- [x] 버그 수정
+    - [x] 파서 중복 문제 수정 (OSPF/MPLS 참조)
+- [x] 디버깅
+    - [x] 회귀 문제 수정: 파서 업데이트 후 "인터페이스 없음" 오류
+    - [x] 불필요한 중복 수정: 프로토콜 컨텍스트 견고성 확보
+- [x] 개선
+    - [x] 인터페이스 중복 제거 (속성 병합)
+    - [x] 인터페이스 목록 정렬 (자연 정렬)
+- [x] 기능 강화
+    - [x] 호스트네임 "Unknown" 문제 해결
+    - [x] 정적 경로(Static Routes) 파싱
+    - [x] 다이어그램 라벨 업데이트 (Port, QoS, SvcID, StaticRoute)
+    - [x] 원격 정보 추론/표시
+- [x] 배포
+    - [x] GitHub 업로드
+
+## UI 재설계 (Stage 1.5)
+- [x] 헤더 영역 파일 업로드 기능 구현
+- [x] 왼쪽 사이드바 인터페이스 목록 전용화
+- [x] 사이드바 크기 조절 (Resizable) 구현
+- [x] 사이드바 접기/펼치기 (Collapsible) 구현

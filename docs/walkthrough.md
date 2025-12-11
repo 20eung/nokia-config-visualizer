@@ -1,57 +1,74 @@
-# Walkthrough - Nokia Config Visualizer (Stage 1)
+# 워크스루 - Nokia Config Visualizer (단계 1)
 
-## Overview
-I have successfully implemented the first stage of the Nokia Config Visualizer. The application allows users to upload a Nokia configuration file, select specific interfaces, and visualize the network topology using a dynamic Mermaid diagram.
+## 개요
+Nokia Config Visualizer의 첫 번째 단계를 성공적으로 구현했습니다. 이 애플리케이션은 사용자가 Nokia 설정 파일을 업로드하고, 특정 인터페이스를 선택하여 네트워크 토폴로지를 동적 Mermaid 다이어그램으로 시각화할 수 있게 해줍니다.
 
-## Features Implemented
-1.  **Configuration Parsing**:
-    -   Parses `hostname`, `ports`, `interfaces`, `IP addresses`, `QoS`, and `Services` (VPRN).
-    -   Infers neighbor devices from interface/port descriptions (e.g., "To-RouterB" -> Node "RouterB").
+## 구현된 기능
+1.  **설정 파싱 (Configuration Parsing)**:
+    -   `hostname`, `ports`, `interfaces`, `IP addresses`, `QoS`, `Services` (VPRN) 파싱.
+    -   인터페이스/포트 설명을 기반으로 인접 장비 추론 (예: "To-RouterB" -> Node "RouterB").
 
-2.  **Interactive UI**:
-    -   **File Upload**: Drag & drop or paste text.
-    -   **Interface Selection**: Checkbox list with "Select All" / "Clear All".
-    -   **Diagram Viewer**: Real-time rendering of the network graph.
+2.  **대화형 UI (Interactive UI)**:
+    -   **파일 업로드**: 드래그 앤 드롭 또는 텍스트 붙여넣기.
+    -   **인터페이스 선택**: "모두 선택" / "모두 해제"가 포함된 체크박스 목록.
+    -   **다이어그램 뷰어**: 네트워크 그래프 실시간 렌더링.
 
-3.  **Visualization**:
-    -   Central node represents the uploaded device.
-    -   Connected nodes represent neighbor devices.
-    -   Links are labeled with Interface Name, Port, IP, QoS, etc.
+3.  **시각화 (Visualization)**:
+    -   중앙 노드는 업로드된 장비를 나타냄.
+    -   연결된 노드는 인접 장비를 나타냄.
+    -   링크에는 인터페이스 이름, 포트, IP, QoS 등의 라벨이 표시됨.
 
-## Verification Results
+## 검증 결과
 
-### Test Scenario
-1.  **Input**: A dummy configuration mimicking a Nokia 7750 SR router (`SK-NET-BB3`) with 3 interfaces (`system`, `to-router-b`, `uplink`) and 1 service interface (`vprn-int-1`).
-2.  **Action**: Pasted config, selected all interfaces, then toggled "to-router-b".
+### 테스트 시나리오
+1.  **입력**: 3개의 인터페이스(`system`, `to-router-b`, `uplink`)와 1개의 서비스 인터페이스(`vprn-int-1`)를 가진 Nokia 7750 SR 라우터(`SK-NET-BB3`)를 모방한 더미 설정.
+2.  **동작**: 설정 붙여넣기, 모든 인터페이스 선택, 그 후 "to-router-b" 토글.
 
-### Screenshot
-The following screenshot shows the application running locally. The diagram reflects the selected interfaces.
+### 스크린샷
+다음 스크린샷은 로컬에서 실행 중인 애플리케이션을 보여줍니다. 다이어그램은 선택된 인터페이스를 반영합니다.
 
 ![Application Screenshot](/Users/a04258/.gemini/antigravity/brain/666e0733-491c-4000-8551-ee87be43424e/diagram_after_toggle_1765336996519.png)
 
-## Bug Fixes (v1.1)
-- **Duplicate Interface Bug**: Fixed an issue where interfaces referenced inside protocol blocks (e.g., OSPF, MPLS) were incorrectly parsed as new interface definitions. This included enhancing protocol context detection to support single-word commands (like `mpls`).
-- **Snippet Support**: Fixed a regression where top-level interface definitions (without `router` context) were being ignored. The parser now supports both snippets and full configs.
+## 버그 수정 (v1.1)
+- **인터페이스 중복 버그**: 프로토콜 블록(예: OSPF, MPLS) 내에서 참조된 인터페이스가 새로운 인터페이스 정의로 잘못 파싱되는 문제를 수정했습니다. 단일 단어 명령어(예: `mpls`)를 지원하도록 프로토콜 컨텍스트 감지를 강화했습니다.
+- **스니펫 지원**: `router` 컨텍스트 없는 최상위 인터페이스 정의가 무시되는 회귀 문제를 수정했습니다. 파서는 이제 스니펫과 전체 설정을 모두 지원합니다.
 
 ![Final Verification](/Users/a04258/.gemini/antigravity/brain/666e0733-491c-4000-8551-ee87be43424e/verify_final_fix_1765338269691.png)
+![UI Verification Recording](/Users/20eung/.gemini/antigravity/brain/3ffe7761-537c-4584-a0b7-675b0069b78c/ui_verification_layout_1765454502183.webp)
 
-## UI/Parser Refinements (v1.2)
-- **Interface Deduplication**: Implemented logic to merge duplicate interface entries. If an interface is defined multiple times (e.g., once with details and once as a reference), the parser now combines them into a single entry, preserving IP and Description.
-- **Natural Sorting**: The interface list is now sorted alphanumerically (e.g., p3/2/2 comes before p3/2/10), making it easier to find specific interfaces.
+### 디자인 복원 (Design Restoration)
+사용자 피드백을 반영하여 인터페이스 목록의 디자인을 기존 "프리미엄" 스타일로 복원했습니다.
+- **스타일 복원**: 체크박스, 폰트, 태그, 선택 효과(파란색 테두리)를 기존과 동일하게 적용.
+- **기능 유지**: 헤더 업로드, 사이드바 리사이징 및 접기/펼치기 기능은 그대로 유지됨을 확인했습니다.
+
+### 버그 수정 검증: 인터페이스 목록 스크롤
+- **문제**: 인터페이스 목록이 길어질 경우 스크롤이 되지 않는 문제 발생.
+- **해결**: CSS Flexbox 컨테이너의 `min-height: 0` 및 `overflow` 속성 수정을 통해 해결.
+- **검증**: 다수의 인터페이스가 있는 설정을 로드하여 스크롤 작동 여부를 브라우저 테스트로 확인했습니다. (결과: Scrollable: true)
+
+### 최종 검증 (Standardized Testing)
+- **테스트 파일**: `docs/config.txt`
+- **결과**: 표준 테스트 파일(`docs/config.txt`)을 사용하여 UI 레이아웃, 디자인 복원, 스크롤 기능이 모두 정상 작동함을 최종 확인했습니다.
+
+
+
+## UI/파서 개선 (v1.2)
+- **인터페이스 중복 제거**: 중복된 인터페이스 항목을 병합하는 로직을 구현했습니다. 인터페이스가 여러 번 정의된 경우(예: 한 번은 세부 정보와 함께, 한 번은 참조로), 파서는 이제 IP와 설명을 보존하면서 이를 단일 항목으로 결합합니다.
+- **자연 정렬**: 인터페이스 목록이 이제 영숫자순으로 정렬되어(예: p3/2/2가 p3/2/10보다 앞에 옴) 특정 인터페이스를 찾기 쉬워졌습니다.
 
 ![Refinement Verification](/Users/a04258/.gemini/antigravity/brain/666e0733-491c-4000-8551-ee87be43424e/verify_features_final_1765339903396.png)
 
-## Diagram Information Enhancements (v1.3)
-- **Hostname**: Fixed "Unknown" hostname issue by making parser more robust to different config contexts.
-- **Detailed Labels**: Edge labels now include:
-    - **Port**: Displayed at the top (e.g., `Port: 1/1/1`).
-    - **Interface**: Name of the interface.
-    - **IP**: Local IP address.
-    - **QoS**: QoS Policy ID (if present).
-    - **Service ID**: Service ID (e.g., VPRN/IES ID).
-    - **Static Routes**: Displays static routes (Destination prefix + Next Hop) that are reachable via the interface's subnet.
-- **Remote Info**: Target Node IP is inferred from static route next-hops if they match the interface subnet. (Assumes standard point-to-point addressing).
+## 다이어그램 정보 강화 (v1.3)
+- **호스트네임**: 다양한 설정 컨텍스트에 대해 파서를 더 견고하게 만들어 "Unknown" 호스트네임 문제를 해결했습니다.
+- **상세 라벨**: 엣지 라벨에 다음 정보가 포함됩니다:
+    -   **Port**: 상단에 표시 (예: `Port: 1/1/1`).
+    -   **Interface**: 인터페이스 이름.
+    -   **IP**: 로컬 IP 주소.
+    -   **QoS**: QoS 정책 ID (있는 경우).
+    -   **Service ID**: 서비스 ID (예: VPRN/IES ID).
+    -   **Static Routes**: 해당 인터페이스의 서브넷을 통해 도달 가능한 정적 경로(목적지 프리픽스 + 넥스트 홉)를 표시.
+- **원격 정보**: 정적 경로 넥스트 홉이 인터페이스 서브넷과 일치하는 경우 타겟 노드 IP를 추론합니다. (표준 점대점 주소 지정 가정).
 
-## Next Steps
--   **Stage 2**: Implement comparison of two config files (Redundancy visualization).
--   **Stage 3**: End-to-end path visualization across multiple configs.
+## 다음 단계
+-   **단계 2**: 두 설정 파일 비교 구현 (이중화 시각화).
+-   **단계 3**: 다중 설정을 통한 엔드투엔드 경로 시각화.

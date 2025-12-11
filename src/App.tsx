@@ -2,15 +2,47 @@ import { useState, useMemo } from 'react';
 import { parseNokiaConfig } from './utils/nokiaParser';
 import { generateMermaidDiagram } from './utils/mermaidGenerator';
 import type { NokiaDevice } from './types';
+import { useRef, useCallback, useEffect } from 'react';
 import { FileUpload } from './components/FileUpload';
 import { InterfaceList } from './components/InterfaceList';
 import { DiagramViewer } from './components/DiagramViewer';
-import { Layout } from 'lucide-react';
+import { Layout, Menu } from 'lucide-react';
 import './App.css';
 
 function App() {
   const [device, setDevice] = useState<NokiaDevice | null>(null);
   const [selectedInterfaces, setSelectedInterfaces] = useState<string[]>([]);
+
+  // Layout State
+  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Resizing Logic
+  const startResizing = useCallback(() => setIsResizing(true), []);
+  const stopResizing = useCallback(() => setIsResizing(false), []);
+
+  const resize = useCallback(
+    (mouseMoveEvent: MouseEvent) => {
+      if (isResizing && sidebarRef.current) {
+        const newWidth = mouseMoveEvent.clientX - sidebarRef.current.getBoundingClientRect().left;
+        if (newWidth > 200 && newWidth < 600) {
+          setSidebarWidth(newWidth);
+        }
+      }
+    },
+    [isResizing]
+  );
+
+  useEffect(() => {
+    window.addEventListener('mousemove', resize);
+    window.addEventListener('mouseup', stopResizing);
+    return () => {
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResizing);
+    };
+  }, [resize, stopResizing]);
 
   const handleConfigLoaded = (text: string) => {
     try {
@@ -47,22 +79,33 @@ function App() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <div className="logo">
-          <Layout className="icon" />
-          <h1>Nokia Config Visualizer</h1>
+        <div className="header-left">
+          <button
+            className="icon-btn"
+            onClick={() => setSidebarOpen(!isSidebarOpen)}
+            title="Toggle Sidebar"
+          >
+            <Menu size={20} />
+          </button>
+          <div className="logo">
+            <Layout className="icon" />
+            <h1>Nokia Config Visualizer</h1>
+          </div>
         </div>
-        <p>Upload a config file to generate network topology diagrams.</p>
+
+        <div className="header-right">
+          <FileUpload onConfigLoaded={handleConfigLoaded} variant="header" />
+        </div>
       </header>
 
-      <main className="app-main">
-        <aside className="sidebar">
-          <div className="card">
-            <h2>Configuration</h2>
-            <FileUpload onConfigLoaded={handleConfigLoaded} />
-          </div>
-
-          {device && (
-            <div className="card list-card">
+      <main className="app-main" onMouseUp={stopResizing}>
+        <aside
+          ref={sidebarRef}
+          className={`sidebar ${!isSidebarOpen ? 'collapsed' : ''}`}
+          style={{ width: isSidebarOpen ? sidebarWidth : 0 }}
+        >
+          <div className="sidebar-content">
+            {device ? (
               <InterfaceList
                 interfaces={device.interfaces}
                 selectedNames={selectedInterfaces}
@@ -70,9 +113,19 @@ function App() {
                 onSelectAll={handleSelectAll}
                 onClearAll={handleClearAll}
               />
-            </div>
-          )}
+            ) : (
+              <div className="empty-sidebar">
+                <p>Upload a config file to see interfaces.</p>
+              </div>
+            )}
+          </div>
         </aside>
+
+        <div
+          className={`resizer ${isResizing ? 'resizing' : ''}`}
+          onMouseDown={startResizing}
+          style={{ display: isSidebarOpen ? 'block' : 'none' }}
+        />
 
         <section className="content">
           {device ? (
