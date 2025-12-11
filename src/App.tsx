@@ -44,6 +44,26 @@ function App() {
     };
   }, [resize, stopResizing]);
 
+  // Auto-load test config in beta environment
+  useEffect(() => {
+    const isBetaEnvironment = window.location.hostname.includes('beta');
+
+    if (isBetaEnvironment && !device) {
+      fetch('/docs/config.txt')
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to load test config');
+          return response.text();
+        })
+        .then(text => {
+          handleConfigLoaded(text);
+          console.log('✅ Beta environment: Auto-loaded docs/config.txt');
+        })
+        .catch(error => {
+          console.warn('⚠️ Beta environment: Could not auto-load config:', error);
+        });
+    }
+  }, []); // Run once on mount
+
   const handleConfigLoaded = (text: string) => {
     try {
       const parsedDevice = parseNokiaConfig(text);
