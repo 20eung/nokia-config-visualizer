@@ -150,28 +150,47 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto; /* Changed from hidden to auto */
   background: var(--bg-color);
   padding: 1rem;
 }
 
-/* Interface List Overrides */
-.interface-list-container {
+/* Multi-Diagram Support */
+.diagram-canvas {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  border-radius: 0;
-  /* Remove radius for sidebar usage */
-  border: none;
-  min-height: 0;
-  /* Important for nested flex scrolling */
+  gap: 2rem;
+  padding: 1rem;
+  overflow-y: auto; /* Added for internal scrolling if needed */
 }
 
-/* Diagram Viewer Overrides */
-.diagram-viewer {
-  box-shadow: none;
-  /* simplified look */
+.diagram-item {
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
 }
+
+.diagram-header {
+  background: #f9fafb;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.diagram-header h3 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.diagram-content {
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 
 /* File Upload - Header Variant */
 .file-upload-header {

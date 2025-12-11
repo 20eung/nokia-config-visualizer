@@ -91,8 +91,8 @@ function App() {
     setSelectedInterfaces([]);
   };
 
-  const mermaidCode = useMemo(() => {
-    if (!device) return '';
+  const diagrams = useMemo(() => {
+    if (!device) return [];
     return generateMermaidDiagram(device, selectedInterfaces);
   }, [device, selectedInterfaces]);
 
@@ -149,7 +149,7 @@ function App() {
 
         <section className="content">
           {device ? (
-            <DiagramViewer chart={mermaidCode} />
+            <DiagramViewer diagrams={diagrams} />
           ) : (
             <div className="empty-state">
               <h3>No Configuration Loaded</h3>

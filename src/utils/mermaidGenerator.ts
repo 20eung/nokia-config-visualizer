@@ -1,12 +1,19 @@
 import type { NokiaDevice, NokiaInterface } from '../types';
 
-export const generateMermaidDiagram = (device: NokiaDevice, selectedInterfaces: string[]): string => {
-  const relevantInterfaces = device.interfaces.filter((i) => selectedInterfaces.includes(i.name));
+export const generateMermaidDiagram = (
+  device: NokiaDevice,
+  selectedInterfaces: string[]
+): Array<{ name: string; code: string; description: string }> => {
+  const relevantInterfaces = device.interfaces.filter((i) =>
+    selectedInterfaces.includes(i.name)
+  );
 
   // Generate a diagram for each selected interface
-  const diagrams = relevantInterfaces.map((intf) => generateSingleInterfaceDiagram(device, intf));
-
-  return diagrams.join('\n\n');
+  return relevantInterfaces.map((intf) => ({
+    name: intf.name,
+    code: generateSingleInterfaceDiagram(device, intf),
+    description: intf.portDescription || '',
+  }));
 };
 
 function generateSingleInterfaceDiagram(device: NokiaDevice, intf: NokiaInterface): string {
