@@ -150,7 +150,8 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto; /* Changed from hidden to auto */
+  overflow-y: auto;
+  /* Changed from hidden to auto */
   background: var(--bg-color);
   padding: 1rem;
 }
@@ -161,7 +162,8 @@ body {
   flex-direction: column;
   gap: 2rem;
   padding: 1rem;
-  overflow-y: auto; /* Added for internal scrolling if needed */
+  overflow-y: auto;
+  /* Added for internal scrolling if needed */
 }
 
 .diagram-item {
@@ -191,6 +193,12 @@ body {
   align-items: center;
 }
 
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
 /* File Upload - Header Variant */
 .file-upload-header {
@@ -252,7 +260,8 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 0; /* Crucial for nested flexbox scrolling */
+  min-height: 0;
+  /* Crucial for nested flexbox scrolling */
 }
 
 /* === INTERFACE LIST SEARCH === */
@@ -273,7 +282,8 @@ body {
 
 .search-input {
   width: 100%;
-  padding: 0.5rem 0.75rem 0.5rem 2.25rem; /* Left padding for icon */
+  padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+  /* Left padding for icon */
   border: 1px solid var(--border-color);
   border-radius: 0.375rem;
   background-color: var(--card-bg);
@@ -303,6 +313,7 @@ body {
   justify-content: space-between;
   align-items: center;
 }
+
 /* ... rest of existing styles ... */
 
 .list-header .title {
@@ -429,4 +440,41 @@ body {
 .tag.svc {
   background: #f3e8ff;
   color: #7e22ce;
+}
+
+/* === CONFIG SELECTOR (DEMO MODE) === */
+.config-selector {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  width: 14rem;
+  /* 56 in tailwind scale equivalent */
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-color);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text-main);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-color);
 }

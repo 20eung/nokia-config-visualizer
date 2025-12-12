@@ -4,6 +4,7 @@ import { generateMermaidDiagram } from './utils/mermaidGenerator';
 import type { NokiaDevice } from './types';
 import { useRef, useCallback, useEffect } from 'react';
 import { FileUpload } from './components/FileUpload';
+import { ConfigSelector } from './components/ConfigSelector';
 import { InterfaceList } from './components/InterfaceList';
 import { DiagramViewer } from './components/DiagramViewer';
 import { Layout, Menu } from 'lucide-react';
@@ -110,6 +111,9 @@ function App() {
         </div>
 
         <div className="header-right">
+          {window.location.hostname.includes('beta') && (
+            <ConfigSelector onConfigLoaded={handleConfigLoaded} />
+          )}
           <FileUpload onConfigLoaded={handleConfigLoaded} variant="header" />
         </div>
       </header>

@@ -1,0 +1,3161 @@
+A:AINet_NewYork_7750SR_I_BB4# admin display-config 
+# TiMOS-C-20.10.R13 cpm/hops64 Nokia 7750 SR Copyright (c) 2000-2022 Nokia.
+# All rights reserved. All use subject to applicable license agreements.
+# Built on Thu Dec 1 16:54:41 PST 2022 by builder in /builds/c/2010B/R13/panos/main/sros
+# Configuration format version 20.10 revision 0
+
+# Generated FRI DEC 12 04:18:09 2025 UTC
+
+exit all
+configure
+#--------------------------------------------------
+echo "System Configuration"
+#--------------------------------------------------
+    system
+        name "AINet_NewYork_7750SR_I_BB4"
+        location "NewYork_ITC_2F_B"
+        power-supply 1 ac multiple
+        power-supply 2 ac multiple
+        load-balancing
+            l4-load-balancing
+            system-ip-load-balancing
+        exit
+        rollback
+            rollback-location "cf3:\rollback\rollback"
+        exit
+        snmp
+            streaming
+                no shutdown
+            exit
+            packet-size 9216
+        exit
+        time
+            ntp
+                no shutdown
+            exit
+            sntp
+                shutdown
+            exit
+            zone KST 09
+        exit
+    exit
+#--------------------------------------------------
+echo "Filter Match lists Configuration"
+#--------------------------------------------------
+    filter
+        match-list
+            ip-prefix-list "AIN_Filter_Deny" create
+                prefix 82.83.77.0/24
+                prefix 91.249.165.0/24
+            exit
+            ip-prefix-list "AIN_Filter_Permit" create
+                prefix 205.236.220.0/22
+                prefix 212.212.95.234/32
+                prefix 212.212.95.235/32
+                prefix 213.46.33.140/30
+                prefix 213.46.33.144/30
+            exit
+        exit
+    exit
+#--------------------------------------------------
+echo "System Security Configuration"
+#--------------------------------------------------
+    system
+        security
+            telnet-server
+            management-access-filter
+                ip-filter
+                    shutdown
+                    default-action permit
+                    entry 36          
+                        description "permit_SNMP"
+                        src-ip 205.236.222.0/26
+                        protocol udp
+                        dst-port 161 65535
+                        action permit
+                    exit
+                    entry 37
+                        description "permit_SNMP"
+                        src-ip 205.236.222.64/26
+                        protocol udp
+                        dst-port 161 65535
+                        action permit
+                    exit
+                    entry 38
+                        description "permit_SNMP"
+                        src-ip 205.236.222.128/26
+                        protocol udp
+                        dst-port 161 65535
+                        action permit
+                    exit
+                    entry 39
+                        description "permit_SNMP"
+                        src-ip 205.236.222.192/26
+                        protocol udp
+                        dst-port 161 65535
+                        action permit
+                    exit
+                    entry 40
+                        description "permit_SNMP"
+                        src-ip 5.37.27.212/32
+                        protocol udp
+                        dst-port 161 65535
+                        action permit
+                    exit
+                    entry 6000
+                        description "permit_SSH_Telnet"
+                        src-ip 205.236.222.0/26
+                        protocol tcp
+                        dst-port 22 65534
+                        action permit
+                    exit
+                    entry 6001
+                        description "permit_SSH_Telnet"
+                        src-ip 205.236.222.64/26
+                        protocol tcp
+                        dst-port 22 65534
+                        action permit
+                    exit
+                    entry 6002
+                        description "permit_SSH_Telnet"
+                        src-ip 205.236.222.128/26
+                        protocol tcp
+                        dst-port 22 65534
+                        action permit
+                    exit
+                    entry 6003
+                        description "permit_SSH_Telnet"
+                        src-ip 205.236.222.192/26
+                        protocol tcp
+                        dst-port 22 65534
+                        action permit
+                    exit
+                    entry 9000
+                        description "deny_Telnet"
+                        protocol tcp
+                        dst-port 23 65535
+                        action deny
+                    exit
+                    entry 9001        
+                        description "deny_SNMP"
+                        protocol udp
+                        dst-port 161 65535
+                        action deny
+                    exit
+                    entry 9002
+                        description "deny_SNMP_TRAP"
+                        protocol udp
+                        dst-port 162 65535
+                        action deny
+                    exit
+                    entry 9003
+                        description "deny_SSH"
+                        protocol tcp
+                        dst-port 22 65535
+                        action deny
+                    exit
+                    entry 9004
+                        description "deny_FTP"
+                        protocol tcp
+                        dst-port 20 65534
+                        action deny
+                    exit              
+                    entry 9006
+                        description "deny_TFTP"
+                        protocol udp
+                        dst-port 69 65535
+                        action deny
+                    exit
+                    no shutdown
+                exit
+            exit
+            password
+                authentication-order tacplus local exit-on-reject
+            exit
+            tacplus
+                accounting
+                authorization
+                server 1 address 205.236.222.9 secret "1E17YPLrq2+mv2JuCdm3kdlh0Pk=" hash2
+                server 2 address 205.236.222.137 secret "1E17YPLrq2+mv2JuCdm3kRdqZl8=" hash2
+            exit
+            no user "admin"
+            user "skcc"
+                password "$2y$10$G4fi64h91rKH56SDXbQ4M.ooXiNk5Grwtjk9iHj6n0sDfJqaQFIIW"
+                access console snmp
+                console               
+                    no member "default"
+                    member "administrative"
+                exit
+                snmp
+                    authentication hash2 sha t3Wx+myiLLGKfFx5hlcNYMx5n5aGpXiRs4+O4Pw9+nRwhYZJ privacy none
+                    group "AICC"
+                exit
+            exit
+            snmp
+                access group "AICC" security-model usm security-level auth-no-privacy read "iso" write "iso" notify "iso"
+                community "C2VcqjW4aNvamSaXbEurad4sjdxfFMxFESI=" hash2 r version both
+            exit
+            per-peer-queuing
+            cpu-protection
+                policy 254 create
+                exit
+                policy 255 create
+                exit
+            exit
+            dist-cpu-protection
+                policy "_default-access-policy" create
+                exit
+                policy "_default-network-policy" create
+                exit
+            exit
+        exit
+    exit
+#--------------------------------------------------
+echo "System Login Control Configuration"
+#--------------------------------------------------
+    system
+        login-control
+            idle-timeout 5
+            pre-login-message " %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n\r                               - W A R N I N G -\n\r                     You are trying to connect AI-Net Network. \n\r        A notice that any unauthorized use of the system is unlawful,\n\r            and may be subject to civil and/or criminal penalties.\n\r %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% "
+        exit
+    exit
+#--------------------------------------------------
+echo "Log Configuration"
+#--------------------------------------------------
+    log
+        file-id 80
+            location cf3:
+            rollover 1440 retention 500
+        exit
+        event-control "chassis" 2058 generate
+        event-control "chassis" 2059 generate
+        event-control "chassis" 2063 generate
+        event-control "chassis" 2076 generate
+        event-control "igmp" 2005 suppress
+        event-control "logger" 2008 generate warning
+        event-control "system" 2002 generate warning
+        event-control "user" 2009 generate
+        event-control "video" 2009 suppress
+        event-control "video" 2010 suppress
+        event-control "vrtr" 2034 generate
+        syslog 7
+            address 205.236.222.174
+            facility local4
+            log-prefix "AINetNewYork7750SRIBB4"
+        exit
+        syslog 8
+            address 205.236.222.195
+            facility local4
+            log-prefix "AINetNewYork7750SRIBB4"
+        exit
+        syslog 9
+            address 205.236.222.94
+            facility local4
+            log-prefix "AINetNewYork7750SRIBB4"
+        exit
+        syslog 10
+            address 205.236.222.84
+            facility local4
+        exit
+        snmp-trap-group 98
+            trap-target "205.236.222.194:162" address 205.236.222.194 snmpv2c notify-community "g10ry2HXs3"
+            trap-target "205.236.222.195:162" address 205.236.222.195 snmpv2c notify-community "g10ry2HXs3"
+            trap-target "trap1v3" address 205.236.222.194 snmpv3 notify-community "g10ry2HXs3" security-level auth-no-privacy
+            trap-target "trap2v3" address 205.236.222.195 snmpv3 notify-community "g10ry2HXs3" security-level auth-no-privacy
+        exit
+        log-id 7
+            time-format local
+            from main
+            to syslog 7
+            no shutdown
+        exit
+        log-id 8
+            time-format local
+            from main
+            to syslog 8
+            no shutdown
+        exit                          
+        log-id 9
+            time-format local
+            from main
+            to syslog 9
+            no shutdown
+        exit
+        log-id 10
+            time-format local
+            from main
+            to syslog 10
+            no shutdown
+        exit
+        log-id 80
+            time-format local
+            from main security change
+            to file 80
+            no shutdown
+        exit
+        log-id 90
+            from main security
+            to memory 1024
+            no shutdown
+        exit                          
+        log-id 98
+            time-format local
+            from main security change
+            to snmp 1024
+            no shutdown
+        exit
+    exit
+#--------------------------------------------------
+echo "Filter Log Configuration"
+#--------------------------------------------------
+    filter
+        log 102 create
+        exit
+    exit
+#--------------------------------------------------
+echo "System Security Cpm Hw Filters, PKI, TLS and LDAP Configuration"
+#--------------------------------------------------
+    system
+        security
+            cpm-filter
+                ip-filter
+                    entry 10 create
+                        action accept 
+                        description "NTP_Server"
+                        match protocol udp
+                            src-ip 205.236.222.174/32
+                            src-port 123 65535
+                        exit
+                    exit
+                    entry 20 create
+                        action accept
+                        description "NTP_Server"
+                        match protocol udp
+                            src-ip 205.236.222.195/32
+                            src-port 123 65535
+                        exit
+                    exit
+                    entry 100 create
+                        action drop
+                        description "NTP_Drop"
+                        log 101
+                        match protocol udp
+                            src-port 123 65535
+                        exit
+                    exit
+                    no shutdown       
+                exit
+            exit
+        exit
+    exit
+#--------------------------------------------------
+echo "Cflowd Configuration"
+#--------------------------------------------------
+    cflowd
+        active-flow-timeout 60
+        inactive-flow-timeout 10
+        sample-profile 1 create
+            sample-rate 2000
+        exit
+    exit
+#--------------------------------------------------
+echo "Switch Fabric Configuration"
+#--------------------------------------------------
+    sfm 1
+        sfm-type m-sfm5-7
+        no shutdown
+    exit
+    sfm 2
+        sfm-type m-sfm5-7             
+        no shutdown
+    exit
+#--------------------------------------------------
+echo "Card Configuration"
+#--------------------------------------------------
+    card 1
+        card-type imm8-10gb-xfp
+        mda 1
+            no shutdown
+        exit
+        mda 2
+            no shutdown
+        exit
+        no shutdown
+    exit
+    card 3
+        card-type imm48-1gb-sfp-b
+        mda 1
+            no shutdown
+        exit
+        mda 2
+            no shutdown
+        exit                          
+        no shutdown
+    exit
+    card 5
+        card-type imm8-10gb-xfp
+        mda 1
+            no shutdown
+        exit
+        mda 2
+            no shutdown
+        exit
+        no shutdown
+    exit
+#--------------------------------------------------
+echo "Port Configuration"
+#--------------------------------------------------
+    port 1/1/1
+        description "To-AINet_NewYork_7750SR_I3"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 1/1/2                        
+        description "To-AINet_NewYork_7750SR_I4"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 1/1/3
+        description "AI C&C Internet #2: Connect to NewYork3F via MPLS(5G)"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 1/1/4
+        description "To-AINet-NewYork-TMS-2(TMS2800)"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 1/2/1
+        description "AINet_PG_Paris2F_Internet_10G_2(Paris2F_BB2:1/1/1)"
+        ethernet                      
+            mode access
+        exit
+        no shutdown
+    exit
+    port 1/2/2
+        description "To-AINet_London_7750SR_I_BB2:P1/1/2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 1/2/3
+        description "GongyuOffice_NewYork_Internet_10G_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 1/2/4
+        shutdown
+        ethernet
+        exit
+    exit                              
+    port 3/1/1
+        description "To-AINet_London_7750SR_I_BB2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/2
+        description "AIN_NewYork2F_Internet_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/3
+        description "To- AINet_London_7750SR_I_BB2:P3/1/9"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/4
+        description "Connected to PG2F_Blackhole_R_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/5
+        description "AIEncar_Encar.com-Internet_1G_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/6
+        description "AIBP_AWS_VPN_Internet_10M_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/7
+        description "AIHC_NewYork_Internet_100M_2"
+        ethernet
+            mode access               
+        exit
+        no shutdown
+    exit
+    port 3/1/8
+        description "AI E&S_Cloud SD-WAN_Internet_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/9
+        description "To-FortiGate-1000D_2_Port22"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/10
+        description "AIMagic_Internet_PG_SAMIL_500M_2"
+        ethernet
+            mode access
+        exit
+        no shutdown                   
+    exit
+    port 3/1/11
+        description "AIChemical_NewYork_Internet_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/12
+        description "KCAR_NewYork_Internet_4-1_100M"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/13
+        description "To_KCar_ISP_5520_2_1/0/24"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/14                       
+        description "To-AIC_Suwon_Internet_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/15
+        description "AISecurities_Co._Internet_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/16
+        description "AII_SAN_MGMT(Brocade)_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/17
+        description "To-KRBD05-BGPS02-6509L3:Te2/2(AIP_Internet_2)"
+        ethernet                      
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/18
+        description "AIENS_SD-WAN_PDC_2F_C9300-2"
+        ethernet
+            mode access
+            encap-type dot1q
+        exit
+        no shutdown
+    exit
+    port 3/1/19
+        description "AIRentcar_Internet_PG_SAMIL_100M_2"
+        ethernet
+            no autonegotiate
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/20
+        description "KCAR_NewYork_Internet_4-2_100M"
+        ethernet                      
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/21
+        description "Public Untact OnlinePT Internet(u-tower 20F)#2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/22
+        description "AICC_PGA3F_VSP8404_CoLo_1G_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/23
+        description "To-FortiGate-1000D_2_Port31"
+        ethernet
+            mode access
+        exit                          
+        no shutdown
+    exit
+    port 3/1/24
+        description "To-AINet_NewYork_7750SR_I_BB3(L2)"
+        ethernet
+            mode access
+            encap-type dot1q
+        exit
+        no shutdown
+    exit
+    port 3/2/1
+        description "To_AICC_PGA_2F_FMG-300F_#1"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/2
+        description "AIEncar_Encar-Mall_UTM"
+        ethernet
+            mode access
+        exit
+        no shutdown                   
+    exit
+    port 3/2/3
+        shutdown
+        ethernet
+        exit
+    exit
+    port 3/2/4
+        description "SVC_AISH_MSS-INTERNET-SW-2_Internet_1G_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/5
+        description "AIBP_Internet_NewYork_500M_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/6
+        description "AIT_T2_Internet_2"
+        ethernet                      
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/7
+        description "KCAR_Capital_2_100M"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/8
+        description "To_SmartWAN"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/9
+        description "AIShieldus_Internet_2_100M"
+        ethernet
+            no autonegotiate
+            mode access               
+        exit
+        no shutdown
+    exit
+    port 3/2/10
+        description "AICC BMS Internet_HQ_NewYork_50M"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/11
+        description "To-AINet-NewYork-TMS-2_MGMT(TMS2800)"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/12
+        description "SVC_AISH_PG2F_PG2F_Internet_10M_2"
+        ethernet
+            mode access
+        exit
+        no shutdown                   
+    exit
+    port 3/2/13
+        description "AII_DR_Internet_1M"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/14
+        description "AIH_DR_Internet_2M"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/15
+        description "To_AINet-NewYork-TMS8100-3F_mgt0"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/16                       
+        description "To_AIBP_PDC2F_C9300L_INT_2_G1/0/1"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/17
+        description "AI-Net_PG2F_CMI_SDWAN_1"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/18
+        description "WMS Development"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/19
+        description "To-AINet_NewYork_7210SAS_HUVIS"
+        ethernet                      
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/20
+        description "AIBT_IPSec_MGMT_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/21
+        description "AIE&S_HQ_Internet_2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/22
+        description "To_ESN_KR_PanGyo_2F_SVR_Center_UTM_2_eth0_2"
+        ethernet
+            mode access
+        exit                          
+        no shutdown
+    exit
+    port 3/2/23
+        description "To_PDC2F_AIB_Internet_SW2_P12"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/24
+        description "NewYork2F_UTM_60E_2_WAN2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 5/1/1
+        shutdown
+        ethernet
+        exit
+    exit
+    port 5/1/2
+        description "To-AI-Net_Gyowon_7750SR-7_I_BB2_P1/1/2"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 5/1/3
+        description "To-AINet_NewYork_7750SR_I_BB6"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 5/1/4
+        description "To_AINet-NewYork-TMS8100-3F_tms1"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 5/2/1
+        shutdown
+        ethernet
+        exit                          
+    exit
+    port 5/2/2
+        shutdown
+        ethernet
+        exit
+    exit
+    port 5/2/3
+        shutdown
+        ethernet
+        exit
+    exit
+    port 5/2/4
+        description "To-AINet_NewYork_7750SR_I_BB3"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port A/3
+        shutdown
+        ethernet
+        exit
+    exit                              
+    port B/3
+        shutdown
+        ethernet
+        exit
+    exit
+#--------------------------------------------------
+echo "System Sync-If-Timing Configuration"
+#--------------------------------------------------
+    system
+        sync-if-timing
+            begin
+            commit
+        exit
+    exit
+#--------------------------------------------------
+echo "Redundancy Configuration"
+#--------------------------------------------------
+    redundancy
+        synchronize config
+        rollback-sync
+    exit
+#--------------------------------------------------
+echo "QoS Policy Configuration"       
+#--------------------------------------------------
+    qos
+        sap-ingress 10 name "10" create
+            queue 1 create
+                rate 10000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-ingress 20 name "20" create
+            queue 1 create
+                rate 20000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-ingress 30 name "30" create
+            queue 1 create
+                rate 30000
+            exit
+            queue 11 multipoint create
+            exit
+        exit                          
+        sap-ingress 40 name "40" create
+            queue 1 create
+                rate 40000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-ingress 50 name "50" create
+            queue 1 create
+                rate 50000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-ingress 80 name "80" create
+            queue 1 create
+                rate 80000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-ingress 100 name "100" create
+            queue 1 create            
+                rate 100000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-ingress 150 name "150" create
+            queue 1 create
+                rate 150000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-ingress 200 name "200" create
+            queue 1 create
+                rate 200000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-ingress 300 name "300" create
+            queue 1 create
+                rate 300000
+            exit                      
+            queue 11 multipoint create
+            exit
+        exit
+        sap-ingress 500 name "500" create
+            queue 1 create
+                rate 500000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-egress 30 name "30" create
+            queue 1 create
+                rate 30000
+            exit
+        exit
+        sap-egress 100 name "100" create
+            queue 1 create
+                rate 100000
+            exit
+        exit
+        sap-egress 300 name "300" create
+            queue 1 create
+                rate 300000           
+            exit
+        exit
+        sap-egress 500 name "500" create
+            queue 1 create
+                rate 500000
+            exit
+        exit
+    exit
+#--------------------------------------------------
+echo "Filter Configuration"
+#--------------------------------------------------
+    filter
+        redirect-policy "AIB_Internet(Akamai)_PBR" create
+            destination 177.127.68.105 create
+                ping-test
+                    interval 3
+                exit
+                no shutdown
+            exit
+            no shutdown
+        exit
+        ip-filter 10 name "10" create
+            default-action forward    
+            entry 10 create
+                match
+                    src-ip 129.1.0.0/8
+                exit
+                action
+                    drop
+                exit
+            exit
+            entry 20 create
+                match
+                    src-ip 226.1.0.0/4
+                exit
+                action
+                    drop
+                exit
+            exit
+            entry 30 create
+                match
+                    src-ip 2.1.0.0/8
+                exit
+                action
+                    drop
+                exit                  
+            exit
+            entry 40 create
+                match
+                    src-route-option true
+                exit
+                action
+                    drop
+                exit
+            exit
+        exit
+        ip-filter 110 name "110" create
+            default-action forward
+            description "AI_Securities_Co._1433_22_Port"
+            entry 10 create
+                match protocol tcp
+                    dst-port eq 22
+                exit
+                action
+                    drop
+                exit
+            exit
+            entry 20 create
+                match protocol tcp    
+                    dst-port eq 1433
+                exit
+                action
+                    drop
+                exit
+            exit
+        exit
+        ip-filter 120 name "120" create
+            default-action forward
+            entry 10 create
+                match
+                    src-ip 129.1.0.0/8
+                exit
+                action
+                    drop
+                exit
+            exit
+            entry 20 create
+                match
+                    src-ip 226.1.0.0/4
+                exit
+                action
+                    drop              
+                exit
+            exit
+            entry 30 create
+                match
+                    src-ip 2.1.0.0/8
+                exit
+                action
+                    drop
+                exit
+            exit
+            entry 40 create
+                match
+                    src-route-option true
+                exit
+                action
+                    drop
+                exit
+            exit
+            entry 102 create
+                log 102
+                action
+                    forward
+                exit                  
+            exit
+        exit
+        ip-filter 121 name "121" create
+            default-action forward
+            description "KCAR_Capital_Filter"
+            entry 50 create
+                match
+                    src-ip 212.1.181.138/32
+                exit
+                action
+                    drop
+                exit
+            exit
+            entry 60 create
+                match protocol udp
+                    dst-ip 51.51.63.142/32
+                    port eq 53
+                exit
+                action
+                    drop
+                exit
+            exit
+            entry 70 create           
+                match protocol tcp
+                    dst-ip 51.51.63.142/32
+                    port eq 53
+                exit
+                action
+                    drop
+                exit
+            exit
+            entry 101 create
+                log 101
+                action
+                    forward
+                exit
+            exit
+        exit
+        ip-filter 150 name "150" create
+            default-action forward
+            description "AIN_Filter"
+            entry 10 create
+                match protocol icmp
+                    src-ip ip-prefix-list "AIN_Filter_Permit"
+                exit
+                action                
+                    forward
+                exit
+            exit
+            entry 20 create
+                match protocol icmp
+                exit
+                action
+                    drop
+                exit
+            exit
+            entry 30 create
+                match
+                    src-ip ip-prefix-list "AIN_Filter_Deny"
+                exit
+                action
+                    drop
+                exit
+            exit
+        exit
+    exit
+#--------------------------------------------------
+echo "Management Router Configuration"
+#--------------------------------------------------
+    router management
+    exit
+
+#--------------------------------------------------
+echo "Router (Network Side) Configuration"
+#--------------------------------------------------
+    router Base
+        interface "system"
+            address 212.212.95.235/32
+            icmp
+                no mask-reply
+                no redirects
+                no unreachables
+            exit
+            no shutdown
+        exit
+        autonomous-system 10049
+        ecmp 16
+#--------------------------------------------------
+echo "Static Route Configuration"
+#--------------------------------------------------
+        static-route-entry 51.51.33.128/25
+            next-hop 51.51.33.4       
+                description "AI_Shieldus_Internet_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 51.51.34.56/29
+            next-hop 51.51.34.50
+                description "WMS Development"
+                no shutdown
+            exit
+        exit
+        static-route-entry 51.51.34.64/27
+            next-hop 51.51.35.46
+                description "AIBP_NewYork_Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 51.51.35.128/27
+            next-hop 51.51.34.220
+                description "SVC_AISH_PG2F_PG2F_Internet_10M_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 51.51.38.0/24
+            next-hop 51.51.35.124
+                description "SVC_AISH_MSS-INTERNET-SW-2_Internet_1G_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 51.51.46.64/26
+            next-hop 51.51.62.142
+                description "AIHC_PanGyo_100M_Internet_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 51.51.48.0/24
+            next-hop 51.51.63.142
+                description "KCAR_NewYork_Internet_2_100M"
+                no shutdown
+            exit
+        exit
+        static-route-entry 51.51.55.0/24
+            next-hop 51.51.63.74
+                description "GongyuOffice_100M_Internet_2"
+                no shutdown
+            exit
+        exit                          
+        static-route-entry 51.51.56.0/24
+            next-hop 213.46.49.70
+                description "AICC-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 51.51.61.0/24
+            next-hop 51.51.34.50
+                description "WMS Development"
+                no shutdown
+            exit
+        exit
+        static-route-entry 51.51.62.144/29
+            next-hop 51.51.62.142
+                description "AIHC_PanGyo_100M_Internet_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 51.51.62.224/27
+            next-hop 51.51.62.206
+                description "AIBP_NewYork_Internet"
+                no shutdown
+            exit                      
+        exit
+        static-route-entry 51.51.63.80/29
+            next-hop 51.51.63.74
+                description "GongyuOffice_UTM"
+                no shutdown
+            exit
+        exit
+        static-route-entry 51.51.63.200/29
+            next-hop 51.51.63.198
+                description "AICC BMS Internet_HQ_NewYork_50M"
+                no shutdown
+            exit
+        exit
+        static-route-entry 63.98.1.124/30
+            next-hop 213.46.51.126
+                description "Huvis_Ulsan"
+                metric 200
+                no shutdown
+            exit
+        exit
+        static-route-entry 63.98.1.224/28
+            next-hop 213.46.51.126
+                description "Huvis_Ulsan"
+                metric 200
+                no shutdown
+            exit
+        exit
+        static-route-entry 63.98.4.0/28
+            next-hop 63.98.4.22
+                no shutdown
+            exit
+        exit
+        static-route-entry 63.98.9.128/27
+            next-hop 213.46.33.146
+                description "AIN-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 63.98.10.136/29
+            next-hop 51.51.63.74
+                no shutdown
+            exit
+        exit
+        static-route-entry 63.98.10.144/29
+            next-hop 51.51.63.74
+                no shutdown           
+            exit
+        exit
+        static-route-entry 126.67.186.0/24
+            next-hop 213.46.50.158
+                description "AI_Chemical_NewYork_Internet_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 126.67.188.0/25
+            next-hop 213.46.49.70
+                description "AICC-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 126.67.188.128/25
+            next-hop 213.46.49.70
+                no shutdown
+            exit
+        exit
+        static-route-entry 126.67.189.128/28
+            next-hop 213.46.49.70
+                description "AICC-MPX(VDI)"
+                no shutdown           
+            exit
+        exit
+        static-route-entry 126.67.189.152/29
+            next-hop 213.46.49.70
+                description "AICC-Internet Test bed"
+                no shutdown
+            exit
+        exit
+        static-route-entry 126.67.189.192/27
+            next-hop 213.46.49.70
+                description "AICC-Internet Test bed"
+                no shutdown
+            exit
+        exit
+        static-route-entry 170.155.160.0/21
+            next-hop 213.46.50.158
+                description "AIChemical-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 170.155.168.0/23
+            next-hop 213.46.50.158
+                description "AIChemical_Ulsan"
+                no shutdown
+            exit
+        exit
+        static-route-entry 170.155.170.0/23
+            next-hop 213.46.50.158
+                description "AIChemical-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 170.155.172.0/23
+            next-hop 213.46.50.158
+                description "AIChemical-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 170.155.174.0/24
+            next-hop 213.46.50.158
+                description "AIChemical-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 170.155.182.0/24
+            next-hop 213.46.33.26     
+                description "AIE&S Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 170.155.183.0/24
+            next-hop 213.46.51.126
+                description "Huvis_HQ"
+                metric 200
+                no shutdown
+            exit
+        exit
+        static-route-entry 170.155.183.0/25
+            next-hop 213.46.51.126
+                description "Huvis_HQ"
+                metric 200
+                no shutdown
+            exit
+        exit
+        static-route-entry 170.155.185.116/30
+            next-hop 213.46.49.70
+                description "AICC-Internet"
+                no shutdown
+            exit                      
+        exit
+        static-route-entry 170.155.189.0/24
+            next-hop 213.46.49.70
+                description "AICC-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 170.155.190.0/23
+            next-hop 213.46.49.70
+                description "AICC-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 170.155.230.0/24
+            next-hop 213.46.49.70
+                description "AICC-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 205.236.192.0/21
+            next-hop 213.46.49.70
+                description "AICC-Internet"
+                no shutdown           
+            exit
+        exit
+        static-route-entry 205.236.192.0/24
+            next-hop 213.46.49.70
+                description "AICC-Internet Test bed"
+                no shutdown
+            exit
+        exit
+        static-route-entry 205.236.208.0/20
+            next-hop 213.46.49.70
+                description "AICC-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 205.236.214.0/24
+            next-hop 213.46.49.70
+                description "AICC-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 205.236.215.0/24
+            next-hop 51.51.34.62
+                description "To_PDC2F_AIB_Internet_SW2_P12"
+                no shutdown
+            exit
+        exit
+        static-route-entry 205.236.221.64/27
+            next-hop 51.51.35.124
+                description "SVC_AISH_MSS-INTERNET-SW-2_Internet_1G_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 205.236.222.120/32
+            next-hop 213.46.49.70
+                description "AICC-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 205.243.64.0/21
+            next-hop 51.51.35.70
+                description "AIC_Suwon_Internet_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 205.243.72.0/21
+            next-hop 51.51.35.70      
+                description "AIC_Suwon_Internet_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 205.243.80.0/24
+            next-hop 51.51.35.70
+                description "AIC_Suwon_Internet_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 205.243.120.0/22
+            next-hop 51.51.35.70
+                description "AIC_Suwon_Internet_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 205.243.124.0/22
+            next-hop 51.51.35.70
+                description "AIC_Suwon_Internet_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 212.212.91.0/24
+            next-hop 51.51.63.142
+                description "KCAR_NewYork_Internet_2_100M"
+                no shutdown
+            exit
+        exit
+        static-route-entry 212.212.92.0/24
+            next-hop 51.51.63.142
+                description "KCAR_NewYork_Internet_2_100M"
+                no shutdown
+            exit
+        exit
+        static-route-entry 212.212.94.0/24
+            next-hop 213.46.33.26
+                description "AIE&S Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 212.212.95.238/32
+            next-hop 213.46.51.126
+                metric 200
+                no shutdown
+            exit
+        exit                          
+        static-route-entry 213.46.33.60/30
+            next-hop 213.46.33.58
+                description "KCar_NewYork_Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.33.208/28
+            next-hop 213.46.39.114
+                description "AIEncar_Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.34.128/25
+            next-hop 213.46.33.178
+                description "AISecurities_Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.36.48/29
+            next-hop 213.46.39.114
+                description "AIEncar_Internet"
+                no shutdown
+            exit                      
+        exit
+        static-route-entry 213.46.37.0/26
+            next-hop 213.46.39.114
+                description "AIEncar_Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.37.64/26
+            next-hop 213.46.33.58
+                description "KCar_NewYork_Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.37.128/25
+            next-hop 213.46.33.58
+                description "KCar_NewYork_Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.39.128/26
+            next-hop 213.46.36.62
+                description "AIMagic_Internet_PG_SAMIL"
+                no shutdown           
+            exit
+        exit
+        static-route-entry 213.46.39.192/26
+            next-hop 213.46.33.138
+                description "AIRentcar_Internet_PG_SAMIL"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.46.0/24
+            next-hop 213.46.49.142
+                description "AIT_T2_Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.49.0/27
+            next-hop 213.46.49.70
+                description "AICC-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.49.112/28
+            next-hop 213.46.50.158
+                description "AI_Chemical_NewYork_VPN&Mgmt_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.49.232/29
+            next-hop 213.46.49.70
+                description "AICC-SSLVPN"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.50.8/29
+            next-hop 51.51.63.74
+                description "GongyuOffice_IPVC_Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.50.40/29
+            next-hop 213.46.50.78
+                description "Essencore_Internet_30M"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.50.96/30
+            next-hop 213.46.49.254    
+                description "20240406_MA_Life_Test"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.50.128/28
+            next-hop 213.46.50.158
+                description "AI_Chemical_PG_Internet_2_251204"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.50.160/29
+            next-hop 213.46.50.158
+                description "AI_Chemical_NewYork_Internet_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.50.168/30
+            next-hop 213.46.50.158
+                description "AI_Chemical_NewYork_Internet_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.50.192/27
+            next-hop 213.46.50.158
+                description "AI_Chemical_NewYork_Internet_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.50.232/29
+            next-hop 213.46.51.126
+                description "Huvis_HQ"
+                metric 200
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.50.240/30
+            next-hop 213.46.50.158
+                description "AI_Chemical_Test"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.51.0/28
+            next-hop 213.46.50.66
+                no shutdown
+            exit
+        exit                          
+        static-route-entry 213.46.51.16/29
+            next-hop 213.46.50.70
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.51.96/30
+            next-hop 213.46.51.126
+                description "Huvis_DaeJeon"
+                metric 200
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.51.100/30
+            next-hop 213.46.51.126
+                description "Huvis_Daegu"
+                metric 200
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.51.116/30
+            next-hop 213.46.51.126
+                description "Huvis_JeonJu"
+                metric 200            
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.51.128/28
+            next-hop 213.46.50.158
+                description "AI_Chemical_NewYork_Internet_2"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.60.0/23
+            next-hop 213.46.49.70
+                description "AICC-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.60.0/24
+            next-hop 213.46.49.70
+                description "AICC-Internet"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.61.0/24
+            next-hop 213.46.49.70     
+                description "AII_Paris_Temp_20210831"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.62.0/24
+            next-hop 213.46.49.70
+                description "AICC-Internet-0802"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.63.0/24
+            next-hop 51.51.34.62
+                description "To_PDC2F_AIB_Internet_SW2_P12"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.63.6/32
+            next-hop 51.51.34.62
+                description "To_PDC2F_AIB_Internet_SW2_P12"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.63.7/32
+            next-hop 51.51.34.62
+                description "To_PDC2F_AIB_Internet_SW2_P12"
+                no shutdown
+            exit
+        exit
+        static-route-entry 213.46.63.96/27
+            next-hop 51.51.34.62
+                description "To_PDC2F_AIB_Internet_SW2_P12"
+                no shutdown
+            exit
+        exit
+#--------------------------------------------------
+echo "OSPFv2 Configuration"
+#--------------------------------------------------
+        ospf 0
+            asbr
+            reference-bandwidth 1000000
+            export "OSPF_redistribution"
+            area 2.1.0.0
+                interface "system"
+                    no shutdown
+                exit
+            exit                      
+            no shutdown
+        exit
+    exit
+
+#--------------------------------------------------
+echo "Service Configuration"
+#--------------------------------------------------
+    service
+        customer 1 name "1" create
+            description "Default customer"
+        exit
+        ies 10 name "10" customer 1 create
+            interface "p1/1/1" create
+            exit
+            interface "p3/2/19" create
+            exit
+            interface "p5/2/4" create
+            exit
+            interface "p3/1/1" create
+            exit
+            interface "p1/2/3" create
+            exit
+            interface "p3/1/13" create
+            exit
+            interface "p3/2/2" create
+            exit
+            interface "p3/1/2" create
+            exit
+            interface "p3/1/15" create
+            exit
+            interface "p3/1/3" create
+            exit
+            interface "p3/2/7" create
+            exit
+            interface "p3/2/21" create
+            exit
+            interface "p3/1/7" create
+            exit
+            interface "p3/1/5" create
+            exit
+            interface "p3/2/18" create
+            exit
+            interface "p3/2/5" create
+            exit
+            interface "p3/1/18:200" create
+            exit                      
+            interface "p3/1/17" create
+            exit
+            interface "p1/2/1" create
+            exit
+            interface "p3/1/14" create
+            exit
+            interface "p1/2/2" create
+            exit
+            interface "p3/2/10" create
+            exit
+            interface "p3/2/1" create
+            exit
+            interface "p3/2/17" create
+            exit
+            interface "p1/1/3" create
+            exit
+            interface "p3/2/15" create
+            exit
+            interface "p3/1/16" create
+            exit
+            interface "p3/1/23" create
+            exit
+            interface "p3/1/11" create
+            exit
+            interface "p3/1/21" create
+            exit
+            interface "p3/2/13" create
+            exit
+            interface "p3/2/14" create
+            exit
+            interface "p3/2/22" create
+            exit
+            interface "p3/1/19" create
+            exit
+            interface "p3/1/10" create
+            exit
+            interface "p3/2/6" create
+            exit
+            interface "p1/1/2" create
+            exit
+            interface "p1/1/4" create
+            exit
+            interface "p3/2/11" create
+            exit
+            interface "p3/1/4" create
+            exit                      
+            interface "p3/1/9" create
+            exit
+            interface "p3/1/22" create
+            exit
+            interface "p3/2/20" create
+            exit
+            interface "p5/1/3" create
+            exit
+            interface "p3/2/24" create
+            exit
+            interface "p3/1/6" create
+            exit
+            interface "p5/1/4" create
+            exit
+            interface "p3/1/8" create
+            exit
+            interface "p3/2/4" create
+            exit
+            interface "p3/1/12-p3/1/20" create
+            exit
+            interface "p5/1/2" create
+            exit
+            interface "p3/2/12" create
+            exit
+            interface "p3/2/9" create
+            exit
+            interface "p3/2/8" create
+            exit
+            interface "p3/1/18:400" create
+            exit
+            interface "p3/2/23" create
+            exit
+            interface "p3/2/16" create
+            exit
+        exit
+        ies 10 name "10" customer 1 create
+            interface "p1/1/1" create
+                description "To-AINet_NewYork_7750SR_I3"
+                address 212.212.95.86/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 1/1/1 create
+                    ingress           
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/19" create
+                description "To-AINet_NewYork_7210SAS_HUVIS"
+                address 213.46.51.125/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/19 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p5/2/4" create
+                description "To-AINet_NewYork_7750SR_I_BB3"
+                address 212.212.95.98/30
+                icmp
+                    no mask-reply     
+                    no redirects
+                    no unreachables
+                exit
+                sap 5/2/4 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/1" create
+                description "To-AINet_London_7750SR_I_BB2"
+                address 212.212.95.78/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/1 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit                      
+            interface "p1/2/3" create
+                description "GongyuOffice_NewYork_Internet_10G_2"
+                address 51.51.63.73/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 1/2/3 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/13" create
+                description "KCar_NewYork_Internet_2"
+                address 213.46.33.57/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/13 create     
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/2" create
+                description "AIEncar_Encar-Mall_UTM"
+                address 213.46.33.93/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/2 create
+                    ingress
+                        qos 100
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/2" create
+                description "AIN_NewYork2F_Internet_2"
+                address 213.46.33.145/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/2 create
+                    ingress
+                        filter ip 10
+                    exit
+                    egress
+                        filter ip 150
+                    exit
+                exit
+            exit
+            interface "p3/1/15" create
+                description "AISecurities_Co._Internet_2"
+                address 213.46.33.177/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/15 create     
+                exit
+            exit
+            interface "p3/1/3" create
+                description "To-AINet_London_7750SR_I_BB2:P3/1/9"
+                address 212.212.95.173/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/3 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/7" create
+                description "KCAR_Capital_2_100M"
+                address 51.51.63.137/29
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables   
+                exit
+                sap 3/2/7 create
+                    ingress
+                        qos 100
+                        filter ip 120
+                    exit
+                    egress
+                        qos 100
+                        filter ip 121
+                    exit
+                exit
+            exit
+            interface "p3/2/21" create
+                description "AIE&S_HQ_Internet_2"
+                address 213.46.33.25/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/21 create
+                    ingress
+                        filter ip 10  
+                    exit
+                exit
+            exit
+            interface "p3/1/7" create
+                description "AIHC_PanGyo_100M_Internet_2"
+                address 51.51.62.141/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/7 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/5" create
+                description "AIEncar_Encar.com-Internet_1G_2"
+                address 213.46.39.113/30
+                icmp
+                    no mask-reply
+                    no redirects      
+                    no unreachables
+                exit
+                cflowd-parameters
+                    sampling unicast type interface direction both
+                exit
+                sap 3/1/5 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/18" create
+                description "WMS Development"
+                address 51.51.34.49/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/18 create
+                    ingress
+                        qos 20
+                        filter ip 10  
+                    exit
+                exit
+            exit
+            interface "p3/2/5" create
+                description "AIBP_Internet_NewYork_500M_2"
+                address 51.51.35.45/30
+                sap 3/2/5 create
+                    ingress
+                        qos 500
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/18:200" create
+                description "AIE&S_PDC2F_SD-WAN_Internet_1G_2-1"
+                address 213.46.51.153/29
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/18:200 create
+                    ingress           
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/17" create
+                description "To-KRBD05-BGPS02-6509L3(AIP_Internet_2)"
+                address 51.51.35.53/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/17 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p1/2/1" create
+                description "AINet_PG_Paris2F_Internet_10G_2(Paris2F_BB2:1/1/1)"
+                address 212.212.95.69/30
+                icmp
+                    no mask-reply     
+                    no redirects
+                    no unreachables
+                exit
+                sap 1/2/1 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/14" create
+                description "To-AIC_Suwon_Internet_2"
+                address 51.51.35.69/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/14 create
+                    ingress
+                        qos 100
+                        filter ip 10
+                    exit
+                exit                  
+            exit
+            interface "p1/2/2" create
+                description "To-AINet_London_7750SR_I_BB2:P1/1/2"
+                address 212.212.95.181/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 1/2/2 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/10" create
+                description "AICC BMS Internet_HQ_NewYork_50M"
+                address 51.51.63.197/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit                  
+                sap 3/2/10 create
+                    ingress
+                        qos 50
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/1" create
+                description "To_AICC_PGA_2F_FMG-300F_#1"
+                address 51.51.63.245/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/1 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/17" create
+                description "To_Simyang_CMI_SDN_WAN_test_1"
+                address 51.51.63.233/30
+                sap 3/2/17 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p1/1/3" create
+                description "AI C&C Internet #2: Connect to NewYork3F via MPLS(5G)"
+                address 213.46.49.69/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 1/1/3 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/15" create
+                description "Anti-DDoS-MGMT"
+                address 184.51.32.81/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/15 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/16" create
+                description "AII_SAN_MGMT(Brocade)_2"
+                address 63.98.8.73/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/16 create
+                    ingress
+                        filter ip 10  
+                    exit
+                exit
+            exit
+            interface "p3/1/23" create
+                description "To-FortiGate-1000D_2_Port31"
+                address 51.51.63.227/29
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                vrrp 10
+                    backup 51.51.63.225
+                    priority 90
+                    ping-reply
+                    traceroute-reply
+                exit
+                vpls "Azure_ExpressRoute(MS)"
+                exit
+            exit
+            interface "p3/1/11" create
+                description "AIChemical_NewYork_Internet_2"
+                address 213.46.50.157/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/11 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/21" create
+                description "Public Untact OnlinePT Internet(u-tower 20F)#2"
+                address 63.98.8.147/28
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                vrrp 10
+                    backup 63.98.8.145
+                    ping-reply
+                    traceroute-reply  
+                exit
+                sap 3/1/21 create
+                exit
+            exit
+            interface "p3/2/13" create
+                description "AII_DR_Internet_1M"
+                address 213.46.50.65/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/13 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/14" create
+                description "AIH_DR_Internet_2M"
+                address 213.46.50.69/30
+                icmp
+                    no mask-reply     
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/14 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/22" create
+                description "Essencore_Internet_30M"
+                address 213.46.50.77/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/22 create
+                    ingress
+                        qos 30
+                        filter ip 10
+                    exit
+                    egress            
+                        qos 30
+                    exit
+                exit
+            exit
+            interface "p3/1/19" create
+                description "AIRentcar_Internet_PG_SAMIL_100M_2"
+                address 213.46.33.137/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/19 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/10" create
+                description "AIMagic_Internet_PG_SAMIL_500M_2"
+                address 213.46.36.61/30
+                icmp
+                    no mask-reply     
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/10 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/6" create
+                description "AIT_T2_Internet_2"
+                address 213.46.49.141/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/6 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit                      
+            interface "p1/1/2" create
+                description "To-AINet_NewYork_7750SR_I4"
+                address 212.212.95.94/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 1/1/2 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p1/1/4" create
+                description "To-AINet-NewYork-TMS-2(TMS2800)"
+                address 184.51.32.13/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 1/1/4 create      
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/11" create
+                description "To-AINet-NewYork-TMS-2_MGMT(TMS2800)"
+                address 184.51.32.17/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/11 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/4" create
+                description "Connected to PG2F_Blackhole_R_2"
+                address 213.46.51.165/30
+                icmp                  
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/4 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/9" create
+                description "To-FortiGate-1000D_2_Port22"
+                address 51.51.62.171/29
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                vrrp 10
+                    backup 51.51.62.169
+                    priority 90
+                    ping-reply
+                    traceroute-reply  
+                exit
+                vpls "AII-Global-WAN"
+                exit
+            exit
+            interface "p3/1/22" create
+                description "AICC_PGA3F_VSP8404_CoLo_1G_2"
+                address 63.98.4.21/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/22 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/20" create
+                description "AIBT_IPSec_MGMT_2"
+                address 213.46.50.85/30
+                icmp
+                    no mask-reply     
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/20 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p5/1/3" create
+                description "To-AINet_NewYork_7750SR_I_BB6"
+                address 212.212.95.57/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 5/1/3 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit                      
+            interface "p3/2/24" create
+                description "NewYork2F_UTM_60E_2_WAN2"
+                address 63.98.9.201/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/24 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/6" create
+                description "AIBP_AWS_VPN_Internet_10M_2"
+                address 51.51.35.118/29
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                vrrp 40               
+                    backup 51.51.35.116
+                    ping-reply
+                    traceroute-reply
+                exit
+                vpls "AIBP_AWS_VPN_Internet_10M_2 "
+                exit
+            exit
+            interface "p5/1/4" create
+                description "Anti-DDoS"
+                address 184.51.32.125/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 5/1/4 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/8" create
+                description "AI E&S_Cloud SD-WAN_Internet_2"
+                address 51.51.62.187/29
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                vrrp 30
+                    backup 51.51.62.185
+                    ping-reply
+                    traceroute-reply
+                exit
+                vpls "AI E&S_Cloud SD-WAN_Internet"
+                exit
+            exit
+            interface "p3/2/4" create
+                description "To_MSS-INTERNET-SW-2_1_20150715009"
+                address 51.51.35.123/29
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                vrrp 10               
+                    backup 51.51.35.121
+                    ping-reply
+                    traceroute-reply
+                exit
+                vpls "To_MSS-INTERNET-SW-2_1_20150715009"
+                exit
+            exit
+            interface "p3/1/12-p3/1/20" create
+                description "KCAR_NewYork_Internet_4_100M"
+                address 51.51.34.245/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                vpls "KCAR_NewYork_Internet_4_100M"
+                exit
+            exit
+            interface "p5/1/2" create
+                description "To-AI-Net_Gyowon_7750SR-7_I_BB2_P1/1/2"
+                address 212.212.95.134/30
+                icmp
+                    no mask-reply     
+                    no redirects
+                    no unreachables
+                exit
+                sap 5/1/2 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/12" create
+                description "To_AISH_PDC2F_FG100F_FMS_FW2_Wan1_20241210002"
+                address 51.51.34.219/29
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                vrrp 10
+                    backup 51.51.34.217
+                    ping-reply
+                    traceroute-reply
+                exit
+                vpls "To_AISH_PDC2F_FG100F_FMS_FW2_Wan1_20241210002"
+                exit
+            exit
+            interface "p3/2/9" create
+                description "AIShieldus_Internet_2_100M"
+                address 51.51.33.2/25
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/9 create
+                    ingress
+                        qos 100
+                        filter ip 10
+                    exit
+                    egress
+                        qos 100
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/8" create
+                description "To_SmartWAN"
+                address 63.98.4.61/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/8 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/18:400" create
+                description "AIE&S_PDC2F_SD-WAN_Internet_1G_2-2"
+                address 213.46.51.185/29
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/18:400 create
+                    ingress
+                        filter ip 10  
+                    exit
+                exit
+            exit
+            interface "p3/2/23" create
+                description "To_PDC2F_AIB_Internet_SW2_P12_300M_251112-28"
+                address 51.51.34.61/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/2/23 create
+                    ingress
+                        qos 300
+                        filter ip 10
+                    exit
+                    egress
+                        qos 300
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/2/16" create
+                description "AIBP_Internet_NewYork_500M_2"
+                address 51.51.62.205/30
+                sap 3/2/16 create
+                    ingress
+                        qos 500
+                        filter ip 10
+                    exit
+                    egress
+                        qos 500
+                    exit
+                exit
+            exit
+            no shutdown
+        exit
+        vpls 4025 name "Azure_ExpressRoute(MS)" customer 1 create
+            description "Azure_ExpressRoute(MS)"
+            allow-ip-int-bind
+            exit
+            stp
+                shutdown
+            exit
+            sap 3/1/23 create
+                ingress               
+                    filter ip 10
+                exit
+                no shutdown
+            exit
+            sap 3/1/24:1031 create
+                ingress
+                    filter ip 10
+                exit
+                no shutdown
+            exit
+            mac-move
+                no shutdown
+            exit
+            no shutdown
+        exit
+        vpls 4043 name "AII-Global-WAN" customer 1 create
+            description "AII-Global-WAN"
+            allow-ip-int-bind
+            exit
+            stp
+                shutdown
+            exit
+            sap 3/1/9 create          
+                ingress
+                    filter ip 10
+                exit
+                no shutdown
+            exit
+            sap 3/1/24:1035 create
+                ingress
+                    filter ip 10
+                exit
+                no shutdown
+            exit
+            mac-move
+                no shutdown
+            exit
+            no shutdown
+        exit
+        vpls 4063 name "AI E&S_Cloud SD-WAN_Internet" customer 1 create
+            description "AI E&S_Cloud SD-WAN_Internet"
+            allow-ip-int-bind
+            exit
+            stp
+                shutdown
+            exit                      
+            sap 3/1/8 create
+                ingress
+                    filter ip 10
+                exit
+                no shutdown
+            exit
+            sap 3/1/24:1043 create
+                no shutdown
+            exit
+            no shutdown
+        exit
+        vpls 4065 name "KCAR_NewYork_Internet_4_100M" customer 1 create
+            description "KCAR_NewYork_Internet_4_100M"
+            allow-ip-int-bind
+            exit
+            stp
+                shutdown
+            exit
+            sap 3/1/12 create
+                ingress
+                    qos 100
+                    filter ip 10
+                exit                  
+                egress
+                    qos 100
+                exit
+                no shutdown
+            exit
+            sap 3/1/20 create
+                ingress
+                    qos 100
+                    filter ip 10
+                exit
+                egress
+                    qos 100
+                exit
+                no shutdown
+            exit
+            mac-move
+                no shutdown
+            exit
+            no shutdown
+        exit
+        vpls 4067 name "AIBP_AWS_VPN_Internet_10M_2 " customer 1 create
+            description "AIBP_AWS_VPN_Internet_10M_2"
+            allow-ip-int-bind         
+            exit
+            stp
+                shutdown
+            exit
+            sap 3/1/6 create
+                ingress
+                    filter ip 10
+                exit
+                no shutdown
+            exit
+            sap 3/1/24:1045 create
+                no shutdown
+            exit
+            no shutdown
+        exit
+        vpls 4068 name "To_AISH_PDC2F_FG100F_FMS_FW2_Wan1_20241210002" customer 1 create
+            description "To_AISH_PDC2F_FG100F_FMS_FW2_Wan1_20241210002"
+            allow-ip-int-bind
+            exit
+            stp
+                shutdown
+            exit
+            sap 3/1/24:1047 create    
+                no shutdown
+            exit
+            sap 3/2/12 create
+                ingress
+                    qos 10
+                    filter ip 10
+                exit
+                no shutdown
+            exit
+            no shutdown
+        exit
+        vpls 4069 name "To_MSS-INTERNET-SW-2_1_20150715009" customer 1 create
+            description "To_MSS-INTERNET-SW-2_1_20150715009"
+            allow-ip-int-bind
+            exit
+            stp
+                shutdown
+            exit
+            sap 3/1/24:1049 create
+                no shutdown
+            exit
+            sap 3/2/4 create
+                no shutdown           
+            exit
+            no shutdown
+        exit
+        vpls 4025 name "Azure_ExpressRoute(MS)" customer 1 create
+            allow-ip-int-bind
+            exit
+        exit
+        vpls 4043 name "AII-Global-WAN" customer 1 create
+            allow-ip-int-bind
+            exit
+        exit
+        vpls 4063 name "AI E&S_Cloud SD-WAN_Internet" customer 1 create
+            allow-ip-int-bind
+            exit
+        exit
+        vpls 4065 name "KCAR_NewYork_Internet_4_100M" customer 1 create
+            allow-ip-int-bind
+            exit
+        exit
+        vpls 4067 name "AIBP_AWS_VPN_Internet_10M_2 " customer 1 create
+            allow-ip-int-bind
+            exit
+        exit                          
+        vpls 4068 name "To_AISH_PDC2F_FG100F_FMS_FW2_Wan1_20241210002" customer 1 create
+            allow-ip-int-bind
+            exit
+        exit
+        vpls 4069 name "To_MSS-INTERNET-SW-2_1_20150715009" customer 1 create
+            allow-ip-int-bind
+            exit
+        exit
+    exit
+#--------------------------------------------------
+echo "Cflowd Configuration"
+#--------------------------------------------------
+    cflowd
+        collector 184.51.32.98 version 9
+        exit
+    exit
+#--------------------------------------------------
+echo "CPM Filter Router and Svc-id Match Configuration"
+#--------------------------------------------------
+    system
+        security
+            cpm-filter
+                ip-filter             
+                    no shutdown
+                exit
+            exit
+        exit
+    exit
+#--------------------------------------------------
+echo "Filter Match lists Configuration"
+#--------------------------------------------------
+    filter
+        match-list
+            ip-prefix-list "AIN_Filter_Deny" create
+            exit
+            ip-prefix-list "AIN_Filter_Permit" create
+            exit
+        exit
+    exit
+#--------------------------------------------------
+echo "Router (Service Side) Configuration"
+#--------------------------------------------------
+    router Base
+#--------------------------------------------------
+echo "OSPFv2 Configuration"
+#--------------------------------------------------
+        ospf 0
+            area 2.1.0.0
+                interface "p1/1/1"
+                    interface-type point-to-point
+                    no shutdown
+                exit
+                interface "p5/2/4"
+                    interface-type point-to-point
+                    no shutdown
+                exit
+                interface "p3/1/1"
+                    interface-type point-to-point
+                    metric 1000
+                    no shutdown
+                exit
+                interface "p3/1/2"
+                    interface-type point-to-point
+                    metric 1000
+                    no shutdown
+                exit
+                interface "p3/1/3"
+                    interface-type point-to-point
+                    metric 100        
+                    no shutdown
+                exit
+                interface "p1/2/1"
+                    interface-type point-to-point
+                    no shutdown
+                exit
+                interface "p1/2/2"
+                    interface-type point-to-point
+                    no shutdown
+                exit
+                interface "p1/1/2"
+                    interface-type point-to-point
+                    no shutdown
+                exit
+                interface "p3/1/4"
+                    interface-type point-to-point
+                    no shutdown
+                exit
+                interface "p5/1/3"
+                    interface-type point-to-point
+                    no shutdown
+                exit
+                interface "p5/1/2"    
+                    interface-type point-to-point
+                    no shutdown
+                exit
+            exit
+            no shutdown
+        exit
+#--------------------------------------------------
+echo "Policy Configuration"
+#--------------------------------------------------
+        policy-options
+            begin
+            prefix-list "MA_Life"
+                prefix 105.167.222.0/24 exact
+                prefix 105.167.223.0/24 exact
+                prefix 170.155.181.0/24 exact
+                prefix 170.155.226.0/24 exact
+                prefix 170.155.228.0/24 exact
+                prefix 212.212.82.0/24 exact
+                prefix 212.212.83.0/24 exact
+                prefix 212.212.84.0/24 exact
+                prefix 213.46.49.192/29 exact
+            exit
+            prefix-list "default_route"
+                prefix 2.1.0.0/0 exact
+            exit
+            prefix-list "AIR_Internet_TE"
+                prefix 213.46.39.192/26 exact
+            exit
+            policy-statement "out_eBGP_AIN"
+                entry 10
+                    from
+                        prefix-list "default_route"
+                    exit
+                    action accept
+                    exit
+                exit
+                default-action drop
+                exit
+            exit
+            policy-statement "in_eBGP_MA_Life"
+                entry 10
+                    from
+                        protocol bgp
+                        prefix-list "MA_Life"
+                    exit
+                    action accept     
+                    exit
+                exit
+                default-action drop
+                exit
+            exit
+            policy-statement "out_eBGP_MA_Life"
+                entry 10
+                    from
+                        prefix-list "default_route"
+                    exit
+                    action accept
+                    exit
+                exit
+                default-action drop
+                exit
+            exit
+            policy-statement "iBGP_next-hop-self"
+                entry 100
+                    from
+                        protocol bgp
+                        neighbor 213.46.33.146
+                    exit
+                    action accept     
+                        next-hop-self
+                    exit
+                exit
+                entry 150
+                    from
+                        protocol bgp
+                        neighbor 213.46.49.254
+                    exit
+                    action accept
+                        next-hop-self
+                    exit
+                exit
+                entry 200
+                    from
+                        protocol bgp
+                    exit
+                    action accept
+                    exit
+                exit
+            exit
+            policy-statement "OSPF_redistribution"
+                entry 5
+                    from              
+                        protocol static
+                        prefix-list "AIR_Internet_TE"
+                    exit
+                    action accept
+                        metric add 100
+                    exit
+                exit
+                entry 10
+                    from
+                        protocol static
+                    exit
+                    to
+                        protocol ospf
+                    exit
+                    action accept
+                        type 1
+                    exit
+                exit
+                entry 20
+                    from
+                        protocol direct
+                    exit
+                    to                
+                        protocol ospf
+                    exit
+                    action accept
+                        type 1
+                    exit
+                exit
+            exit
+            commit
+        exit
+#--------------------------------------------------
+echo "BGP Configuration"
+#--------------------------------------------------
+        bgp
+            damping
+            multi-path
+                maximum-paths 16
+            exit
+            group "eBGP"
+                neighbor 213.46.33.146
+                    export "out_eBGP_AIN"
+                    peer-as 17570
+                exit
+                neighbor 213.46.49.254
+                    description "MA_Life"
+                    import "in_eBGP_MA_Life"
+                    export "out_eBGP_MA_Life"
+                    peer-as 17607
+                exit
+            exit
+            group "iBGP"
+                export "iBGP_next-hop-self"
+                peer-as 10049
+                neighbor 212.212.95.234
+                    description "To-AINet_NewYork_7750SR_I_BB3"
+                exit
+                neighbor 212.212.95.236
+                    description "To-AINet_NewYork_7750SR_I3"
+                exit
+                neighbor 212.212.95.237
+                    description "To-AINet_NewYork_7750SR_I4"
+                exit
+            exit
+            group "iBGP-RRc"
+                cluster 212.212.95.234
+                export "iBGP_next-hop-self"
+                peer-as 10049         
+                neighbor 212.212.95.225
+                    description "To-AINet_Paris2F_7750SR_I_BB1"
+                exit
+                neighbor 212.212.95.226
+                    description "To-AINet_Paris2F_7750SR_I_BB2"
+                exit
+                neighbor 212.212.95.230
+                    description "To-AINet_NewYork_7750SR_I_BB5"
+                exit
+                neighbor 212.212.95.231
+                    description "To-AINet_NewYork_7750SR_I_BB6"
+                exit
+                neighbor 213.46.48.230
+                    description "To-AINet_London_7750SR_I_BB1"
+                exit
+                neighbor 213.46.48.231
+                    description "To-AINet_London_7750SR_I_BB2"
+                exit
+                neighbor 213.46.48.232
+                    description "To-AINet_PG2F_Blackhole_R_1"
+                exit
+                neighbor 213.46.48.233
+                    description "To-AINet_PG2F_Blackhole_R_2"
+                exit
+                neighbor 213.46.48.234
+                    description "To-AI-Net_Gyowon_7750SR-7_I_BB1"
+                exit
+                neighbor 213.46.48.235
+                    description "To-AI-Net_Gyowon_7750SR-7_I_BB2"
+                exit
+            exit
+            no shutdown
+        exit
+    exit
+
+#--------------------------------------------------
+echo "Log all events for service vprn Configuration"
+#--------------------------------------------------
+    log
+    exit
+#--------------------------------------------------
+echo "System Time NTP Configuration"
+#--------------------------------------------------
+    system
+        time
+            ntp                       
+                server 205.236.222.174 prefer
+                server 205.236.222.195
+            exit
+        exit
+    exit
+
+exit all
+
+# Finished FRI DEC 12 04:18:14 2025 UTC
