@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import mermaid from 'mermaid';
 import { toPng } from 'html-to-image';
 import { ZoomIn, ZoomOut, Download, ChevronDown } from 'lucide-react';
@@ -16,7 +16,6 @@ interface RenderedDiagram {
 }
 
 export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
   const [zoomLevel, setZoomLevel] = useState(1.0);
   const [renderedDiagrams, setRenderedDiagrams] = useState<RenderedDiagram[]>([]);
 
