@@ -248,6 +248,44 @@ body {
   border-radius: 0;
 }
 
+/* === INTERFACE LIST SEARCH === */
+.search-container {
+  position: relative;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.search-icon {
+  position: absolute;
+  left: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem 0.5rem 2.25rem; /* Left padding for icon */
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  background-color: var(--card-bg);
+  color: var(--text-main);
+  font-size: 0.875rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-bg);
+}
+
+.search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+
 /* === RESTORED INTERFACE LIST STYLES === */
 
 .list-header {
@@ -258,6 +296,7 @@ body {
   justify-content: space-between;
   align-items: center;
 }
+/* ... rest of existing styles ... */
 
 .list-header .title {
   font-size: 0.9rem;

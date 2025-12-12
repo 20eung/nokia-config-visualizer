@@ -83,12 +83,8 @@ function App() {
     );
   };
 
-  const handleSelectAll = () => {
-    if (device) setSelectedInterfaces(device.interfaces.map(i => i.name));
-  };
-
-  const handleClearAll = () => {
-    setSelectedInterfaces([]);
+  const handleSetSelected = (names: string[]) => {
+    setSelectedInterfaces(names);
   };
 
   const diagrams = useMemo(() => {
@@ -130,8 +126,7 @@ function App() {
                 interfaces={device.interfaces}
                 selectedNames={selectedInterfaces}
                 onToggle={handleToggleInterface}
-                onSelectAll={handleSelectAll}
-                onClearAll={handleClearAll}
+                onSetSelected={handleSetSelected}
               />
             ) : (
               <div className="empty-sidebar">

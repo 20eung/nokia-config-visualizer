@@ -44,3 +44,38 @@
 - **토글**: 햄버거 버튼 클릭 -> 사이드바 숨김/보임 확인.
 - **리사이즈**: 분리선 드래그 -> 사이드바 너비 변경 확인.
 - **반응형**: 작은 화면에서도 레이아웃이 깨지지 않는지 확인 (데스크톱 중심이지만 체크).
+
+---
+
+# 구현 계획 - 인터페이스 목록 검색 기능
+
+## 목표 설명
+사용자가 인터페이스 목록을 쉽고 빠르게 필터링할 수 있도록 사이드바에 실시간 검색창을 추가합니다.
+
+-   **검색 범위**: `port`, `interface`, `port description`, `interface description`, `service description` 필드.
+-   **동작**: 사용자가 검색창에 텍스트를 입력하는 즉시 목록이 필터링되어야 합니다.
+
+## 변경 제안
+
+### 컴포넌트
+
+#### [수정] [InterfaceList.tsx](file:///Users/20eung/Project/mermaid-web/src/components/InterfaceList.tsx)
+-   **UI 추가**: `<h2>Interfaces</h2>` 타이틀 바로 위에 검색 아이콘과 함께 `<input type="text">` 검색창을 추가합니다.
+-   **상태 관리**: 검색어 입력을 처리하기 위한 내부 상태 (`searchTerm`)를 추가합니다.
+-   **필터링 로직**:
+    -   `props`로 받은 전체 인터페이스 목록(`interfaces`)을 `searchTerm`을 기준으로 필터링합니다.
+    -   검색 로직은 지정된 5개 필드(`port`, `interface 이름`, `port 설명`, `interface 설명`, `service 설명`) 내에서 대소문자 구분 없이 일치하는 항목을 찾습니다.
+    -   필터링된 결과를 기반으로 목록을 렌더링합니다.
+
+#### [수정] [App.css](file:///Users/20eung/Project/mermaid-web/src/App.css)
+-   `.sidebar` 내에 검색창(`input`)과 아이콘을 위한 새로운 스타일을 추가합니다.
+    -   예: `.search-container`, `.search-input`, `.search-icon` 등.
+    -   전문적인 UI/UX를 위해 `placeholder` 텍스트, `focus` 효과 등을 세심하게 디자인합니다.
+
+## 검증 계획
+
+### 수동 검증
+1.  **입력 테스트**: 검색창에 키워드를 입력했을 때, `port`, `interface` 이름, 각종 `description`을 포함하는 결과가 실시간으로 필터링되는지 확인합니다.
+2.  **초기화 테스트**: 검색창의 텍스트를 모두 지웠을 때, 전체 인터페이스 목록이 다시 표시되는지 확인합니다.
+3.  **결과 없음 테스트**: 검색 결과가 없는 키워드를 입력했을 때 "No matching interfaces found."와 같은 명확한 메시지가 표시되는지 확인합니다. (선택사항이지만 권장)
+4.  **대소문자 테스트**: 대소문자를 섞어 입력해도 검색이 정상적으로 동작하는지 확인합니다.
