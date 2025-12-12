@@ -6,11 +6,12 @@ Beta 브랜치(`beta.isthe.info`)는 자동으로 테스트 데이터를 로드�
 ## 동작 방식
 
 ### 자동 로드 조건
-- 호스트네임에 `beta`가 포함된 경우 (예: `beta.isthe.info`, `beta.nokia-mermaid.pages.dev`)
+- 호스트네임에 `beta`가 포함된 경우 (예: `beta.hub.sk-net.com, beta.isthe.info`)
 - 페이지 로드 시 설정 파일이 없는 경우
 
 ### 로드되는 파일
-- `/docs/config.txt` - 익명화된 Nokia 7750 SR 설정 파일
+- `/docs/config.txt` - 익명화된 Nokia 7750 SR 설정 파일 (기본 테스트용)
+- *참고: Beta 환경은 `.txt`, `.cfg`, `.conf` 등 지원되는 모든 확장자의 동작 테스트를 포함합니다.*
 
 ### 구현 위치
 - `src/App.tsx` - `useEffect` 훅을 통한 자동 로드 로직
@@ -43,8 +44,8 @@ Object.defineProperty(window.location, 'hostname', {
 
 | 환경 | URL | 자동 로드 | 브랜치 |
 |------|-----|----------|--------|
-| Production | `mermaid.isthe.info` | ❌ | `main` |
-| Beta | `beta.isthe.info` | ✅ | `beta` |
+| Production | `nokia.hub.sk-net.com`, `nokia.isthe.info` | ❌ | `main` |
+| Beta | `beta.hub.sk-net.com`, `beta.isthe.info` | ✅ | `beta` |
 
 ## 콘솔 메시지
 

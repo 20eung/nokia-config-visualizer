@@ -52,7 +52,7 @@
 ## 목표 설명
 사용자가 인터페이스 목록을 쉽고 빠르게 필터링할 수 있도록 사이드바에 실시간 검색창을 추가합니다.
 
--   **검색 범위**: `port`, `interface`, `port description`, `interface description`, `service description` 필드.
+-   **검색 범위**: `port`, `interface`, `ip address`, `port description`, `interface description`, `service description` 필드.
 -   **동작**: 사용자가 검색창에 텍스트를 입력하는 즉시 목록이 필터링되어야 합니다.
 
 ## 변경 제안
