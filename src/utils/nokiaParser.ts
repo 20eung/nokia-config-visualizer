@@ -151,6 +151,18 @@ function getPortDescription(configContent: string, ifBlock: string): { portId: s
   return { portId, portDescription };
 }
 
+// Helper: Get port description by ID directly
+function getPortDescriptionById(configContent: string, portId: string): string {
+  const portPattern = new RegExp(`^\\s*port ${portId.replace(/\//g, '\\/')}([\\s\\S]*?)^\\s*exit`, 'm');
+  const portMatch = configContent.match(portPattern);
+
+  if (portMatch) {
+    const descMatch = portMatch[1].match(/description\s+"?([^"\n]+)"?/);
+    if (descMatch) return cleanDesc(descMatch[1]);
+  }
+  return '';
+}
+
 export const parseNokiaConfig = (configText: string): NokiaDevice => {
   const lines = configText.split('\n');
   const device: NokiaDevice = {
@@ -184,8 +196,43 @@ export const parseNokiaConfig = (configText: string): NokiaDevice => {
     if (descMatch) intf.description = cleanDesc(descMatch[1]);
 
     // Extract port ID and description
-    const { portId, portDescription } = getPortDescription(configText, ifBlock);
-    if (portId !== 'N/A') {
+    let { portId, portDescription } = getPortDescription(configText, ifBlock);
+
+    // Fallback: Try to extract port from interface name (e.g., "p3/1/13" -> "3/1/13")
+    if ((!portId || portId === 'N/A') && interfaceName.match(/^p\d+\/\d+\/\d+$/)) {
+      const inferredPortId = interfaceName.substring(1); // Remove 'p'
+      const inferredPortDesc = getPortDescriptionById(configText, inferredPortId);
+      if (inferredPortDesc) {
+        portId = inferredPortId;
+        portDescription = inferredPortDesc;
+      }
+    }
+
+    // New Fallback: Try to extract multi-ports (e.g., "p4/1/6-p4/1/7")
+    if ((!portId || portId === 'N/A') && interfaceName.includes('-')) {
+      // Check if looks like range of p-ports
+      // Regex for pX/X/X-pX/X/X (can be generalized if needed)
+      if (interfaceName.match(/^p\d+\/\d+\/\d+-p\d+\/\d+\/\d+$/)) {
+        const parts = interfaceName.split('-');
+        const portIds: string[] = [];
+        const portDescs: string[] = [];
+
+        for (const part of parts) {
+          const pid = part.substring(1); // Remove 'p'
+          portIds.push(pid);
+          const desc = getPortDescriptionById(configText, pid);
+          if (desc) portDescs.push(desc);
+        }
+
+        if (portIds.length > 0) {
+          portId = portIds.join(', ');
+          // Join unique descriptions
+          portDescription = [...new Set(portDescs)].join(' / ');
+        }
+      }
+    }
+
+    if (portId && portId !== 'N/A') {
       intf.portId = portId;
       intf.portDescription = portDescription;
     }
@@ -242,6 +289,37 @@ export const parseNokiaConfig = (configText: string): NokiaDevice => {
       prefix: match[1],
       nextHop: match[2]
     });
+  }
+
+  // Extract static routes (New structured syntax: static-route-entry)
+  // We scan lines to avoid regex over-greediness issues
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.startsWith('static-route-entry')) {
+      const parts = line.split(/\s+/);
+      if (parts.length >= 2) {
+        const prefix = parts[1];
+
+        // Scan forward for next-hop within this block
+        // Block ends at 'exit' or new top-level command. 
+        // We'll limit scan to 20 lines to be safe.
+        for (let j = i + 1; j < Math.min(i + 20, lines.length); j++) {
+          const subLine = lines[j].trim();
+          if (subLine === 'exit') break;
+          if (subLine.startsWith('static-route-entry')) break; // safety
+
+          if (subLine.startsWith('next-hop')) {
+            const nhParts = subLine.split(/\s+/);
+            if (nhParts.length >= 2) {
+              device.staticRoutes.push({
+                prefix: prefix,
+                nextHop: nhParts[1]
+              });
+            }
+          }
+        }
+      }
+    }
   }
 
   // Extract ports for reference

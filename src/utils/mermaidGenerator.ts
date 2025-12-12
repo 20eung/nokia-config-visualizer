@@ -53,7 +53,7 @@ function generateSingleInterfaceDiagram(device: NokiaDevice, intf: NokiaInterfac
   mermaid.push(`    end`);
 
   // Build Right Subgraph (Remote) - matching Python exactly
-  const rightTitle = portDesc || 'Remote Connected Device';
+  const rightTitle = ifDesc || 'Remote Connected Device';
   mermaid.push(`    subgraph Remote ["${rightTitle}"]`);
   mermaid.push(`        B["<b>Next-Hop</b><br/>${peerIp}"]`);
 
