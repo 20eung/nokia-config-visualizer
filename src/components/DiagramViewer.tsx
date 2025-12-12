@@ -7,14 +7,25 @@ interface DiagramViewerProps {
   diagrams: Array<{ name: string; code: string; description: string }>;
 }
 
+interface RenderedDiagram {
+  id: string;
+  svg: string;
+  name: string;
+  description: string;
+  isError: boolean;
+}
+
 export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoomLevel, setZoomLevel] = useState(1.0);
-  const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+  const [renderedDiagrams, setRenderedDiagrams] = useState<RenderedDiagram[]>([]);
+
+  // Track open download menu
+  const [activeDownloadMenu, setActiveDownloadMenu] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current || diagrams.length === 0) {
-      if (containerRef.current) containerRef.current.innerHTML = '';
+    if (diagrams.length === 0) {
+      setRenderedDiagrams([]);
       return;
     }
 
@@ -38,87 +49,72 @@ export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
     });
 
     const renderPromises = diagrams.map((diagram, index) => {
+      const id = `mermaid-chart-${index}`;
       if (!diagram.code || typeof diagram.code !== 'string' || diagram.code.trim() === '') {
-        return Promise.resolve({ index, svg: '', success: false, name: diagram.name, description: diagram.description });
+        return Promise.resolve({ id, svg: '', isError: true, name: diagram.name, description: diagram.description });
       }
       return mermaid
-        .render(`mermaid-chart-${index}`, diagram.code)
-        .then((result) => ({ index, svg: result.svg, success: true, name: diagram.name, description: diagram.description }))
+        .render(id, diagram.code)
+        .then((result) => ({ id, svg: result.svg, isError: false, name: diagram.name, description: diagram.description }))
         .catch((err) => {
           console.error(`Mermaid failed to render diagram ${diagram.name} (index ${index})`, err);
-          return { index, svg: '', success: false, name: diagram.name, description: diagram.description };
+          return { id, svg: '', isError: true, name: diagram.name, description: diagram.description };
         });
     });
 
     Promise.all(renderPromises).then((results) => {
-      if (!containerRef.current) return;
-      containerRef.current.innerHTML = '';
-      results.forEach(({ svg, success, name, description }) => {
-        if (!success || !svg) return;
-        const title = description ? `${name}: ${description}` : name;
-        const diagramWrapper = document.createElement('div');
-        diagramWrapper.className = 'diagram-item';
-        diagramWrapper.innerHTML = `
-          <div class="diagram-header">
-            <h3>${title}</h3>
-          </div>
-          <div class="diagram-content">
-            ${svg}
-          </div>
-        `;
-        containerRef.current?.appendChild(diagramWrapper);
-      });
+      setRenderedDiagrams(results);
     });
   }, [diagrams]);
 
   const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 0.1, 3.0));
   const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 0.1, 0.5));
 
-  const handleDownloadSvg = () => {
-    const svg = containerRef.current?.querySelector('svg');
-    if (!svg) return;
+  const downloadSvg = (diagram: RenderedDiagram) => {
     try {
-      const serializer = new XMLSerializer();
-      let source = serializer.serializeToString(svg);
+      let source = diagram.svg;
       if (!source.match(/^<\?xml/)) {
         source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
       }
       const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
       const downloadLink = document.createElement('a');
       downloadLink.href = url;
-      downloadLink.download = 'network-diagram.svg';
+      downloadLink.download = `${diagram.name.replace(/\s+/g, '_')}.svg`;
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
-      setIsDownloadMenuOpen(false);
+      setActiveDownloadMenu(null);
     } catch (e) {
       console.error('SVG Download failed:', e);
       alert('SVG Download failed');
     }
   };
 
-  const handleDownloadPng = async () => {
-    const svg = containerRef.current?.querySelector('svg');
-    if (!svg) {
-      alert('No diagram to download');
+  const downloadPng = async (id: string, name: string) => {
+    // Find the specific SVG element in the DOM
+    // The svg is inside the div with id, but mermaid.render usually assigns id to the SVG. 
+    // Wait, mermaid.render returns SVG string with id. When we dangerouslySetInnerHTML, the SVG has that ID.
+    // However, unique IDs are important. Let's look for the SVG by ID.
+    const svgElement = document.querySelector(`#${id}`);
+
+    if (!svgElement) {
+      alert('Diagram element not found');
       return;
     }
 
     try {
-      // Use html-to-image to generate PNG
-      // We set a white background and scale up for quality
-      const dataUrl = await toPng(svg as unknown as HTMLElement, {
+      const dataUrl = await toPng(svgElement as unknown as HTMLElement, {
         backgroundColor: 'white',
-        pixelRatio: 2.5, // Higher quality
+        pixelRatio: 2.5,
       });
 
       const downloadLink = document.createElement('a');
       downloadLink.href = dataUrl;
-      downloadLink.download = 'network-diagram.png';
+      downloadLink.download = `${name.replace(/\s+/g, '_')}.png`;
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
-      setIsDownloadMenuOpen(false);
+      setActiveDownloadMenu(null);
 
     } catch (e) {
       console.error('PNG Download failed:', e);
@@ -126,13 +122,13 @@ export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
     }
   };
 
-  // If no diagrams, don't show the viewer (or at least toolbar)
+  // If no diagrams, don't show the viewer
   if (!diagrams.length) return null;
 
   return (
     <div className="diagram-viewer">
       <div className="toolbar">
-        {/* Left: Zoom Controls */}
+        {/* Zoom Controls */}
         <div className="toolbar-group">
           <button className="btn-tool" onClick={handleZoomOut} title="Zoom Out">
             <ZoomOut size={16} />
@@ -144,48 +140,64 @@ export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
             <ZoomIn size={16} />
           </button>
         </div>
-
-        {/* Right: Download Control */}
-        <div className="toolbar-group relative">
-          <button
-            className={`btn-tool primary ${isDownloadMenuOpen ? 'active' : ''}`}
-            onClick={() => setIsDownloadMenuOpen(!isDownloadMenuOpen)}
-            title="Download Diagram"
-          >
-            <Download size={16} />
-            <span>Download</span>
-            <ChevronDown size={14} />
-          </button>
-
-          {isDownloadMenuOpen && (
-            <div className="dropdown-menu" style={{ width: '160px' }}>
-              <div className="py-1">
-                <button className="dropdown-item" onClick={handleDownloadSvg}>
-                  <span className="font-medium">SVG</span> <span className="text-gray-500 text-xs">(Vector)</span>
-                </button>
-                <button className="dropdown-item" onClick={handleDownloadPng}>
-                  <span className="font-medium">PNG</span> <span className="text-gray-500 text-xs">(Image)</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Backdrop */}
-          {isDownloadMenuOpen && (
-            <div className="fixed inset-0 z-40" onClick={() => setIsDownloadMenuOpen(false)} />
-          )}
-        </div>
+        {/* Removed Global Download Button */}
       </div>
 
       <div
-        ref={containerRef}
         className="diagram-canvas"
         style={{
           transform: `scale(${zoomLevel})`,
           transformOrigin: 'top left',
           transition: 'transform 0.1s ease-out'
         }}
-      />
+      >
+        {renderedDiagrams.map((diagram) => {
+          if (diagram.isError) return null; // Skip invalid diagrams
+
+          const title = diagram.description ? `${diagram.name}: ${diagram.description}` : diagram.name;
+          const isMenuOpen = activeDownloadMenu === diagram.id;
+
+          return (
+            <div key={diagram.id} className="diagram-item">
+              <div className="diagram-header">
+                <h3>{title}</h3>
+
+                <div className="header-actions relative">
+                  <button
+                    className="btn-tool"
+                    style={{ height: '28px', padding: '0 8px', fontSize: '12px' }}
+                    onClick={() => setActiveDownloadMenu(isMenuOpen ? null : diagram.id)}
+                    title="Download"
+                  >
+                    <Download size={14} />
+                    <ChevronDown size={12} />
+                  </button>
+
+                  {isMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setActiveDownloadMenu(null)} />
+                      <div className="dropdown-menu" style={{ width: '120px', right: 0, top: '100%', marginTop: '4px' }}>
+                        <div className="py-1">
+                          <button className="dropdown-item" onClick={() => downloadSvg(diagram)}>
+                            <span className="font-medium">SVG</span>
+                          </button>
+                          <button className="dropdown-item" onClick={() => downloadPng(diagram.id, diagram.name)}>
+                            <span className="font-medium">PNG</span>
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div
+                className="diagram-content"
+                dangerouslySetInnerHTML={{ __html: diagram.svg }}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

@@ -7,7 +7,7 @@ import { FileUpload } from './components/FileUpload';
 import { ConfigSelector } from './components/ConfigSelector';
 import { InterfaceList } from './components/InterfaceList';
 import { DiagramViewer } from './components/DiagramViewer';
-import { Layout, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import './App.css';
 
 function App() {
@@ -105,7 +105,7 @@ function App() {
             <Menu size={20} />
           </button>
           <div className="logo">
-            <Layout className="icon" />
+            <img src="/favicon.svg" alt="App Icon" className="app-icon" style={{ height: '36px', width: '36px' }} />
             <h1>Nokia Config Visualizer</h1>
           </div>
         </div>
