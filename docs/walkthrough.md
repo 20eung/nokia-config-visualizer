@@ -126,3 +126,26 @@ Nokia Config Visualizer의 첫 번째 단계를 성공적으로 구현했습니�
 ## 다음 단계
 -   **단계 2**: 두 설정 파일 비교 구현 (이중화 시각화).
 -   **단계 3**: 다중 설정을 통한 엔드투엔드 경로 시각화.
+
+## 텍스트 표시 개선 (v1.8)
+사용자 피드백을 반영하여 다이어그램 내 텍스트 표시를 개선했습니다.
+
+### 줄바꿈 방지 (Text Wrapping Prevention)
+- **문제**: Description, Hostname, Remote name이 공백이나 하이픈(`-`) 문자에서 줄바꿈되어 가독성 저하
+- **해결**: 유니코드 non-breaking 문자 사용
+  - 공백 → `\u00A0` (non-breaking space)
+  - 하이픈 → `\u2011` (non-breaking hyphen)
+- **적용 범위**:
+  - Port, Interface, Service description
+  - Hostname (Host subgraph 제목)
+  - Remote name (Remote subgraph 제목)
+
+### 볼드 처리 (Bold Formatting)
+- **Hostname**과 **Remote name**에 `<b>` 태그 적용하여 시각적 강조
+- 다이어그램에서 주요 노드 식별이 더욱 용이해짐
+
+### 기술적 배경
+- HTML 엔티티(`&nbsp;`, `&#8209;`)는 Mermaid.js에서 이스케이프되어 `&` 문자가 표시되는 문제 발생
+- CSS `white-space: nowrap`은 Mermaid.js가 렌더링하지 않아 텍스트 사라짐
+- **유니코드 문자**는 실제 문자이므로 Mermaid.js가 그대로 렌더링하여 성공적으로 작동
+

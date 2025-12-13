@@ -19,9 +19,17 @@ export const generateMermaidDiagram = (
 function generateSingleInterfaceDiagram(device: NokiaDevice, intf: NokiaInterface): string {
   const mermaid: string[] = ['graph LR'];
 
+  // Helper function to prevent line wrapping in text
+  const noWrap = (text: string): string => {
+    return text
+      .replace(/ /g, '\u00A0')    // Non-breaking space (Unicode)
+      .replace(/-/g, '\u2011');   // Non-breaking hyphen (Unicode)
+  };
+
   // Helper function to format descriptions
   const fmtDesc = (desc?: string): string => {
-    return desc ? `<br/>( ${desc})` : '';
+    if (!desc) return '';
+    return `<br/>(${noWrap(desc)})`;
   };
 
   // Extract data
@@ -48,13 +56,13 @@ function generateSingleInterfaceDiagram(device: NokiaDevice, intf: NokiaInterfac
     `</div>`;
 
   // Build Host Subgraph
-  mermaid.push(`    subgraph Host ["${device.hostname}"]`);
+  mermaid.push(`    subgraph Host ["<b>${noWrap(device.hostname)}</b>"]`);
   mermaid.push(`        A["${leftLabel}"]`);
   mermaid.push(`    end`);
 
   // Build Right Subgraph (Remote) - matching Python exactly
   const rightTitle = ifDesc || 'Remote Connected Device';
-  mermaid.push(`    subgraph Remote ["${rightTitle}"]`);
+  mermaid.push(`    subgraph Remote ["<b>${noWrap(rightTitle)}</b>"]`);
   mermaid.push(`        B["<b>Next-Hop</b><br/>${peerIp}"]`);
 
   // Customer Network node - matching Python exactly
