@@ -1,26 +1,26 @@
-# Changelog
+# 변경 이력 (Changelog)
 
-All notable changes to this project will be documented in this file.
+이 프로젝트의 모든 주요 변경 사항은 이 파일에 문서화됩니다.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+이 형식은 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)를 기반으로 하며,
+이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 ## [1.0.0] - 2025-12-14
 
-### Added
-- **Diagram Visualization**: Parses Nokia configuration files and visualizes network topology/interfaces.
-- **Individual Download**: Supports downloading individual diagram cards as PNG (high-res) or SVG.
-- **Custom UI**:
-  - "Config Visualizer" title and branding.
-  - Custom SVG Icons (Favicon & Header Logo) representing network topology.
-  - Resizable sidebar and responsive layout.
-- **Demo Mode**: Automatically loads demo config in beta environments.
+### 추가됨 (Added)
+- **다이어그램 시각화**: Nokia 설정 파일을 파싱하여 네트워크 토폴로지와 인터페이스를 시각화합니다.
+- **개별 다운로드**: 각 다이어그램 카드를 고해상도 PNG 또는 SVG로 개별 다운로드할 수 있습니다.
+- **커스텀 UI**:
+  - "Config Visualizer" 타이틀 및 브랜딩 적용.
+  - 네트워크 토폴로지를 형상화한 커스텀 SVG 아이콘 (Favicon 및 헤더 로고).
+  - 크기 조절이 가능한 사이드바 및 반응형 레이아웃.
+- **데모 모드**: 베타 환경에서 자동으로 데모 설정 파일을 로드합니다.
 
-### Changed
-- **Toolbar Refactor**: Unified download buttons into card headers for better UX.
-- **Icon Update**: Replaced default Vite icon with custom `cv.svg` (Config Visualizer) icon.
-- **Performance**: Optimized rendering with `html-to-image` for robust PNG generation.
+### 변경됨 (Changed)
+- **툴바 리팩토링**: UX 개선을 위해 다운로드 버튼을 각 카드 헤더로 통합했습니다.
+- **아이콘 업데이트**: 기본 Vite 아이콘을 커스텀 `cv.svg` (Config Visualizer) 아이콘으로 교체했습니다.
+- **성능**: 안정적인 PNG 생성을 위해 `html-to-image` 라이브러리를 도입하여 렌더링을 최적화했습니다.
 
-### Fixed
-- **PNG Download**: Resolved issues with canvas tainting and low resolution by switching to `html-to-image`.
-- **Build Errors**: Fixed unused variable typescript errors for production builds.
+### 수정됨 (Fixed)
+- **PNG 다운로드**: `html-to-image`로 전환하여 캔버스 오염(tainted canvas) 및 저해상도 문제를 해결했습니다.
+- **빌드 오류**: 프로덕션 빌드 시 발생하던 미사용 변수 관련 TypeScript 오류를 수정했습니다.
