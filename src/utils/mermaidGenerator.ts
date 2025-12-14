@@ -149,7 +149,7 @@ function buildNodeLabel(device: NokiaDevice, intf: NokiaInterface): string {
 }
 
 // Generate Combined HA Diagram
-function generateCombinedHaDiagram(group: DiagramGroup, topology: NetworkTopology): string {
+function generateCombinedHaDiagram(group: DiagramGroup, _topology: NetworkTopology): string {
   const mermaid = ['graph LR'];
 
   // Local Subgraph
