@@ -128,7 +128,7 @@ const fmtDesc = (desc?: string): string => {
 };
 
 // Build node label in original beta format
-function buildNodeLabel(device: NokiaDevice, intf: NokiaInterface): string {
+function buildNodeLabel(_device: NokiaDevice, intf: NokiaInterface): string {
   const portId = intf.portId || 'N/A';
   const portDesc = intf.portDescription || '';
   const ifName = intf.name;
@@ -207,7 +207,7 @@ function generateCombinedHaDiagram(group: DiagramGroup, topology: NetworkTopolog
 }
 
 // Generate Single Interface Diagram (Original Beta Format)
-function generateSingleInterfaceDiagram(device: NokiaDevice, intf: NokiaInterface, topology: NetworkTopology): string {
+function generateSingleInterfaceDiagram(device: NokiaDevice, intf: NokiaInterface, _topology: NetworkTopology): string {
   const mermaid: string[] = ['graph LR'];
   const { peerIp, relatedRoutes } = findPeerAndRoutes(device, intf);
 

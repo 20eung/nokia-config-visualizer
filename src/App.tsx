@@ -1,6 +1,6 @@
 import { processConfigFiles } from './utils/TopologyEngine';
 import { generateMermaidDiagram } from './utils/mermaidGenerator';
-import type { NokiaDevice, NetworkTopology } from './types';
+import type { NetworkTopology } from './types';
 import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
 import { FileUpload } from './components/FileUpload';
 import { ConfigSelector } from './components/ConfigSelector';
@@ -11,8 +11,6 @@ import './App.css';
 
 function App() {
   const [topology, setTopology] = useState<NetworkTopology>({ devices: [], links: [], haPairs: [] });
-  const devices = topology.devices;
-  const device = devices.length > 0 ? devices[0] : null;
   const [selectedInterfaces, setSelectedInterfaces] = useState<string[]>([]);
 
   // Layout State
@@ -51,7 +49,7 @@ function App() {
   useEffect(() => {
     const isBetaEnvironment = window.location.hostname.includes('beta');
 
-    if (isBetaEnvironment && devices.length === 0) {
+    if (isBetaEnvironment && topology.devices.length === 0) {
       fetch('/docs/config.txt')
         .then(response => {
           if (!response.ok) throw new Error('Failed to load test config');
@@ -96,7 +94,7 @@ function App() {
   };
 
   const diagrams = useMemo(() => {
-    if (devices.length === 0) return [];
+    if (topology.devices.length === 0) return [];
     return generateMermaidDiagram(topology, selectedInterfaces);
   }, [topology, selectedInterfaces]);
 
@@ -132,9 +130,9 @@ function App() {
           style={{ width: isSidebarOpen ? sidebarWidth : 0 }}
         >
           <div className="sidebar-content">
-            {devices.length > 0 ? (
+            {topology.devices.length > 0 ? (
               <InterfaceList
-                devices={devices}
+                devices={topology.devices}
                 topology={topology}
                 selectedIds={selectedInterfaces}
                 onToggle={handleToggleInterface}
@@ -155,7 +153,7 @@ function App() {
         />
 
         <section className="content">
-          {device ? (
+          {topology.devices.length > 0 ? (
             <DiagramViewer diagrams={diagrams} />
           ) : (
             <div className="empty-state">
