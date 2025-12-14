@@ -1,8 +1,7 @@
-import { useState, useMemo } from 'react';
-import { parseNokiaConfig } from './utils/nokiaParser';
+import { processConfigFiles } from './utils/TopologyEngine';
 import { generateMermaidDiagram } from './utils/mermaidGenerator';
-import type { NokiaDevice } from './types';
-import { useRef, useCallback, useEffect } from 'react';
+import type { NokiaDevice, NetworkTopology } from './types';
+import { useRef, useCallback, useEffect, useState, useMemo } from 'react';
 import { FileUpload } from './components/FileUpload';
 import { ConfigSelector } from './components/ConfigSelector';
 import { InterfaceList } from './components/InterfaceList';
@@ -11,11 +10,14 @@ import { Menu } from 'lucide-react';
 import './App.css';
 
 function App() {
-  const [device, setDevice] = useState<NokiaDevice | null>(null);
+  const [topology, setTopology] = useState<NetworkTopology>({ devices: [], links: [], haPairs: [] });
+  const devices = topology.devices;
+  const device = devices.length > 0 ? devices[0] : null;
   const [selectedInterfaces, setSelectedInterfaces] = useState<string[]>([]);
 
   // Layout State
   const [sidebarWidth, setSidebarWidth] = useState(320);
+  // Default sidebar to true for easier desktop usage/testing
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -49,14 +51,14 @@ function App() {
   useEffect(() => {
     const isBetaEnvironment = window.location.hostname.includes('beta');
 
-    if (isBetaEnvironment && !device) {
+    if (isBetaEnvironment && devices.length === 0) {
       fetch('/docs/config.txt')
         .then(response => {
           if (!response.ok) throw new Error('Failed to load test config');
           return response.text();
         })
         .then(text => {
-          handleConfigLoaded(text);
+          handleConfigLoaded([text]);
           console.log('✅ Beta environment: Auto-loaded docs/config.txt');
         })
         .catch(error => {
@@ -65,16 +67,21 @@ function App() {
     }
   }, []); // Run once on mount
 
-  const handleConfigLoaded = (text: string) => {
+  const handleConfigLoaded = (contents: string[]) => {
     try {
-      const parsedDevice = parseNokiaConfig(text);
-      setDevice(parsedDevice);
+      const newTopology = processConfigFiles(contents);
+      setTopology(newTopology);
       setSelectedInterfaces([]); // Reset selection
     } catch (e) {
       alert('Failed to parse config file.');
       console.error(e);
     }
   };
+
+  // Temporary debug helper
+  useEffect(() => {
+    (window as any).loadDebugConfig = (content: string) => handleConfigLoaded([content]);
+  }, []);
 
   const handleToggleInterface = (name: string) => {
     setSelectedInterfaces(prev =>
@@ -89,9 +96,9 @@ function App() {
   };
 
   const diagrams = useMemo(() => {
-    if (!device) return [];
-    return generateMermaidDiagram(device, selectedInterfaces);
-  }, [device, selectedInterfaces]);
+    if (devices.length === 0) return [];
+    return generateMermaidDiagram(topology, selectedInterfaces);
+  }, [topology, selectedInterfaces]);
 
   return (
     <div className="app-container">
@@ -125,10 +132,11 @@ function App() {
           style={{ width: isSidebarOpen ? sidebarWidth : 0 }}
         >
           <div className="sidebar-content">
-            {device ? (
+            {devices.length > 0 ? (
               <InterfaceList
-                interfaces={device.interfaces}
-                selectedNames={selectedInterfaces}
+                devices={devices}
+                topology={topology}
+                selectedIds={selectedInterfaces}
                 onToggle={handleToggleInterface}
                 onSetSelected={handleSetSelected}
               />

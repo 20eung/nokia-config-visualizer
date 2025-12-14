@@ -21,6 +21,23 @@
 - `variant?: 'default' | 'header'` 프로퍼티를 추가합니다 (일단 헤더를 기본으로 하거나 완전히 대체).
 - 헤더의 라벨/버튼에 의해 트리거되는 숨겨진 input 요소로 구현될 예정입니다.
 
+#### [NEW] [FilePreviewModal.tsx](file:///Users/20eung/Project/mermaid-web/src/components/FilePreviewModal.tsx)
+- **Props**: `files: File[]`, `onConfirm: (files: File[]) => void`, `onCancel: () => void`.
+- **UI**:
+  - 모달 오버레이 (Modal Overlay).
+  - 파일 이름, 크기, "제거" (X) 버튼/체크박스가 있는 파일 목록.
+  - "분석 시작" (Primary) 및 "취소" (Secondary) 버튼.
+
+#### [MODIFY] [FileUpload.tsx](file:///Users/20eung/Project/mermaid-web/src/components/FileUpload.tsx)
+- 로컬 상태 `selectedFiles: File[]` 관리.
+- 파일 선택 즉시 처리를 시작하지 않고, `selectedFiles`를 설정한 뒤 `FilePreviewModal`을 엽니다.
+- 모달에서 확인(Confirm) 시, 파일 내용을 읽어 `onConfigLoaded`를 호출합니다.
+
+#### [MODIFY] [InterfaceList.tsx](file:///Users/20eung/Project/mermaid-web/src/components/InterfaceList.tsx)
+- 헤더 액션 바에 "이중화" 필터 버튼 추가.
+- `haPairs`에 접근하기 위해 `NetworkTopology`를 props로 받도록 수정.
+- 필터링 로직 구현: 식별된 HA Pair의 IP를 목적지로 하는 인터페이스만 선택.
+
 #### [수정] [App.tsx](file:///Users/20eung/Project/mermaid-web/src/App.tsx)
 - **Header**: 부제(subtitle)를 제거하고, 여기에 `FileUpload` 컴포넌트를 추가합니다.
 - **Layout**:

@@ -5,7 +5,37 @@
 이 형식은 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
+## [1.1.0] - 2025-12-14
+
+### 추가됨 (Added)
+- **HA 다이어그램 생성**: 이중화(High Availability) 구성 자동 감지 및 시각화
+  - HA Pair를 공유하는 인터페이스를 자동으로 그룹핑하여 Combined Diagram 생성
+  - Local Hosts, Remote HA Pair, Customer Network 서브그래프로 구조화
+  - QoS 정보 표시 (In-QoS / Out-QoS)
+- **이중화 필터 버튼**: 인터페이스 목록에서 HA 구성 인터페이스만 자동 선택
+- **파일 미리보기 모달**: 업로드할 파일 목록을 미리 확인하고 추가 파일 선택 가능
+  - "Add Files" 버튼으로 파일 추가
+  - 선택한 파일 목록 표시
+- **Mermaid 코드 보기 버튼**: 생성된 Mermaid 코드를 확인할 수 있는 디버깅 도구
+  - 각 다이어그램 헤더에 `</>` 아이콘 버튼
+  - 렌더링 실패 시에도 코드 확인 가능
+
+### 변경됨 (Changed)
+- **다이어그램 레이블 형식**: Beta 브랜치 원본 형식으로 복원
+  - HTML 레이블 사용 (`<div style="text-align: left">`)
+  - **Port**, **Interface**, **IP**, **Service** 정보 표시
+  - Non-breaking space/hyphen 적용으로 텍스트 줄바꿈 방지
+- **Parser 개선**: `create` 키워드가 없는 interface 선언도 파싱 가능
+
+### 수정됨 (Fixed)
+- **Mermaid 파싱 오류**: HTML style 속성의 quote 처리 문제 해결
+  - Single quote → Double quote 변경
+  - 특수 문자 이스케이프 개선 (`&` → `&amp;`)
+- **Carriage return 처리**: Windows 스타일 줄바꿈 문자 제거
+- **에러 표시 개선**: 다이어그램 렌더링 실패 시에도 카드와 Code 버튼 표시
+
 ## [1.0.0] - 2025-12-14
+
 
 ### 추가됨 (Added)
 - **다이어그램 시각화**: Nokia 설정 파일을 파싱하여 네트워크 토폴로지와 인터페이스를 시각화합니다.

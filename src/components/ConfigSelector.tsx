@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { FileText, ChevronDown } from 'lucide-react';
 
 interface ConfigSelectorProps {
-    onConfigLoaded: (content: string) => void;
+    onConfigLoaded: (contents: string[]) => void;
 }
 
 const DEMO_CONFIGS = [
@@ -26,7 +26,7 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({ onConfigLoaded }
             const response = await fetch(path);
             if (!response.ok) throw new Error('Failed to load config');
             const text = await response.text();
-            onConfigLoaded(text);
+            onConfigLoaded([text]);
         } catch (error) {
             console.error('Error loading config:', error);
             alert('Failed to load demo configuration.');

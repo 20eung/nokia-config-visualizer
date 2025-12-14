@@ -37,7 +37,7 @@ function getInterfaceBlockByIndent(lines: string[], targetInterface: string): st
   while (i < lines.length) {
     const line = lines[i];
     if (line.includes(targetStart1) || line.includes(targetStart2)) {
-      const startIndent = line.length - line.trimLeft().length;
+      const startIndent = line.length - line.trimStart().length;
       const blockLines: string[] = [line];
 
       i++;
@@ -49,7 +49,7 @@ function getInterfaceBlockByIndent(lines: string[], targetInterface: string): st
           continue;
         }
 
-        const nextIndent = nextLine.length - nextLine.trimLeft().length;
+        const nextIndent = nextLine.length - nextLine.trimStart().length;
         if (nextLine.trim() === 'exit' && nextIndent === startIndent) {
           blockLines.push(nextLine);
           break;
@@ -99,12 +99,12 @@ function getServiceInfo(lines: string[], targetInterface: string): { serviceType
 
   if (targetIdx === -1) return { serviceType: 'Unknown Svc', serviceDescription: '' };
 
-  const ifIndent = lines[targetIdx].length - lines[targetIdx].trimLeft().length;
+  const ifIndent = lines[targetIdx].length - lines[targetIdx].trimStart().length;
 
   // Walk backward to find service
   for (let i = targetIdx; i >= 0; i--) {
     const line = lines[i];
-    const currentIndent = line.length - line.trimLeft().length;
+    const currentIndent = line.length - line.trimStart().length;
 
     if (currentIndent < ifIndent) {
       const match = line.trim().match(/^(ies|vpls|vprn|epipe)\s+(\d+)/i);
@@ -115,7 +115,7 @@ function getServiceInfo(lines: string[], targetInterface: string): { serviceType
         let serviceDescription = '';
         for (let j = i + 1; j < Math.min(i + 30, lines.length); j++) {
           const subLine = lines[j];
-          const subIndent = subLine.length - subLine.trimLeft().length;
+          const subIndent = subLine.length - subLine.trimStart().length;
           if (subIndent <= currentIndent) break;
 
           const descMatch = subLine.match(/description\s+"?([^"\n]+)"?/);
@@ -174,14 +174,14 @@ export const parseNokiaConfig = (configText: string): NokiaDevice => {
 
   // Extract hostname
   const hostnameMatch = configText.match(/system[\s\S]*?name\s+"?([^"\n]+)"?/);
-  if (hostnameMatch) device.hostname = hostnameMatch[1];
+  if (hostnameMatch) device.hostname = hostnameMatch[1].trim();
 
   // Extract all interfaces from router Base section
-  const interfacePattern = /interface\s+"([^"]+)"\s+create/g;
+  const interfacePattern = /interface\s+"([^"]+)"(?:\s+create)?/g;
   const interfaceMatches = [...configText.matchAll(interfacePattern)];
 
   for (const match of interfaceMatches) {
-    const interfaceName = match[1];
+    const interfaceName = match[1].trim();
     const ifBlock = getInterfaceBlockByIndent(lines, interfaceName);
     if (!ifBlock) continue;
 
@@ -281,10 +281,11 @@ export const parseNokiaConfig = (configText: string): NokiaDevice => {
 
   device.interfaces = Array.from(uniqueInterfaces.values());
 
-  // Extract static routes
-  const routePattern = /static-route\s+([\d./]+)\s+next-hop\s+([\d.]+)/g;
-  const routeMatches = [...configText.matchAll(routePattern)];
-  for (const match of routeMatches) {
+  // Extract  // Static Routes
+  // Allow leading whitespace
+  const routeRegex = /^\s*static-route\s+([^\s]+)\s+next-hop\s+([^\s]+)/gm;
+  let match;
+  while ((match = routeRegex.exec(configText)) !== null) {
     device.staticRoutes.push({
       prefix: match[1],
       nextHop: match[2]

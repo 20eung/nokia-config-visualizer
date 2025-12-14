@@ -32,3 +32,23 @@ export interface NokiaDevice {
   interfaces: NokiaInterface[];
   staticRoutes: NokiaStaticRoute[];
 }
+
+export interface HAPair {
+  device1: string; // hostname
+  device2: string; // hostname
+  type: 'vrrp' | 'static-route' | 'manual';
+  commonNetwork?: string;
+}
+
+export interface Link {
+  source: string; // hostname
+  target: string; // hostname
+  sourceInterface?: string;
+  targetInterface?: string;
+}
+
+export interface NetworkTopology {
+  devices: NokiaDevice[];
+  links: Link[];
+  haPairs: HAPair[];
+}

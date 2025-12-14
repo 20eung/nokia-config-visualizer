@@ -1,122 +1,35 @@
-import type { NokiaDevice, NokiaInterface } from '../types';
 
-export const generateMermaidDiagram = (
-  device: NokiaDevice,
-  selectedInterfaces: string[]
-): Array<{ name: string; code: string; description: string }> => {
-  const relevantInterfaces = device.interfaces.filter((i) =>
-    selectedInterfaces.includes(i.name)
-  );
+import type { NokiaDevice, NokiaInterface, NetworkTopology, HAPair } from '../types';
 
-  // Generate a diagram for each selected interface
-  return relevantInterfaces.map((intf) => ({
-    name: intf.name,
-    code: generateSingleInterfaceDiagram(device, intf),
-    description: intf.portDescription || '',
-  }));
-};
-
-function generateSingleInterfaceDiagram(device: NokiaDevice, intf: NokiaInterface): string {
-  const mermaid: string[] = ['graph LR'];
-
-  // Helper function to prevent line wrapping in text
-  const noWrap = (text: string): string => {
-    return text
-      .replace(/ /g, '\u00A0')    // Non-breaking space (Unicode)
-      .replace(/-/g, '\u2011');   // Non-breaking hyphen (Unicode)
-  };
-
-  // Helper function to format descriptions
-  const fmtDesc = (desc?: string): string => {
-    if (!desc) return '';
-    return `<br/>(${noWrap(desc)})`;
-  };
-
-  // Extract data
-  const portId = intf.portId || 'N/A';
-  const portDesc = intf.portDescription || '';
-  const ifName = intf.name;
-  const ifDesc = intf.description || '';
-  const ipAddr = intf.ipAddress || 'N/A';
-  const svcType = intf.serviceType || 'Unknown Svc';
-  const svcDesc = intf.serviceDescription || '';
-  const ingressQos = intf.ingressQos || 'Default';
-  const egressQos = intf.egressQos || 'Default';
-
-  // Find peer IP and related routes
-  const { peerIp, relatedRoutes } = findPeerAndRoutes(device, intf);
-
-  // Build Left Node (Host) - matching Python exactly
-  const leftLabel =
-    `<div style='text-align: left'>` +
-    `<b>Port:</b> ${portId}${fmtDesc(portDesc)}<br/><br/>` +
-    `<b>Interface:</b> ${ifName}${fmtDesc(ifDesc)}<br/><br/>` +
-    `<b>IP:</b> ${ipAddr}<br/><br/>` +
-    `<b>Service:</b> ${svcType}${fmtDesc(svcDesc)}` +
-    `</div>`;
-
-  // Build Host Subgraph
-  mermaid.push(`    subgraph Host ["<b>${noWrap(device.hostname)}</b>"]`);
-  mermaid.push(`        A["${leftLabel}"]`);
-  mermaid.push(`    end`);
-
-  // Build Right Subgraph (Remote) - matching Python exactly
-  const rightTitle = ifDesc || 'Remote Connected Device';
-  mermaid.push(`    subgraph Remote ["<b>${noWrap(rightTitle)}</b>"]`);
-  mermaid.push(`        B["<b>Next-Hop</b><br/>${peerIp}"]`);
-
-  // Customer Network node - matching Python exactly
-  let cLabel: string;
-  if (relatedRoutes.length > 0) {
-    const routesStr = relatedRoutes.join('<br/>');
-    cLabel = `<b>Customer Network</b><br/>${routesStr}`;
-  } else {
-    cLabel = '<b>Customer Network</b>';
-  }
-
-  mermaid.push(`        C["${cLabel}"]`);
-  mermaid.push(`    end`);
-
-  // Links - matching Python exactly
-  const qosLabel = `In-QoS: ${ingressQos}<br/>Out-QoS: ${egressQos}`;
-  mermaid.push(`    A -->|"${qosLabel}"| B`);
-  mermaid.push(`    B -.-> C`);
-
-  // Styles - matching Python exactly
-  mermaid.push('    style A fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left');
-  mermaid.push('    style B fill:#e6f3ff,stroke:#0066cc,stroke-width:2px,color:#000');
-  mermaid.push('    style C fill:#ffffff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5,color:#000');
-
-  return mermaid.join('\n');
+interface DiagramGroup {
+  id: string;
+  haPair?: HAPair;
+  items: Array<{
+    device: NokiaDevice;
+    intf: NokiaInterface;
+    peerIp: string;
+    relatedRoutes: string[];
+  }>;
 }
 
-// Helper: Find peer IP and related routes
-function findPeerAndRoutes(device: NokiaDevice, intf: NokiaInterface): { peerIp: string; relatedRoutes: string[] } {
+export function findPeerAndRoutes(device: NokiaDevice, intf: NokiaInterface): { peerIp: string; relatedRoutes: string[] } {
   let peerIp = 'Unknown';
   const relatedRoutes: string[] = [];
 
-  if (!intf.ipAddress) {
-    return { peerIp, relatedRoutes };
-  }
-
+  if (!intf.ipAddress) return { peerIp, relatedRoutes };
   const network = parseNetwork(intf.ipAddress);
-  if (!network) {
-    return { peerIp, relatedRoutes };
-  }
+  if (!network) return { peerIp, relatedRoutes };
 
-  // Find static routes with next-hop in this subnet
-  const interfaceIp = intf.ipAddress as string;
   device.staticRoutes.forEach(route => {
-    if (isIpInSubnet(route.nextHop, interfaceIp)) {
-      const nextHopIp = route.nextHop;
-      if (nextHopIp !== network.ip) {
-        peerIp = nextHopIp;
+    if (isIpInSubnet(route.nextHop, intf.ipAddress!)) {
+      if (route.nextHop !== network.ip) {
+        peerIp = route.nextHop;
         relatedRoutes.push(route.prefix);
       }
     }
   });
 
-  // If no peer found and /30 network, infer the other host
+  // /30 Inference
   if (peerIp === 'Unknown' && network.prefixLen === 30) {
     const hosts = getHostsInNetwork(network.ip, network.prefixLen);
     for (const h of hosts) {
@@ -130,80 +43,243 @@ function findPeerAndRoutes(device: NokiaDevice, intf: NokiaInterface): { peerIp:
   return { peerIp, relatedRoutes };
 }
 
-// Helper: Parse network from IP/CIDR
+export const generateMermaidDiagram = (
+  topology: NetworkTopology,
+  selectedIds: string[]
+): Array<{ name: string; code: string; description: string }> => {
+  console.log("Generating Mermaid Diagram. Selected IDs:", selectedIds);
+  const groups: Map<string, DiagramGroup> = new Map();
+
+  // 1. Group selected interfaces
+  topology.devices.forEach(device => {
+    device.interfaces.forEach(intf => {
+      const qId = `${device.hostname}:${intf.name}`;
+
+      if (selectedIds.includes(qId)) {
+        console.log(`Match found for: ${qId}`);
+        const { peerIp, relatedRoutes } = findPeerAndRoutes(device, intf);
+        console.log(`Interface ${qId} -> Peer: ${peerIp}, Routes: ${relatedRoutes}`);
+
+        // Find if this relates to an HA Pair
+        let haPair = topology.haPairs.find(pair => pair.commonNetwork && relatedRoutes.includes(pair.commonNetwork));
+
+        if (haPair) console.log("Found HA Pair via Common Network:", haPair);
+
+        if (!haPair) {
+          haPair = topology.haPairs.find(pair => pair.device1 === peerIp || pair.device2 === peerIp);
+        }
+
+        // Create a group Key
+        const groupId = haPair
+          ? `HA:${[haPair.device1, haPair.device2].sort().join('-')}:${haPair.commonNetwork || 'vrrp'}`
+          : `SINGLE:${qId}`;
+
+        if (!groups.has(groupId)) {
+          groups.set(groupId, { id: groupId, haPair, items: [] });
+        }
+
+        groups.get(groupId)!.items.push({ device, intf, peerIp, relatedRoutes });
+      }
+    });
+  });
+
+  const result: Array<{ name: string; code: string; description: string }> = [];
+
+  // 2. Generate Diagrams for each group
+  groups.forEach((group) => {
+    if (group.haPair) {
+      // Sort items by hostname ascending
+      group.items.sort((a, b) => a.device.hostname.localeCompare(b.device.hostname));
+
+      // Combined HA Diagram
+      const title = group.items.map(i => `${i.device.hostname}:${i.intf.name}`).join(' & ');
+      result.push({
+        name: `이중화: ${title}`,
+        code: generateCombinedHaDiagram(group, topology),
+        description: '이중화 토폴로지'
+      });
+    } else {
+      // Single Diagram (Original behavior)
+      group.items.forEach(item => {
+        result.push({
+          name: `${item.device.hostname} - ${item.intf.name}`,
+          code: generateSingleInterfaceDiagram(item.device, item.intf, topology),
+          description: item.intf.portDescription || ''
+        });
+      });
+    }
+  });
+
+  return result;
+};
+
+// Helper: Non-wrapping text
+const noWrap = (text: string): string => {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/ /g, '\u00A0')
+    .replace(/-/g, '\u2011');
+};
+
+// Helper: Format descriptions
+const fmtDesc = (desc?: string): string => {
+  if (!desc) return '';
+  return `<br/>(${noWrap(desc)})`;
+};
+
+// Build node label in original beta format
+function buildNodeLabel(device: NokiaDevice, intf: NokiaInterface): string {
+  const portId = intf.portId || 'N/A';
+  const portDesc = intf.portDescription || '';
+  const ifName = intf.name;
+  const ifDesc = intf.description || '';
+  const ipAddr = intf.ipAddress || 'N/A';
+  const svcType = intf.serviceType || 'Unknown Svc';
+  const svcDesc = intf.serviceDescription || '';
+
+  return (
+    `<div style="text-align: left">` +
+    `<b>Port:</b> ${portId}${fmtDesc(portDesc)}<br/><br/>` +
+    `<b>Interface:</b> ${ifName}${fmtDesc(ifDesc)}<br/><br/>` +
+    `<b>IP:</b> ${ipAddr}<br/><br/>` +
+    `<b>Service:</b> ${svcType}${fmtDesc(svcDesc)}` +
+    `</div>`
+  );
+}
+
+// Generate Combined HA Diagram
+function generateCombinedHaDiagram(group: DiagramGroup, topology: NetworkTopology): string {
+  const mermaid = ['graph LR'];
+
+  // Local Subgraph
+  mermaid.push(`    subgraph Local["<b>Local Hosts</b>"]`);
+  group.items.forEach((item, idx) => {
+    const nodeName = `L${idx}`;
+    const label = buildNodeLabel(item.device, item.intf);
+    mermaid.push(`        ${nodeName}["${label}"]`);
+  });
+  mermaid.push('    end');
+
+  // Peer Subgraph
+  mermaid.push(`    subgraph Remote["<b>Remote HA Pair</b>"]`);
+  const peerNode = `Peer`;
+  let peerHostname = group.haPair?.device1 === group.items[0].peerIp ? group.haPair?.device1 : group.haPair?.device2;
+  if (!peerHostname) peerHostname = group.items[0].peerIp || "Unknown";
+
+  const peerDevice = topology.devices.find(d => d.interfaces.some(i => i.ipAddress?.split('/')[0] === peerHostname));
+  const peerLabel = peerDevice ? `<b>Peer Device</b><br/>${noWrap(peerDevice.hostname)}` : `<b>Peer IP</b><br/>${peerHostname}`;
+
+  mermaid.push(`        ${peerNode}["${peerLabel}"]`);
+  mermaid.push('    end');
+
+  // Customer Network (if common routes exist)
+  const commonRoutes = group.items[0].relatedRoutes;
+  if (commonRoutes.length > 0) {
+    const routesStr = commonRoutes.join('<br/>');
+    const cLabel = `<b>Customer Network</b><br/>${routesStr}`;
+    mermaid.push(`    subgraph Network["<b>Network</b>"]`);
+    mermaid.push(`        N["${cLabel}"]`);
+    mermaid.push('    end');
+  }
+
+  // Links with QoS
+  group.items.forEach((item, idx) => {
+    const nodeName = `L${idx}`;
+    const qosLabel = `In: ${item.intf.ingressQos || 'D'}<br/>Out: ${item.intf.egressQos || 'D'}`;
+    mermaid.push(`    ${nodeName} -->|"${qosLabel}"| ${peerNode}`);
+  });
+
+  // Link to Network if exists
+  if (commonRoutes.length > 0) {
+    mermaid.push(`    ${peerNode} -.-> N`);
+  }
+
+  // Styles
+  group.items.forEach((_, idx) => {
+    mermaid.push(`    style L${idx} fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left`);
+  });
+  mermaid.push(`    style ${peerNode} fill:#e6f3ff,stroke:#0066cc,stroke-width:2px,color:#000`);
+  if (commonRoutes.length > 0) {
+    mermaid.push(`    style N fill:#ffffff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5,color:#000`);
+  }
+
+  return mermaid.join('\n');
+}
+
+// Generate Single Interface Diagram (Original Beta Format)
+function generateSingleInterfaceDiagram(device: NokiaDevice, intf: NokiaInterface, topology: NetworkTopology): string {
+  const mermaid: string[] = ['graph LR'];
+  const { peerIp, relatedRoutes } = findPeerAndRoutes(device, intf);
+
+  const leftLabel = buildNodeLabel(device, intf);
+
+  mermaid.push(`    subgraph Host ["<b>${noWrap(device.hostname)}</b>"]`);
+  mermaid.push(`        A["${leftLabel}"]`);
+  mermaid.push(`    end`);
+
+  const rightTitle = intf.description || 'Remote Connected Device';
+  mermaid.push(`    subgraph Remote ["<b>${noWrap(rightTitle)}</b>"]`);
+  mermaid.push(`        B["<b>Next-Hop</b><br/>${peerIp}"]`);
+
+  let cLabel: string;
+  if (relatedRoutes.length > 0) {
+    const routesStr = relatedRoutes.join('<br/>');
+    cLabel = `<b>Customer Network</b><br/>${routesStr}`;
+  } else {
+    cLabel = '<b>Customer Network</b>';
+  }
+
+  mermaid.push(`        C["${cLabel}"]`);
+  mermaid.push(`    end`);
+
+  const qosLabel = `In-QoS: ${intf.ingressQos || 'Default'}<br/>Out-QoS: ${intf.egressQos || 'Default'}`;
+  mermaid.push(`    A -->|"${qosLabel}"| B`);
+  mermaid.push(`    B -.-> C`);
+
+  mermaid.push('    style A fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left');
+  mermaid.push('    style B fill:#e6f3ff,stroke:#0066cc,stroke-width:2px,color:#000');
+  mermaid.push('    style C fill:#ffffff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5,color:#000');
+
+  return mermaid.join('\n');
+}
+
+// Helper functions
 function parseNetwork(ipWithCidr: string): { ip: string; prefixLen: number; networkAddr: number } | null {
   const parts = ipWithCidr.split('/');
   if (parts.length !== 2) return null;
-
   const ip = parts[0];
   const prefixLen = parseInt(parts[1], 10);
-
   if (isNaN(prefixLen)) return null;
-
   const ipLong = ipToLong(ip);
   if (ipLong === -1) return null;
-
   const mask = ~((1 << (32 - prefixLen)) - 1) >>> 0;
-  const networkAddr = (ipLong & mask) >>> 0;
-
-  return { ip, prefixLen, networkAddr };
+  return { ip, prefixLen, networkAddr: (ipLong & mask) >>> 0 };
 }
 
-// Helper: Get host IPs in a network
 function getHostsInNetwork(ip: string, prefixLen: number): string[] {
-  const networkData = parseNetwork(`${ip}/${prefixLen}`);
-  if (!networkData) return [];
-
-  // numHosts variable removed as it was unused
-  const hosts: string[] = [];
-
-  // For /30, there are 2 usable hosts (indices 1 and 2)
+  const data = parseNetwork(`${ip}/${prefixLen}`);
+  if (!data) return [];
   if (prefixLen === 30) {
-    hosts.push(longToIp(networkData.networkAddr + 1));
-    hosts.push(longToIp(networkData.networkAddr + 2));
+    return [longToIp(data.networkAddr + 1), longToIp(data.networkAddr + 2)];
   }
-
-  return hosts;
+  return [];
 }
 
-// Helper: Check if IP is in subnet
 function isIpInSubnet(targetIp: string, interfaceIpWithCidr: string): boolean {
-  if (!interfaceIpWithCidr || !targetIp) return false;
-
-  try {
-    const parts = interfaceIpWithCidr.split('/');
-    if (parts.length !== 2) return false;
-
-    const ip = parts[0];
-    const cidr = parseInt(parts[1], 10);
-
-    const ipLong = ipToLong(ip);
-    const targetLong = ipToLong(targetIp);
-
-    if (ipLong === -1 || targetLong === -1) return false;
-
-    const mask = ~((1 << (32 - cidr)) - 1);
-
-    return (ipLong & mask) === (targetLong & mask);
-  } catch (e) {
-    return false;
-  }
+  const net = parseNetwork(interfaceIpWithCidr);
+  if (!net) return false;
+  const targetLong = ipToLong(targetIp);
+  if (targetLong === -1) return false;
+  const mask = ~((1 << (32 - net.prefixLen)) - 1) >>> 0;
+  return (targetLong & mask) >>> 0 === net.networkAddr;
 }
 
 function ipToLong(ip: string): number {
   const parts = ip.split('.');
   if (parts.length !== 4) return -1;
-  return parts.reduce((acc, octet) => {
-    const val = parseInt(octet, 10);
-    return isNaN(val) ? -1 : (acc << 8) + val;
-  }, 0) >>> 0;
+  return parts.reduce((acc, octet) => ((acc << 8) + parseInt(octet, 10)) >>> 0, 0);
 }
 
 function longToIp(num: number): string {
-  return [
-    (num >>> 24) & 255,
-    (num >>> 16) & 255,
-    (num >>> 8) & 255,
-    num & 255
-  ].join('.');
+  return [(num >>> 24) & 255, (num >>> 16) & 255, (num >>> 8) & 255, num & 255].join('.');
 }

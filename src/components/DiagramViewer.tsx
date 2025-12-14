@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import mermaid from 'mermaid';
 import { toPng } from 'html-to-image';
-import { ZoomIn, ZoomOut, Download, ChevronDown } from 'lucide-react';
+import { ZoomIn, ZoomOut, Download, ChevronDown, Code } from 'lucide-react';
 
 interface DiagramViewerProps {
   diagrams: Array<{ name: string; code: string; description: string }>;
@@ -21,6 +21,8 @@ export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
 
   // Track open download menu
   const [activeDownloadMenu, setActiveDownloadMenu] = useState<string | null>(null);
+  // Track which diagrams have code view open
+  const [showCodeFor, setShowCodeFor] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (diagrams.length === 0) {
@@ -150,29 +152,44 @@ export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
           transition: 'transform 0.1s ease-out'
         }}
       >
-        {renderedDiagrams.map((diagram) => {
-          if (diagram.isError) return null; // Skip invalid diagrams
-
+        {renderedDiagrams.map((diagram, idx) => {
           const title = diagram.description ? `${diagram.name}: ${diagram.description}` : diagram.name;
           const isMenuOpen = activeDownloadMenu === diagram.id;
+          const showCode = showCodeFor.has(idx);
+          const originalCode = diagrams[idx]?.code || '';
 
           return (
             <div key={diagram.id} className="diagram-item">
               <div className="diagram-header">
                 <h3>{title}</h3>
 
-                <div className="header-actions relative">
+                <div className="header-actions relative" style={{ display: 'flex', gap: '8px' }}>
                   <button
                     className="btn-tool"
                     style={{ height: '28px', padding: '0 8px', fontSize: '12px' }}
-                    onClick={() => setActiveDownloadMenu(isMenuOpen ? null : diagram.id)}
-                    title="Download"
+                    onClick={() => {
+                      const newSet = new Set(showCodeFor);
+                      if (showCode) newSet.delete(idx);
+                      else newSet.add(idx);
+                      setShowCodeFor(newSet);
+                    }}
+                    title="Show Mermaid Code"
                   >
-                    <Download size={14} />
-                    <ChevronDown size={12} />
+                    <Code size={14} />
                   </button>
+                  {!diagram.isError && (
+                    <button
+                      className="btn-tool"
+                      style={{ height: '28px', padding: '0 8px', fontSize: '12px' }}
+                      onClick={() => setActiveDownloadMenu(isMenuOpen ? null : diagram.id)}
+                      title="Download"
+                    >
+                      <Download size={14} />
+                      <ChevronDown size={12} />
+                    </button>
+                  )}
 
-                  {isMenuOpen && (
+                  {!diagram.isError && isMenuOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setActiveDownloadMenu(null)} />
                       <div className="dropdown-menu" style={{ width: '120px', right: 0, top: '100%', marginTop: '4px' }}>
@@ -189,10 +206,22 @@ export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
                   )}
                 </div>
               </div>
-              <div
-                className="diagram-content"
-                dangerouslySetInnerHTML={{ __html: diagram.svg }}
-              />
+              {showCode && (
+                <div style={{ margin: '16px', padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', overflow: 'auto', maxHeight: '300px' }}>
+                  <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{originalCode}</pre>
+                </div>
+              )}
+              {diagram.isError ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#dc2626' }}>
+                  <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>⚠️ Diagram rendering failed</p>
+                  <p style={{ fontSize: '14px', color: '#6b7280' }}>Click the Code button above to see the generated Mermaid code</p>
+                </div>
+              ) : (
+                <div
+                  className="diagram-content"
+                  dangerouslySetInnerHTML={{ __html: diagram.svg }}
+                />
+              )}
             </div>
           );
         })}

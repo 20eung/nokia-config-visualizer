@@ -1,53 +1,109 @@
 import React, { useState, useMemo } from 'react';
-import type { NokiaInterface } from '../types';
-import { CheckSquare, Square, Network, Search } from 'lucide-react';
+import type { NokiaDevice, NetworkTopology } from '../types';
+import { findPeerAndRoutes } from '../utils/mermaidGenerator';
+import { CheckSquare, Square, Network, Search, Server } from 'lucide-react';
 
 interface InterfaceListProps {
-    interfaces: NokiaInterface[];
-    selectedNames: string[];
-    onToggle: (name: string) => void;
-    onSetSelected: (names: string[]) => void;
+    devices: NokiaDevice[];
+    topology: NetworkTopology;
+    selectedIds: string[];
+    onToggle: (id: string) => void;
+    onSetSelected: (ids: string[]) => void;
 }
 
 export const InterfaceList: React.FC<InterfaceListProps> = ({
-    interfaces,
-    selectedNames,
+    devices,
+    topology,
+    selectedIds,
     onToggle,
     onSetSelected
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
-    const filteredInterfaces = useMemo(() => {
+    // Helper to generate qualified ID
+    const getQualifiedId = (hostname: string, intfName: string) => `${hostname}:${intfName}`;
+
+    const filteredStructure = useMemo(() => {
         if (!searchTerm) {
-            return interfaces;
+            return devices.map(d => ({
+                hostname: d.hostname,
+                interfaces: d.interfaces
+            }));
         }
-        const lowercasedFilter = searchTerm.toLowerCase();
-        return interfaces.filter((intf) => {
-            const portId = intf.portId?.toLowerCase() ?? '';
-            const name = intf.name.toLowerCase();
-            const description = intf.description?.toLowerCase() ?? '';
-            const portDescription = intf.portDescription?.toLowerCase() ?? '';
-            const serviceDescription = intf.serviceDescription?.toLowerCase() ?? '';
-            const ipAddress = intf.ipAddress?.toLowerCase() ?? '';
 
-            return (
-                portId.includes(lowercasedFilter) ||
-                name.includes(lowercasedFilter) ||
-                description.includes(lowercasedFilter) ||
-                portDescription.includes(lowercasedFilter) ||
-                serviceDescription.includes(lowercasedFilter) ||
-                ipAddress.includes(lowercasedFilter)
-            );
+        const lowerFilter = searchTerm.toLowerCase();
+
+        return devices.map(d => {
+            const matches = d.interfaces.filter(intf => {
+                const searchFields = [
+                    intf.name,
+                    intf.description,
+                    intf.portId,
+                    intf.ipAddress,
+                    intf.serviceDescription
+                ].map(f => (f || '').toLowerCase());
+
+                return searchFields.some(f => f.includes(lowerFilter));
+            });
+
+            return {
+                hostname: d.hostname,
+                interfaces: matches
+            };
+        }).filter(group => group.interfaces.length > 0);
+
+    }, [devices, searchTerm]);
+
+    const totalInterfaceCount = filteredStructure.reduce((acc, curr) => acc + curr.interfaces.length, 0);
+
+    const handleSelectAll = () => {
+        const allIds = filteredStructure.flatMap(group =>
+            group.interfaces.map(i => getQualifiedId(group.hostname, i.name))
+        );
+        onSetSelected(allIds);
+    };
+
+    const handleHAFilter = () => {
+        // 1. Identify all Remote HA Pairs
+        // A pair is defined by having a common network (routes) or just being in the list
+        // findPeerAndRoutes returns a peerIp.
+        // If peerIp matches any device in haPairs, we select it.
+
+        const haIps = new Set<string>();
+        topology.haPairs.forEach(pair => {
+            haIps.add(pair.device1);
+            haIps.add(pair.device2);
         });
-    }, [interfaces, searchTerm]);
 
-    const sortedInterfaces = useMemo(() =>
-        [...filteredInterfaces].sort((a, b) =>
-            a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
-        ), [filteredInterfaces]);
+        const haInterfaceIds: string[] = [];
 
-    if (interfaces.length === 0) {
-        return <div className="no-data">No interfaces found.</div>;
+        // Iterate all devices (ignoring current search filter for now, or should we respect it?
+        // Let's re-calculate to find *all* HA interfaces in the full list, 
+        // OR better: find HA interfaces within the current filtered structure?
+        // Generally "Filter" buttons act on the current view or specialized view. 
+        // But usually "Smart Filters" might want to pull everything relevant.
+        // Let's stick to the visible (filtered) structure to be consistent with "Select All"
+        // actually, user asked to "find HA easily", so maybe select ALL HA interfaces regardless of search term?
+        // Let's respect the filteredStructure so it composes with search.
+
+        filteredStructure.forEach(group => {
+            // Find the full device object for context (helper needs full device for routes)
+            const device = devices.find(d => d.hostname === group.hostname);
+            if (!device) return;
+
+            group.interfaces.forEach(intf => {
+                const { peerIp } = findPeerAndRoutes(device, intf);
+                if (haIps.has(peerIp)) {
+                    haInterfaceIds.push(getQualifiedId(group.hostname, intf.name));
+                }
+            });
+        });
+
+        onSetSelected(haInterfaceIds);
+    };
+
+    if (devices.length === 0) {
+        return <div className="no-data">Upload a config file to see interfaces.</div>;
     }
 
     return (
@@ -64,47 +120,55 @@ export const InterfaceList: React.FC<InterfaceListProps> = ({
             </div>
             <div className="list-header">
                 <h3 className="title">
-                    <Network size={16} /> Interfaces ({sortedInterfaces.length})
+                    <Network size={16} /> Interfaces ({totalInterfaceCount})
                 </h3>
                 <div className="actions">
-                    <button onClick={() => onSetSelected(sortedInterfaces.map(i => i.name))} className="btn-link">All</button>
+                    <button onClick={handleSelectAll} className="btn-link">All</button>
+                    <span className="sep">|</span>
+                    <button onClick={handleHAFilter} className="btn-link text-primary font-bold">이중화</button>
                     <span className="sep">|</span>
                     <button onClick={() => onSetSelected([])} className="btn-link text-secondary">None</button>
                 </div>
             </div>
 
             <div className="list-content">
-                {sortedInterfaces.length > 0 ? (
-                    sortedInterfaces.map((intf) => {
-                        const isSelected = selectedNames.includes(intf.name);
-                        return (
-                            <div
-                                key={intf.name}
-                                onClick={() => onToggle(intf.name)}
-                                className={`int-item ${isSelected ? 'selected' : ''}`}
-                            >
-                                <div className={`checkbox ${isSelected ? 'checked' : ''}`}>
-                                    {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
-                                </div>
-                                <div className="info">
-                                    <div className="name" title={intf.name}>{intf.name}</div>
-                                    {intf.description && (
-                                        <div className="desc" title={intf.description}>
-                                            {intf.description}
-                                        </div>
-                                    )}
-                                    <div className="tags">
-                                        {intf.ipAddress && (
-                                            <span className="tag ip">{intf.ipAddress}</span>
-                                        )}
-                                        {intf.serviceId && (
-                                            <span className="tag svc">Svc: {intf.serviceId}</span>
-                                        )}
-                                    </div>
-                                </div>
+                {filteredStructure.length > 0 ? (
+                    filteredStructure.map((group) => (
+                        <div key={group.hostname} className="device-group">
+                            <div className="device-header">
+                                <Server size={14} className="icon-server" />
+                                <span>{group.hostname}</span>
                             </div>
-                        );
-                    })
+                            {group.interfaces.map(intf => {
+                                const qId = getQualifiedId(group.hostname, intf.name);
+                                const isSelected = selectedIds.includes(qId);
+                                return (
+                                    <div
+                                        key={qId}
+                                        onClick={() => onToggle(qId)}
+                                        className={`int-item ${isSelected ? 'selected' : ''}`}
+                                    >
+                                        <div className={`checkbox ${isSelected ? 'checked' : ''}`}>
+                                            {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                                        </div>
+                                        <div className="info">
+                                            <div className="name" title={intf.name}>{intf.name}</div>
+                                            {intf.description && (
+                                                <div className="desc" title={intf.description}>
+                                                    {intf.description}
+                                                </div>
+                                            )}
+                                            <div className="tags">
+                                                {intf.ipAddress && (
+                                                    <span className="tag ip">{intf.ipAddress}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ))
                 ) : (
                     <div className="no-data">No matching interfaces found.</div>
                 )}
