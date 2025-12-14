@@ -50,17 +50,17 @@ function App() {
     const isBetaEnvironment = window.location.hostname.includes('beta');
 
     if (isBetaEnvironment && topology.devices.length === 0) {
-      fetch('/docs/config.txt')
-        .then(response => {
-          if (!response.ok) throw new Error('Failed to load test config');
-          return response.text();
-        })
-        .then(text => {
-          handleConfigLoaded([text]);
-          console.log('✅ Beta environment: Auto-loaded docs/config.txt');
+      // Load both config1 and config2 for HA testing
+      Promise.all([
+        fetch('/docs/config1.txt').then(r => r.text()),
+        fetch('/docs/config2.txt').then(r => r.text())
+      ])
+        .then(texts => {
+          handleConfigLoaded(texts);
+          console.log('✅ Beta environment: Auto-loaded config1.txt & config2.txt for HA testing');
         })
         .catch(error => {
-          console.warn('⚠️ Beta environment: Could not auto-load config:', error);
+          console.warn('⚠️ Beta environment: Could not auto-load configs:', error);
         });
     }
   }, []); // Run once on mount

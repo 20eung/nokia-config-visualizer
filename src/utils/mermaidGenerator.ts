@@ -128,7 +128,7 @@ const fmtDesc = (desc?: string): string => {
 };
 
 // Build node label in original beta format
-function buildNodeLabel(_device: NokiaDevice, intf: NokiaInterface): string {
+function buildNodeLabel(device: NokiaDevice, intf: NokiaInterface): string {
   const portId = intf.portId || 'N/A';
   const portDesc = intf.portDescription || '';
   const ifName = intf.name;
@@ -139,6 +139,7 @@ function buildNodeLabel(_device: NokiaDevice, intf: NokiaInterface): string {
 
   return (
     `<div style="text-align: left">` +
+    `<b>Host:</b> ${noWrap(device.hostname)}<br/><br/>` +
     `<b>Port:</b> ${portId}${fmtDesc(portDesc)}<br/><br/>` +
     `<b>Interface:</b> ${ifName}${fmtDesc(ifDesc)}<br/><br/>` +
     `<b>IP:</b> ${ipAddr}<br/><br/>` +
@@ -160,16 +161,14 @@ function generateCombinedHaDiagram(group: DiagramGroup, topology: NetworkTopolog
   });
   mermaid.push('    end');
 
-  // Peer Subgraph
+  // Peer Subgraph - Create individual Peer nodes for each interface
   mermaid.push(`    subgraph Remote["<b>Remote HA Pair</b>"]`);
-  const peerNode = `Peer`;
-  let peerHostname = group.haPair?.device1 === group.items[0].peerIp ? group.haPair?.device1 : group.haPair?.device2;
-  if (!peerHostname) peerHostname = group.items[0].peerIp || "Unknown";
-
-  const peerDevice = topology.devices.find(d => d.interfaces.some(i => i.ipAddress?.split('/')[0] === peerHostname));
-  const peerLabel = peerDevice ? `<b>Peer Device</b><br/>${noWrap(peerDevice.hostname)}` : `<b>Peer IP</b><br/>${peerHostname}`;
-
-  mermaid.push(`        ${peerNode}["${peerLabel}"]`);
+  group.items.forEach((item, idx) => {
+    const peerNode = `Peer${idx}`;
+    const peerIp = item.peerIp || 'Unknown';
+    const peerLabel = `<b>Peer IP</b><br/>${peerIp}`;
+    mermaid.push(`        ${peerNode}["${peerLabel}"]`);
+  });
   mermaid.push('    end');
 
   // Customer Network (if common routes exist)
@@ -182,23 +181,26 @@ function generateCombinedHaDiagram(group: DiagramGroup, topology: NetworkTopolog
     mermaid.push('    end');
   }
 
-  // Links with QoS
+  // Links with QoS - Connect each Local to its corresponding Peer
   group.items.forEach((item, idx) => {
-    const nodeName = `L${idx}`;
+    const localNode = `L${idx}`;
+    const peerNode = `Peer${idx}`;
     const qosLabel = `In: ${item.intf.ingressQos || 'D'}<br/>Out: ${item.intf.egressQos || 'D'}`;
-    mermaid.push(`    ${nodeName} -->|"${qosLabel}"| ${peerNode}`);
+    mermaid.push(`    ${localNode} -->|"${qosLabel}"| ${peerNode}`);
   });
 
-  // Link to Network if exists
+  // Link Peers to Network if exists
   if (commonRoutes.length > 0) {
-    mermaid.push(`    ${peerNode} -.-> N`);
+    group.items.forEach((_, idx) => {
+      mermaid.push(`    Peer${idx} -.-> N`);
+    });
   }
 
   // Styles
   group.items.forEach((_, idx) => {
     mermaid.push(`    style L${idx} fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left`);
+    mermaid.push(`    style Peer${idx} fill:#e6f3ff,stroke:#0066cc,stroke-width:2px,color:#000`);
   });
-  mermaid.push(`    style ${peerNode} fill:#e6f3ff,stroke:#0066cc,stroke-width:2px,color:#000`);
   if (commonRoutes.length > 0) {
     mermaid.push(`    style N fill:#ffffff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5,color:#000`);
   }

@@ -5,7 +5,24 @@
 이 형식은 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
+## [1.2.0] - 2025-12-14
+
+### 추가됨 (Added)
+- **Demo Config 1&2 (HA)**: Select Config 드롭다운에 HA 구성 테스트용 옵션 추가
+  - config1.txt와 config2.txt를 동시에 로드하여 이중화 다이어그램 테스트 가능
+  - Beta 환경에서 기본으로 자동 로드
+
+### 개선됨 (Improved)
+- **HA 다이어그램 표시**:
+  - Local Hosts 박스에 **Host** 정보 추가 (각 인터페이스의 호스트명 표시)
+  - Remote HA Pair에 개별 **Peer IP** 노드 생성 (각 인터페이스별로 대응하는 Peer IP 표시)
+  - 더 명확한 인터페이스-Peer 관계 시각화
+
+### 변경됨 (Changed)
+- Beta 환경 auto-load: 단일 config.txt 대신 config1.txt & config2.txt 로드
+
 ## [1.1.0] - 2025-12-14
+
 
 ### 추가됨 (Added)
 - **HA 다이어그램 생성**: 이중화(High Availability) 구성 자동 감지 및 시각화

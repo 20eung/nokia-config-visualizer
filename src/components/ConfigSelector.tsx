@@ -7,26 +7,31 @@ interface ConfigSelectorProps {
 }
 
 const DEMO_CONFIGS = [
-    { id: 'custom', name: 'Select Config', path: '' },
-    { id: 'conf1', name: 'Demo Config 1 (BB3)', path: '/docs/config1.txt' },
-    { id: 'conf2', name: 'Demo Config 2 (BB4)', path: '/docs/config2.txt' },
+    { id: 'custom', name: 'Select Config', paths: [] },
+    { id: 'both', name: 'Demo Config 1&2 (HA)', paths: ['/docs/config1.txt', '/docs/config2.txt'] },
+    { id: 'conf1', name: 'Demo Config 1 (BB3)', paths: ['/docs/config1.txt'] },
+    { id: 'conf2', name: 'Demo Config 2 (BB4)', paths: ['/docs/config2.txt'] },
 ];
 
 export const ConfigSelector: React.FC<ConfigSelectorProps> = ({ onConfigLoaded }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const handleSelect = async (path: string) => {
-        if (!path) return;
+    const handleSelect = async (paths: string[]) => {
+        if (!paths || paths.length === 0) return;
 
         setLoading(true);
         setIsOpen(false);
 
         try {
-            const response = await fetch(path);
-            if (!response.ok) throw new Error('Failed to load config');
-            const text = await response.text();
-            onConfigLoaded([text]);
+            const promises = paths.map(path =>
+                fetch(path).then(response => {
+                    if (!response.ok) throw new Error(`Failed to load ${path}`);
+                    return response.text();
+                })
+            );
+            const texts = await Promise.all(promises);
+            onConfigLoaded(texts);
         } catch (error) {
             console.error('Error loading config:', error);
             alert('Failed to load demo configuration.');
@@ -52,10 +57,10 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({ onConfigLoaded }
             {isOpen && (
                 <div className="dropdown-menu">
                     <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                        {DEMO_CONFIGS.filter(c => c.path).map((config) => (
+                        {DEMO_CONFIGS.filter(c => c.paths.length > 0).map((config) => (
                             <button
                                 key={config.id}
-                                onClick={() => handleSelect(config.path)}
+                                onClick={() => handleSelect(config.paths)}
                                 className="dropdown-item"
                                 role="menuitem"
                             >
