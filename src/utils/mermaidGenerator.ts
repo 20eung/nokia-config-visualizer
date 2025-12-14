@@ -185,7 +185,7 @@ function generateCombinedHaDiagram(group: DiagramGroup, _topology: NetworkTopolo
   group.items.forEach((item, idx) => {
     const localNode = `L${idx}`;
     const peerNode = `Peer${idx}`;
-    const qosLabel = `In: ${item.intf.ingressQos || 'D'}<br/>Out: ${item.intf.egressQos || 'D'}`;
+    const qosLabel = `In-QoS: ${item.intf.ingressQos || 'Default'}\u003cbr/\u003eOut-QoS: ${item.intf.egressQos || 'Default'}`;
     mermaid.push(`    ${localNode} -->|"${qosLabel}"| ${peerNode}`);
   });
 
