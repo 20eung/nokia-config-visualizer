@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { NokiaDevice, NetworkTopology } from '../types';
 import { findPeerAndRoutes } from '../utils/mermaidGenerator';
-import { CheckSquare, Square, Network, Search, Server } from 'lucide-react';
+import { CheckSquare, Square, Network, Search, Server, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface InterfaceListProps {
     devices: NokiaDevice[];
@@ -19,6 +19,7 @@ export const InterfaceList: React.FC<InterfaceListProps> = ({
     onSetSelected
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [collapsedDevices, setCollapsedDevices] = useState<Set<string>>(new Set());
 
     // Helper to generate qualified ID
     const getQualifiedId = (hostname: string, intfName: string) => `${hostname}:${intfName}`;
@@ -149,42 +150,66 @@ export const InterfaceList: React.FC<InterfaceListProps> = ({
 
             <div className="list-content">
                 {filteredStructure.length > 0 ? (
-                    filteredStructure.map((group) => (
-                        <div key={group.hostname} className="device-group">
-                            <div className="device-header">
-                                <Server size={14} className="icon-server" />
-                                <span>{group.hostname}</span>
-                            </div>
-                            {group.interfaces.map(intf => {
-                                const qId = getQualifiedId(group.hostname, intf.name);
-                                const isSelected = selectedIds.includes(qId);
-                                return (
-                                    <div
-                                        key={qId}
-                                        onClick={() => onToggle(qId)}
-                                        className={`int-item ${isSelected ? 'selected' : ''}`}
-                                    >
-                                        <div className={`checkbox ${isSelected ? 'checked' : ''}`}>
-                                            {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
-                                        </div>
-                                        <div className="info">
-                                            <div className="name" title={intf.name}>{intf.name}</div>
-                                            {intf.description && (
-                                                <div className="desc" title={intf.description}>
-                                                    {intf.description}
-                                                </div>
-                                            )}
-                                            <div className="tags">
-                                                {intf.ipAddress && (
-                                                    <span className="tag ip">{intf.ipAddress}</span>
+                    filteredStructure.map((group) => {
+                        const isCollapsed = collapsedDevices.has(group.hostname);
+
+                        return (
+                            <div key={group.hostname} className="device-group">
+                                <div
+                                    className="device-header"
+                                    onClick={() => {
+                                        const newSet = new Set(collapsedDevices);
+                                        if (isCollapsed) {
+                                            newSet.delete(group.hostname);
+                                        } else {
+                                            newSet.add(group.hostname);
+                                        }
+                                        setCollapsedDevices(newSet);
+                                    }}
+                                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                                >
+                                    {isCollapsed ? (
+                                        <ChevronRight size={16} style={{ marginRight: '6px', flexShrink: 0 }} />
+                                    ) : (
+                                        <ChevronDown size={16} style={{ marginRight: '6px', flexShrink: 0 }} />
+                                    )}
+                                    <Server size={16} className="icon-server" style={{ marginRight: '6px', flexShrink: 0 }} />
+                                    <span>{group.hostname}</span>
+                                    <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#6b7280' }}>
+                                        ({group.interfaces.length})
+                                    </span>
+                                </div>
+                                {!isCollapsed && group.interfaces.map(intf => {
+                                    const qId = getQualifiedId(group.hostname, intf.name);
+                                    const isSelected = selectedIds.includes(qId);
+                                    return (
+                                        <div
+                                            key={qId}
+                                            onClick={() => onToggle(qId)}
+                                            className={`int-item ${isSelected ? 'selected' : ''}`}
+                                        >
+                                            <div className={`checkbox ${isSelected ? 'checked' : ''}`}>
+                                                {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                                            </div>
+                                            <div className="info">
+                                                <div className="name" title={intf.name}>{intf.name}</div>
+                                                {intf.description && (
+                                                    <div className="desc" title={intf.description}>
+                                                        {intf.description}
+                                                    </div>
                                                 )}
+                                                <div className="tags">
+                                                    {intf.ipAddress && (
+                                                        <span className="tag ip">{intf.ipAddress}</span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    ))
+                                    );
+                                })}
+                            </div>
+                        );
+                    })
                 ) : (
                     <div className="no-data">No matching interfaces found.</div>
                 )}

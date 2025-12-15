@@ -5,6 +5,21 @@
 이 형식은 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
+## [1.6.0] - 2025-12-15
+
+### 추가됨 (Added)
+- **인터페이스 리스트 계층 구조**: 장비별 접기/펼치기 기능
+  - 파일 탐색기처럼 장비를 폴더처럼 접고 펼칠 수 있음
+  - ChevronRight (▶) / ChevronDown (▼) 아이콘으로 상태 표시
+  - 각 장비의 인터페이스 개수 표시
+  - 기본값: 모든 장비 펼쳐진 상태
+
+### 개선됨 (Improved)
+- **이중화 버튼 기능**: 동적 HA 감지 로직 적용
+  - relatedRoutes 비교하여 공통 Customer Network가 있으면 HA로 인식
+  - config 문법이 달라도 정확하게 HA 인터페이스 자동 선택
+- **UI 개선**: Chevron 및 Server 아이콘 크기 및 간격 조정 (16px, 6px 간격)
+
 ## [1.5.0] - 2025-12-15
 
 ### 개선됨 (Improved)
