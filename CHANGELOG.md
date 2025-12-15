@@ -5,6 +5,16 @@
 이 형식은 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
+## [1.5.0] - 2025-12-15
+
+### 개선됨 (Improved)
+- **Mermaid 코드 보기 UX 개선**
+  - 코드 보기 아이콘(`<>`)에 "Mermaid 코드 보기" 툴팁 추가
+  - 코드 표시 영역에 "복사" 버튼 추가
+  - 클립보드 복사 기능 구현 (전체 코드 한 번에 복사)
+  - 복사 성공 시 2초간 "복사됨" 상태 표시 (녹색 배경, Check 아이콘)
+  - Copy/Check 아이콘으로 시각적 피드백 제공
+
 ## [1.4.0] - 2025-12-15
 
 ### 추가됨 (Added)

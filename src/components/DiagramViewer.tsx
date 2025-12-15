@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import mermaid from 'mermaid';
 import { toPng } from 'html-to-image';
-import { ZoomIn, ZoomOut, Download, ChevronDown, Code } from 'lucide-react';
+import { ZoomIn, ZoomOut, Download, ChevronDown, Code, Copy, Check } from 'lucide-react';
 
 interface DiagramViewerProps {
   diagrams: Array<{ name: string; code: string; description: string }>;
@@ -23,6 +23,8 @@ export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
   const [activeDownloadMenu, setActiveDownloadMenu] = useState<string | null>(null);
   // Track which diagrams have code view open
   const [showCodeFor, setShowCodeFor] = useState<Set<number>>(new Set());
+  // Track which diagrams have been copied
+  const [copiedFor, setCopiedFor] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (diagrams.length === 0) {
@@ -123,6 +125,28 @@ export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
     }
   };
 
+  const copyToClipboard = async (code: string, idx: number) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      const newSet = new Set(copiedFor);
+      newSet.add(idx);
+      setCopiedFor(newSet);
+
+      // Reset after 2 seconds
+      setTimeout(() => {
+        setCopiedFor(prev => {
+          const resetSet = new Set(prev);
+          resetSet.delete(idx);
+          return resetSet;
+        });
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy code:', err);
+      alert('복사에 실패했습니다');
+    }
+  };
+
+
   // If no diagrams, don't show the viewer
   if (!diagrams.length) return null;
 
@@ -173,7 +197,7 @@ export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
                       else newSet.add(idx);
                       setShowCodeFor(newSet);
                     }}
-                    title="Show Mermaid Code"
+                    title="Mermaid 코드 보기"
                   >
                     <Code size={14} />
                   </button>
@@ -207,8 +231,40 @@ export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
                 </div>
               </div>
               {showCode && (
-                <div style={{ margin: '16px', padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px', overflow: 'auto', maxHeight: '300px' }}>
-                  <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{originalCode}</pre>
+                <div style={{ margin: '16px', padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '6px', position: 'relative' }}>
+                  <button
+                    onClick={() => copyToClipboard(originalCode, idx)}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      padding: '6px 12px',
+                      backgroundColor: copiedFor.has(idx) ? '#10b981' : '#fff',
+                      color: copiedFor.has(idx) ? '#fff' : '#374151',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.2s'
+                    }}
+                    title={copiedFor.has(idx) ? '복사됨!' : '코드 복사'}
+                  >
+                    {copiedFor.has(idx) ? (
+                      <>
+                        <Check size={14} />
+                        <span>복사됨</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} />
+                        <span>복사</span>
+                      </>
+                    )}
+                  </button>
+                  <pre style={{ margin: 0, paddingRight: '80px', fontFamily: 'monospace', fontSize: '12px', overflow: 'auto', maxHeight: '300px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{originalCode}</pre>
                 </div>
               )}
               {diagram.isError ? (
