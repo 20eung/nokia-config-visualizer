@@ -1,100 +1,193 @@
 # Nokia Config Visualizer
 
-Nokia 7750 SR 라우터 설정 파일(`.cfg`)을 분석하여 네트워크 토폴로지를 자동으로 시각화하는 웹 애플리케이션입니다.
+> 🚀 **v1.7.0** - Nokia 7750 SR 라우터 설정 파일을 분석하여 네트워크 토폴로지를 자동으로 시각화하는 웹 애플리케이션
 
 ![Application Screenshot](./docs/screenshot.png)
-*(참고용 스크린샷)*
+
+[![GitHub release](https://img.shields.io/github/v/release/20eung/mermaid-web)](https://github.com/20eung/mermaid-web/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 📖 프로젝트 개요
 
-이 프로젝트는 네트워크 엔지니어가 복잡한 Nokia 라우터 설정 파일을 쉽게 이해하고 분석할 수 있도록 돕기 위해 개발되었습니다. 텍스트 형태의 설정을 파싱하여 인터페이스, 포트, 연동 장비 정보를 추출하고, 이를 **Mermaid.js**를 이용해 직관적인 다이어그램으로 변환합니다.
+네트워크 엔지니어가 복잡한 Nokia 7750 SR 라우터 설정 파일을 쉽게 이해하고 분석할 수 있도록 돕는 웹 기반 시각화 도구입니다. 텍스트 형태의 설정을 파싱하여 인터페이스, 포트, 연동 장비 정보를 추출하고, **Mermaid.js**를 이용해 직관적인 다이어그램으로 변환합니다.
 
-### 주요 기능
+## ✨ 주요 기능
 
-*   **설정 파일 파싱 (Parsing)**:
-    *   호스트네임(Hostname), 시스템 정보 추출
-    *   인터페이스(Interface) 및 포트(Port) 정보 상세 분석
-    *   IP 주소, 서브넷 마스크 파싱
-    *   QoS 정책, 서비스 ID (VPRN/IES) 추출
-    *   정적 라우팅(Static Route) 경로 및 Next-Hop 분석
-    *   **지능형 병합**: 분산 정의된 인터페이스 정보를 자동으로 병합 및 중복 제거
-*   **지능형 관계 추론**:
-    *   인터페이스 설명을 기반으로 인접 장비(Neighbor) 자동 식별
-    *   Static Route Next-Hop 분석을 통한 원격 장비 IP 및 네트워크 추론
-*   **대화형 시각화 (Visualization)**:
-    *   **개별 시각화**: 선택된 각 인터페이스별로 독립적인 토폴로지 다이어그램 생성
-    *   **스마트 검색**: Port, IP, 설명, 서비스 ID 등으로 인터페이스 실시간 필터링
-    *   원하는 인터페이스만 선택하여 집중 분석 가능
-    *   다이어그램 엣지(Edge)에 상세 정보(Port, IP, QoS 등) 표시
-*   **사용자 편의성**:
-    *   Config 파일(.cfg, .txt, .conf) 드래그 앤 드롭 또는 텍스트 붙여넣기 지원
-    *   **헤더 업로드**: 상단 헤더의 버튼으로 언제든지 새로운 파일 로드 가능
-    *   **데모 모드**: 미리 준비된 설정 파일로 즉시 테스트 가능 (Beta 환경)
-    *   **다이어그램 도구**: 확대/축소(Zoom) 및 **고화질 PNG/SVG 다운로드** 지원
-    *   자연스러운 정렬(Natural Sorting)이 적용된 인터페이스 목록
-    *   모던하고 깔끔한 UI 디자인 (크기 조절 가능한 사이드바)
+### 🔍 지능형 파싱
+- **호스트네임 및 시스템 정보** 추출
+- **인터페이스 및 포트** 상세 분석
+- **IP 주소, 서브넷** 파싱
+- **QoS 정책** (Ingress/Egress) 추출
+- **서비스 정보** (VPRN/IES/VPLS) 파싱
+- **정적 라우팅** (Static Route) 경로 및 Next-Hop 분석
+- **VRRP 설정** (VIP, Priority) 파싱
+
+### 🎨 다이어그램 시각화
+- **Single Interface Diagram**: 개별 인터페이스별 독립적인 토폴로지
+- **HA Diagram**: 이중화 구성 자동 감지 및 통합 다이어그램
+  - 동적 HA 감지 (Customer Network 기반)
+  - VRRP Master/Backup 표시
+  - VIP (Virtual IP) 표시
+- **QoS 정보** 링크 라벨에 표시
+- **확대/축소** 및 **PNG/SVG 다운로드** 지원
+- **Mermaid 코드 보기** 및 복사 기능
+
+### 🔎 고급 검색 기능
+- **AND 검색**: ` + ` (공백 포함)로 구분
+- **OR 검색**: 띄어쓰기로 구분
+- **검색 필드**: Hostname, Port, Port Description, Interface Name, Interface Description, IP Address, Service Description
+
+### 📁 인터페이스 관리
+- **계층 구조**: 장비별 접기/펼치기 (파일 탐색기 스타일)
+- **스마트 필터**: 
+  - **All**: 모든 인터페이스 선택
+  - **이중화**: HA 인터페이스만 자동 선택
+  - **None**: 선택 해제
+- **자연스러운 정렬** (Natural Sorting)
+- **인터페이스 개수** 표시
+
+### 🎯 사용자 편의성
+- **드래그 앤 드롭** 또는 텍스트 붙여넣기 지원
+- **여러 Config 파일** 동시 로드 가능
+- **데모 모드**: 미리 준비된 설정 파일로 즉시 테스트 (Beta 환경)
+- **크기 조절 가능한 사이드바**
+- **모던하고 깔끔한 UI** 디자인
 
 ## 🛠 기술 스택
 
-*   **Frontend**: [React](https://react.dev/) (v19), [TypeScript](https://www.typescriptlang.org/)
-*   **Build Tool**: [Vite](https://vitejs.dev/)
-*   **Visualization**: [Mermaid.js](https://mermaid.js.org/)
-*   **Styling**: Vanilla CSS (Premium Aesthetic)
-*   **Icons**: [Lucide React](https://lucide.dev/)
+- **Frontend**: [React](https://react.dev/) 19 + [TypeScript](https://www.typescriptlang.org/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Visualization**: [Mermaid.js](https://mermaid.js.org/)
+- **Styling**: Vanilla CSS
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Image Export**: [html-to-image](https://github.com/bubkoo/html-to-image)
 
 ## 🚀 시작하기
 
-이 프로젝트를 로컬 환경에서 실행하려면 다음 단계를 따르세요.
-
 ### 사전 요구사항
 
-*   Node.js (v18 이상 권장)
-*   npm
+- Node.js (v18 이상 권장)
+- npm
 
 ### 설치 및 실행
 
-1.  **저장소 클론**
-    ```bash
-    git clone https://github.com/your-username/mermaid-web.git
-    cd mermaid-web
-    ```
+```bash
+# 저장소 클론
+git clone https://github.com/20eung/mermaid-web.git
+cd mermaid-web
 
-2.  **패키지 설치**
-    ```bash
-    npm install
-    ```
+# 패키지 설치
+npm install
 
-3.  **개발 서버 실행**
-    ```bash
-    npm run dev
-    ```
-    브라우저에서 `http://localhost:5173`으로 접속하여 확인합니다.
+# 개발 서버 실행
+npm run dev
+```
+
+브라우저에서 `http://localhost:5173`으로 접속하여 확인합니다.
+
+### 프로덕션 빌드
+
+```bash
+npm run build
+npm run preview
+```
+
+## 📝 사용 방법
+
+### 1. Config 파일 업로드
+
+상단 헤더의 **"Upload Config"** 버튼을 클릭하여 Nokia 설정 파일(`.cfg`, `.txt`, `.conf`)을 업로드합니다.
+
+### 2. 인터페이스 선택
+
+- 왼쪽 패널에서 장비를 클릭하여 접기/펼치기
+- 원하는 인터페이스를 체크박스로 선택
+- **스마트 필터** 사용:
+  - **All**: 모든 인터페이스 선택
+  - **이중화**: HA 구성 인터페이스만 선택
+  - **None**: 선택 해제
+
+### 3. 검색 활용
+
+검색창에 키워드 입력:
+- **OR 검색**: `BB3 210.211` (띄어쓰기)
+- **AND 검색**: `BB3 + 210.211` (` + ` 사용)
+
+### 4. 다이어그램 확인
+
+- **Single Diagram**: 개별 인터페이스별 독립적인 다이어그램
+- **HA Diagram**: 이중화 구성 통합 다이어그램
+  - Master: IP 앞에 `*` 표시
+  - VIP: `(VIP: x.x.x.x)` 표시
+
+### 5. 다이어그램 내보내기
+
+- **PNG/SVG 다운로드**: 다이어그램 우측 상단 Download 버튼
+- **Mermaid 코드 복사**: `<>` 버튼 클릭 → 복사 버튼
 
 ## 📂 프로젝트 구조
 
 ```
 mermaid-web/
-├── docs/               # 프로젝트 문서 (기획안, 작업 내역 등)
-├── public/             # 정적 리소스
+├── docs/                    # 프로젝트 문서
+├── public/
+│   └── docs/                # 데모 config 파일
 ├── src/
-│   ├── components/     # UI 컴포넌트 (FileUpload, DiagramViewer 등)
-│   ├── utils/          # 핵심 로직 (파서, 다이어그램 생성기)
-│   ├── types/          # TypeScript 타입 정의
-│   ├── App.tsx         # 메인 애플리케이션 컴포넌트
-│   └── main.tsx        # 진입점
-├── nokia_viz_v1.py     # (프로토타입) Python 파서 v1
-├── nokia_viz_v2.py     # (프로토타입) Python 파서 v2
+│   ├── components/          # UI 컴포넌트
+│   │   ├── ConfigSelector.tsx
+│   │   ├── DiagramViewer.tsx
+│   │   ├── FilePreviewModal.tsx
+│   │   ├── FileUpload.tsx
+│   │   └── InterfaceList.tsx
+│   ├── utils/               # 핵심 로직
+│   │   ├── nokiaParser.ts   # Nokia config 파서
+│   │   ├── mermaidGenerator.ts  # 다이어그램 생성
+│   │   └── TopologyEngine.ts    # HA 감지 엔진
+│   ├── types.ts             # TypeScript 타입 정의
+│   ├── App.tsx              # 메인 애플리케이션
+│   └── main.tsx             # 진입점
+├── CHANGELOG.md             # 변경 이력
 └── package.json
 ```
 
-## 📝 사용 방법
+## 🎯 v1.x 기능 완성도
 
-1.  **상단 헤더**의 **"Upload Config"** 버튼을 클릭하여 Nokia 설정 파일(`.cfg`, `.txt`, `.conf`)을 업로드합니다.
-2.  설정이 파싱되면 아래에 **인터페이스 목록**이 표시됩니다.
-3.  다이어그램에 포함하고 싶은 인터페이스를 체크박스로 선택합니다.
-    *   *Tip: "Select All"을 눌러 전체를 보거나, 특정 중요 인터페이스만 선택하여 볼 수 있습니다.*
-4.  오른쪽 메인 화면에서 실시간으로 생성되는 네트워크 **토폴로지 다이어그램**을 확인합니다.
-5.  검색창에 포트, 인터페이스, IP, 서비스 ID, Description 등을 입력하여 실시간으로 필터링할 수 있습니다.
+v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하며, 다음 기능들이 구현되었습니다:
+
+- ✅ 장비 간 물리적 연결
+- ✅ IP 주소, 포트 정보
+- ✅ HA 구성 (VRRP)
+- ✅ QoS 정보
+- ✅ Static Route 기반 Customer Network
+- ✅ 동적 HA 감지 (Customer Network 기반)
+- ✅ 고급 검색 기능 (AND/OR)
+- ✅ 인터페이스 계층 구조 (접기/펼치기)
+- ✅ VRRP VIP 및 Master 표시
+- ✅ Mermaid 코드 보기 및 복사
+
+## 🗺 로드맵
+
+### v1.x - 물리적 연결 토폴로지 (완료)
+물리적 연결 구조 시각화
+
+### v2.x - MPLS L2 VPN 서비스 토폴로지 (계획)
+- Epipe (Point-to-Point L2 VPN)
+- VPLS (Multipoint L2 VPN)
+- Service ID 기반 End-to-End 경로 추적
+- Multi-hop 서비스 경로 시각화
+
+## 📊 버전 히스토리
+
+- **v1.7.0** (2025-12-15) - VRRP VIP 및 Master 표시
+- **v1.6.0** (2025-12-15) - 인터페이스 리스트 계층 구조
+- **v1.5.0** (2025-12-15) - Mermaid 코드 보기 UX 개선
+- **v1.4.0** (2025-12-15) - 동적 HA 감지
+- **v1.3.0** (2025-12-15) - 고급 검색 기능 (AND/OR)
+- **v1.2.0** (2025-12-14) - HA 다이어그램 표시 개선
+- **v1.1.0** (2025-12-14) - HA 다이어그램 생성 기능
+- **v1.0.0** (2025-12-14) - 초기 릴리즈
+
+전체 변경 이력은 [CHANGELOG.md](./CHANGELOG.md)를 참조하세요.
 
 ## 🤝 기여하기
 
@@ -103,3 +196,13 @@ mermaid-web/
 ## 📄 라이선스
 
 이 프로젝트는 MIT 라이선스를 따릅니다.
+
+## 🔗 링크
+
+- **GitHub Repository**: https://github.com/20eung/mermaid-web
+- **Latest Release**: https://github.com/20eung/mermaid-web/releases/latest
+- **Demo (Beta)**: https://beta.your-domain.com (Beta 환경에서 데모 config 자동 로드)
+
+---
+
+Made with ❤️ by Network Engineers, for Network Engineers
