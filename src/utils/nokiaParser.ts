@@ -250,6 +250,24 @@ export const parseNokiaConfig = (configText: string): NokiaDevice => {
       intf.egressQos = qosData.egressQos;
     }
 
+    // Extract VRRP VIP and Priority
+    const vrrpMatch = ifBlock.match(/vrrp\s+\d+[\s\S]*?(?=\n\s{12}exit|\n\s{8}exit)/);
+    if (vrrpMatch) {
+      const vrrpBlock = vrrpMatch[0];
+
+      // Extract VIP from backup line
+      const vipMatch = vrrpBlock.match(/backup\s+(\S+)/);
+      if (vipMatch) {
+        intf.vrrpVip = vipMatch[1];
+      }
+
+      // Extract priority
+      const priorityMatch = vrrpBlock.match(/priority\s+(\d+)/);
+      if (priorityMatch) {
+        intf.vrrpPriority = parseInt(priorityMatch[1], 10);
+      }
+    }
+
     // Extract toDevice from description
     if (intf.description) {
       const toDeviceMatch = intf.description.match(/To[-_](\w+)/i);

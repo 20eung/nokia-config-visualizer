@@ -5,6 +5,18 @@
 이 형식은 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
+## [1.7.0] - 2025-12-15
+
+### 추가됨 (Added)
+- **VRRP VIP 표시**: 다이어그램에 VRRP Virtual IP 표시
+  - VIP 표시: IP 주소 아래에 `(VIP: x.x.x.x)` 형식
+  - Master 표시: Priority >= 100인 경우 IP 앞에 `*` 표시
+  - Nokia parser에서 VRRP `backup` (VIP) 및 `priority` 파싱
+  - config1.txt와 config2.txt의 서로 다른 VRRP 설정 지원
+
+### 개선됨 (Improved)
+- **다이어그램 노드 라벨**: VRRP 정보 포함하여 더 상세한 정보 제공
+
 ## [1.6.0] - 2025-12-15
 
 ### 추가됨 (Added)

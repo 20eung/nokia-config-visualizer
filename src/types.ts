@@ -17,6 +17,8 @@ export interface NokiaInterface {
   portDescription?: string; // Description from the physical port
   ingressQos?: string; // Ingress QoS policy ID
   egressQos?: string; // Egress QoS policy ID
+  vrrpVip?: string; // VRRP Virtual IP
+  vrrpPriority?: number; // VRRP Priority (for master detection)
 }
 
 export interface NokiaStaticRoute {

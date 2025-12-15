@@ -180,19 +180,31 @@ function buildNodeLabel(device: NokiaDevice, intf: NokiaInterface): string {
   const portDesc = intf.portDescription || '';
   const ifName = intf.name;
   const ifDesc = intf.description || '';
+
+  // VRRP Master detection: priority >= 100
+  const isMaster = intf.vrrpPriority && intf.vrrpPriority >= 100;
   const ipAddr = intf.ipAddress || 'N/A';
+  const ipDisplay = isMaster ? `*${ipAddr}` : ipAddr;
+
   const svcType = intf.serviceType || 'Unknown Svc';
   const svcDesc = intf.serviceDescription || '';
 
-  return (
+  let label = (
     `<div style="text-align: left">` +
     `<b>Host:</b> ${noWrap(device.hostname)}<br/><br/>` +
     `<b>Port:</b> ${portId}${fmtDesc(portDesc)}<br/><br/>` +
     `<b>Interface:</b> ${ifName}${fmtDesc(ifDesc)}<br/><br/>` +
-    `<b>IP:</b> ${ipAddr}<br/><br/>` +
-    `<b>Service:</b> ${svcType}${fmtDesc(svcDesc)}` +
-    `</div>`
+    `<b>IP:</b> ${ipDisplay}<br/>`
   );
+
+  // Add VIP if exists
+  if (intf.vrrpVip) {
+    label += `(VIP: ${intf.vrrpVip})<br/>`;
+  }
+
+  label += `<br/><b>Service:</b> ${svcType}${fmtDesc(svcDesc)}` + `</div>`;
+
+  return label;
 }
 
 // Generate Combined HA Diagram
