@@ -5,6 +5,18 @@
 이 형식은 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
+## [1.3.0] - 2025-12-15
+
+### 추가됨 (Added)
+- **고급 검색 기능**: AND/OR 검색 지원
+  - OR 검색: 띄어쓰기로 구분 (예: `BB5 210.211`)
+  - AND 검색: ` + `로 구분 (예: `BB5 + 210.211`)
+  - 검색 필드 확장: hostname, port, port description, interface name, interface description, ip address, service description (총 7개 필드)
+
+### 수정됨 (Fixed)
+- **HA 다이어그램 QoS 라벨**: "In:", "Out:"을 "In-QoS:", "Out-QoS:"로 복원하여 Single 다이어그램과 일관성 유지
+- QoS 기본값을 "D"에서 "Default"로 변경하여 가독성 향상
+
 ## [1.2.0] - 2025-12-14
 
 ### 추가됨 (Added)

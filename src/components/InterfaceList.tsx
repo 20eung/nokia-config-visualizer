@@ -31,19 +31,35 @@ export const InterfaceList: React.FC<InterfaceListProps> = ({
             }));
         }
 
-        const lowerFilter = searchTerm.toLowerCase();
+        // Check if AND search (contains ' + ')
+        const isAndSearch = searchTerm.includes(' + ');
+        const searchTerms = isAndSearch
+            ? searchTerm.split(' + ').map(t => t.trim().toLowerCase())
+            : searchTerm.split(/\s+/).map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
 
         return devices.map(d => {
             const matches = d.interfaces.filter(intf => {
                 const searchFields = [
-                    intf.name,
-                    intf.description,
-                    intf.portId,
-                    intf.ipAddress,
-                    intf.serviceDescription
+                    d.hostname,                    // hostname
+                    intf.portId,                   // port
+                    intf.portDescription,          // port description
+                    intf.name,                     // interface name
+                    intf.description,              // interface description
+                    intf.ipAddress,                // ip address
+                    intf.serviceDescription        // service description
                 ].map(f => (f || '').toLowerCase());
 
-                return searchFields.some(f => f.includes(lowerFilter));
+                if (isAndSearch) {
+                    // AND: All search terms must match at least one field
+                    return searchTerms.every(term =>
+                        searchFields.some(field => field.includes(term))
+                    );
+                } else {
+                    // OR: At least one search term must match at least one field
+                    return searchTerms.some(term =>
+                        searchFields.some(field => field.includes(term))
+                    );
+                }
             });
 
             return {
@@ -113,7 +129,7 @@ export const InterfaceList: React.FC<InterfaceListProps> = ({
                 <input
                     type="text"
                     className="search-input"
-                    placeholder="Search interfaces..."
+                    placeholder="Search (OR: space, AND: ' + ')..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
