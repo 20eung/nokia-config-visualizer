@@ -116,7 +116,7 @@ echo "Service Configuration"
             #--------------------------------------------------
             interface "to-customer-c-ha" create
                 description "Customer C HA with VIP First"
-                address 10.1.1.3/29
+                address 10.2.1.3/29
                 port 1/1/3
                 sap 1/1/3 create
                     ingress
@@ -132,7 +132,7 @@ echo "Service Configuration"
                     no unreachables
                 exit
                 vrrp 20
-                    backup 10.1.1.1
+                    backup 10.2.1.1
                     priority 90
                     ping-reply
                     traceroute-reply
@@ -145,7 +145,7 @@ echo "Service Configuration"
             # Static Routes
             #--------------------------------------------------
             static-route 192.168.10.0/24 next-hop 10.1.1.4
-            static-route 10.2.0.0/24 next-hop 10.1.1.4
+            static-route 10.2.0.0/24 next-hop 10.2.1.4
             
         exit
         
