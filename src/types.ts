@@ -36,7 +36,7 @@ export interface NokiaDevice {
 export interface HAPair {
   device1: string; // hostname
   device2: string; // hostname
-  type: 'vrrp' | 'static-route' | 'manual';
+  type: 'vrrp' | 'static-route' | 'manual' | 'interface-based';
   commonNetwork?: string;
 }
 

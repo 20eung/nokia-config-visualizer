@@ -50,7 +50,16 @@ export const generateMermaidDiagram = (
   console.log("Generating Mermaid Diagram. Selected IDs:", selectedIds);
   const groups: Map<string, DiagramGroup> = new Map();
 
-  // 1. Group selected interfaces
+  // Collect all selected interfaces with their routes
+  const selectedInterfaces: Array<{
+    qId: string;
+    device: NokiaDevice;
+    intf: NokiaInterface;
+    peerIp: string;
+    relatedRoutes: string[];
+  }> = [];
+
+  // 1. Collect selected interfaces and their routes
   topology.devices.forEach(device => {
     device.interfaces.forEach(intf => {
       const qId = `${device.hostname}:${intf.name}`;
@@ -60,27 +69,65 @@ export const generateMermaidDiagram = (
         const { peerIp, relatedRoutes } = findPeerAndRoutes(device, intf);
         console.log(`Interface ${qId} -> Peer: ${peerIp}, Routes: ${relatedRoutes}`);
 
-        // Find if this relates to an HA Pair
-        let haPair = topology.haPairs.find(pair => pair.commonNetwork && relatedRoutes.includes(pair.commonNetwork));
-
-        if (haPair) console.log("Found HA Pair via Common Network:", haPair);
-
-        if (!haPair) {
-          haPair = topology.haPairs.find(pair => pair.device1 === peerIp || pair.device2 === peerIp);
-        }
-
-        // Create a group Key
-        const groupId = haPair
-          ? `HA:${[haPair.device1, haPair.device2].sort().join('-')}:${haPair.commonNetwork || 'vrrp'}`
-          : `SINGLE:${qId}`;
-
-        if (!groups.has(groupId)) {
-          groups.set(groupId, { id: groupId, haPair, items: [] });
-        }
-
-        groups.get(groupId)!.items.push({ device, intf, peerIp, relatedRoutes });
+        selectedInterfaces.push({ qId, device, intf, peerIp, relatedRoutes });
       }
     });
+  });
+
+  // 2. Group interfaces by common routes (HA detection)
+  const processed = new Set<string>();
+
+  selectedInterfaces.forEach((item1, idx1) => {
+    if (processed.has(item1.qId)) return;
+
+    // Find if this interface shares routes with another interface
+    let haPair: HAPair | undefined;
+    let groupItems = [item1];
+
+    for (let idx2 = idx1 + 1; idx2 < selectedInterfaces.length; idx2++) {
+      const item2 = selectedInterfaces[idx2];
+      if (processed.has(item2.qId)) continue;
+
+      // Check if they share any common routes (Customer Network)
+      const commonRoutes = item1.relatedRoutes.filter(r => item2.relatedRoutes.includes(r));
+
+      if (commonRoutes.length > 0) {
+        console.log(`🔗 [HA Detection] Found HA pair via common routes:`, commonRoutes);
+        console.log(`  - ${item1.qId} (${item1.peerIp})`);
+        console.log(`  - ${item2.qId} (${item2.peerIp})`);
+
+        // Create dynamic HA pair
+        haPair = {
+          device1: item1.peerIp,
+          device2: item2.peerIp,
+          type: 'interface-based',
+          commonNetwork: commonRoutes[0] // Use first common route
+        };
+
+        groupItems.push(item2);
+        processed.add(item2.qId);
+      }
+    }
+
+    // Create group
+    const groupId = haPair
+      ? `HA:${[haPair.device1, haPair.device2].sort().join('-')}:${haPair.commonNetwork || 'dynamic'}`
+      : `SINGLE:${item1.qId}`;
+
+    if (!groups.has(groupId)) {
+      groups.set(groupId, { id: groupId, haPair, items: [] });
+    }
+
+    groupItems.forEach(item => {
+      groups.get(groupId)!.items.push({
+        device: item.device,
+        intf: item.intf,
+        peerIp: item.peerIp,
+        relatedRoutes: item.relatedRoutes
+      });
+    });
+
+    processed.add(item1.qId);
   });
 
   const result: Array<{ name: string; code: string; description: string }> = [];

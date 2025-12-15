@@ -5,6 +5,21 @@
 이 형식은 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
+## [1.4.0] - 2025-12-15
+
+### 추가됨 (Added)
+- **동적 HA 감지**: Customer Network 기반 자동 HA Pair 감지
+  - 선택된 인터페이스들의 relatedRoutes를 비교하여 공통 Customer Network가 있으면 자동으로 HA로 그룹핑
+  - config1.txt와 config2.txt의 서로 다른 static-route 문법에도 정상 작동
+  - 'interface-based' HA Pair 타입 추가
+
+### 개선됨 (Improved)
+- **HA 감지 로직**: 기존 topology.haPairs 외에 선택된 인터페이스 기반 동적 HA 감지 추가
+- **디버깅 로그**: TopologyEngine에 상세한 HA 감지 로그 추가
+  - Static routes 파싱 상태 확인
+  - HA Pair 감지 과정 추적
+  - 공통 Customer Network 발견 시 로그 출력
+
 ## [1.3.0] - 2025-12-15
 
 ### 추가됨 (Added)

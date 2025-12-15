@@ -26,15 +26,27 @@ export const processConfigFiles = (filesContent: string[]): NetworkTopology => {
 export const analyzeTopology = (topology: NetworkTopology): NetworkTopology => {
     const nextHopGroups: Record<string, Set<string>> = {};
 
+    console.log('🔍 [HA Detection] Starting topology analysis...');
+    console.log('📊 [HA Detection] Total devices:', topology.devices.length);
+
     // 1. Collect all next-hops for each prefix
     for (const device of topology.devices) {
+        console.log(`📱 [HA Detection] Device: ${device.hostname}, Static Routes: ${device.staticRoutes.length}`);
+
         for (const route of device.staticRoutes) {
             if (!nextHopGroups[route.prefix]) {
                 nextHopGroups[route.prefix] = new Set();
             }
             nextHopGroups[route.prefix].add(route.nextHop);
+
+            // Log first few routes for debugging
+            if (device.staticRoutes.indexOf(route) < 3) {
+                console.log(`  📍 Route: ${route.prefix} → ${route.nextHop}`);
+            }
         }
     }
+
+    console.log('🔗 [HA Detection] Next-hop groups:', Object.keys(nextHopGroups).length);
 
     // 2. Identify HA Pairs (same prefix, 2 different next-hops)
     // We treat the Next-Hop IPs themselves as the "Device Names" for the remote pair
@@ -56,11 +68,20 @@ export const analyzeTopology = (topology: NetworkTopology): NetworkTopology => {
                     type: 'static-route',
                     commonNetwork: prefix
                 };
+                console.log(`✅ [HA Detection] HA Pair found: ${prefix} → ${hop1} & ${hop2}`);
             }
+        } else if (hops.size > 2) {
+            console.log(`⚠️ [HA Detection] Multiple next-hops (${hops.size}) for ${prefix}:`, Array.from(hops));
         }
     }
 
     topology.haPairs = Object.values(detectedPairs);
+    console.log(`🎯 [HA Detection] Total HA Pairs detected: ${topology.haPairs.length}`);
+
+    if (topology.haPairs.length > 0) {
+        console.log('📋 [HA Detection] HA Pairs:', topology.haPairs);
+    }
+
     return topology;
 };
 
