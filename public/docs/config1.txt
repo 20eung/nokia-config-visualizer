@@ -1,221 +1,446 @@
-# TiMOS-B-23.10.R1 both/x86_64 Nokia 7750 SR Copyright (c) 2000-2023 Nokia.
+A:Router_BB3# admin display-config 
+# TiMOS-C-12.0.R4 cpm/hops64 ALCATEL SR 7750 Copyright (c) 2000-2014 Alcatel-Lucent.
 # All rights reserved. All use subject to applicable license agreements.
-# Built on Wed Nov 15 18:00:00 PST 2023 by builder in /builds/2310B/R1/panos/main/sros
+# Built on Tue Jul 29 16:26:06 PDT 2014 by builder in /rel12.0/b1/R4/panos/main
 
-# Configuration for Demo-Router-BB1 (Master)
+# Generated FRI DEC 12 04:16:17 2025 UTC
 
+exit all
+configure
 #--------------------------------------------------
 echo "System Configuration"
 #--------------------------------------------------
     system
-        name "Demo-Router-BB1"
-        location "Demo Lab - Building A"
-        contact "demo@example.com"
-    exit
-
-#--------------------------------------------------
-echo "Card Configuration"
-#--------------------------------------------------
-    card 1
-        card-type iom-1
-        mda 1
-            mda-type me12-100gb-qsfp28
+        name "Router_BB3"
+        chassis-mode d
+        dns
         exit
+        power-supply 1 ac multiple
+        power-supply 2 ac multiple
+        l4-load-balancing
+        system-ip-load-balancing
+        rollback
+            rollback-location "cf3:\rollback\rollback"
+        exit
+        snmp
+            streaming
+                no shutdown
+            exit
+            packet-size 9216
+        exit
+        time
+            ntp
+                no shutdown
+            exit
+            sntp
+                shutdown
+            exit
+            zone KST 09
+        exit
+        thresholds
+            rmon
+            exit
+        exit
+    exit                              
+#--------------------------------------------------
+echo "System Security Configuration"
+#--------------------------------------------------
+#--------------------------------------------------
+echo "System Login Control Configuration"
+#--------------------------------------------------
+#--------------------------------------------------
+echo "Log Configuration"
+#--------------------------------------------------
+#--------------------------------------------------
+echo "Filter Match lists Configuration"
+#--------------------------------------------------
+#--------------------------------------------------
+echo "System Security Cpm Hw Filters and PKI Configuration"
+#--------------------------------------------------
+#--------------------------------------------------
+echo "QoS Policy Configuration"
+#--------------------------------------------------
+    qos
     exit
-
+#--------------------------------------------------
+echo "Cflowd Configuration"
+#--------------------------------------------------
+#--------------------------------------------------
+echo "Card Configuration"             
+#--------------------------------------------------
+    card 3
+        card-type imm48-1gb-sfp-b
+        mda 1
+            no shutdown
+        exit
+        mda 2
+            no shutdown
+        exit
+        no shutdown
+    exit
 #--------------------------------------------------
 echo "Port Configuration"
 #--------------------------------------------------
-    port 1/1/1
-        description "To Customer-A Site-1 HA"
+    port 3/1/2
+        description "Customer1_Internet_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
-    
-    port 1/1/2
-        description "To Customer-B Single"
+    port 3/1/3                        
+        description "To-Backbone1:P3/1/9"
         ethernet
             mode access
         exit
         no shutdown
     exit
-    
-    port 1/1/3
-        description "To Customer-C HA with VIP First"
+    port 3/1/12
+        description "Customer6_3-1_100M"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit                              
+    port 3/1/13
+        description "Customer7_Internet_10M_1"
         ethernet
             mode access
         exit
         no shutdown
     exit
-
+    port 3/1/20
+        description "Customer6_3-2_100M"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/2/10
+        description "Customer4-HQ_200M"
+        ethernet
+            mode access
+            no autonegotiate
+        exit
+        no shutdown
+    exit
+    port 3/2/18
+        description "Customer5"
+        ethernet
+            mode access
+            mtu 1440                  
+        exit
+        no shutdown
+    exit
+    port 4/1/13
+        description "To_Customer8_1_0/0/24"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
 #--------------------------------------------------
-echo "QoS Configuration"
+echo "System Sync-If-Timing Configuration"
+#--------------------------------------------------
+#--------------------------------------------------
+echo "Redundancy Configuration"
+#--------------------------------------------------
+    redundancy 
+        synchronize config
+        rollback-sync
+    exit 
+#--------------------------------------------------
+echo "QoS Policy Configuration"
 #--------------------------------------------------
     qos
-        sap-ingress 10 create
-            description "Demo Ingress QoS Policy"
+        sap-ingress 100 create
+            queue 1 create
+                rate 100000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-ingress 500 create
+            queue 1 create
+                rate 500000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-egress 100 create         
             queue 1 create
                 rate 100000
             exit
         exit
-        sap-egress 10 create
-            description "Demo Egress QoS Policy"
+        sap-egress 500 create
             queue 1 create
-                rate 100000
+                rate 500000
             exit
         exit
     exit
+#--------------------------------------------------
+echo "Filter Configuration"
+#--------------------------------------------------
+#--------------------------------------------------
+echo "Management Router Configuration"
+#--------------------------------------------------
+#--------------------------------------------------
+echo "Router (Network Side) Configuration"
+#--------------------------------------------------
+    router 
+        autonomous-system 10049
+        ecmp 16
+#--------------------------------------------------
+echo "Static Route Configuration"
+#--------------------------------------------------
+        static-route 10.10.60.128/27 next-hop 10.10.10.142 description "Customer9-Internet"
+        static-route 10.10.40.128/27 next-hop 10.10.30.220 description "Customer7_Internet_10M_1"
+        static-route 10.10.30.160/27 next-hop 10.10.30.42 description "Customer8_Internet"
+        static-route 10.10.50.64/26 next-hop 10.10.10.54 description "Customer6"
+        static-route 10.10.50.64/26 next-hop 10.10.10.54 description "Customer6"
+        static-route 10.10.50.128/25 next-hop 10.10.10.54 description "Customer6"
 
+#--------------------------------------------------
+echo "OSPFv2 Configuration"
+#--------------------------------------------------
+    exit
 #--------------------------------------------------
 echo "Service Configuration"
 #--------------------------------------------------
     service
         customer 1 create
-            description "Demo Customer"
+            description "Default customer"
         exit
-        
-        #--------------------------------------------------
-        # VPRN 100 - Demo VPRN Service
-        #--------------------------------------------------
-        vprn 100 customer 1 create
-            description "Demo VPRN Service"
-            autonomous-system 65000
-            route-distinguisher 65000:100
-            auto-bind-tunnel
-                resolution any
+        ies 10 customer 1 create
+            interface "p3/1/2" create
             exit
-            
-            #--------------------------------------------------
-            # Interface: to-customer-a-ha (HA with VRRP)
-            # /29 subnet, VIP at first host IP
-            #--------------------------------------------------
-            interface "to-customer-a-ha" create
-                description "Customer A HA Connection"
-                address 10.1.1.2/29
-                port 1/1/1
-                sap 1/1/1 create
-                    ingress
-                        qos 10
-                    exit
-                    egress
-                        qos 10
-                    exit
-                exit
+            interface "p3/1/3" create
+            exit
+            interface "p3/1/13" create
+            exit
+            interface "p3/2/10" create
+            exit
+            interface "p3/2/18" create
+            exit
+            interface "p3/1/12-p3/1/20" create
+            exit
+            interface "p4/1/13" create
+            exit            
+        exit
+        ies 10 customer 1 create
+            interface "p3/1/2" create
+                description "Customer1_Internet_1"
+                address 10.10.10.141/30
                 icmp
                     no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/2 create
+                    ingress
+                        filter ip 10  
+                    exit
+                    egress
+                        filter ip 150
+                    exit
+                exit
+            exit                      
+            interface "p3/1/3" create
+                description "To-Backbone1:P3/1/9"
+                address 10.10.0.169/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 3/1/3 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit
+            interface "p3/1/13" create
+                description "To_Customer3_FW1_Wan1_20241210001"
+                address 10.10.30.218/29
+                icmp
+                    no mask-reply     
                     no redirects
                     no unreachables
                 exit
                 vrrp 10
-                    backup 10.1.1.1
+                    backup 10.10.30.217
                     priority 110
                     ping-reply
                     traceroute-reply
                 exit
-                vpls "Customer-A-VPLS"
+                vpls "To_Customer3_FW1_Wan1_20241210001"
                 exit
             exit
-            
-            #--------------------------------------------------
-            # Interface: to-customer-b (Single Connection)
-            # /30 subnet (Point-to-Point)
-            #--------------------------------------------------
-            interface "to-customer-b" create
-                description "Customer B Single Connection"
-                address 10.2.1.1/30
-                port 1/1/2
-                sap 1/1/2 create
-                    ingress
-                        qos 10
-                    exit
-                    egress
-                        qos 10
-                    exit
-                exit
+            interface "p3/2/10" create
+                description "Customer4-HQ_200M"
+                address 10.10.30.41/30
                 icmp
                     no mask-reply
                     no redirects
                     no unreachables
                 exit
-                vpls "Customer-B-VPLS"
+                sap 3/2/10 create
+                    ingress
+                        filter ip 10
+                    exit
                 exit
             exit
-            
-            #--------------------------------------------------
-            # Interface: to-customer-c-ha (HA with VIP First)
-            # /29 subnet, VIP at first host IP
-            #--------------------------------------------------
-            interface "to-customer-c-ha" create
-                description "Customer C HA with VIP First"
-                address 10.2.1.2/29
-                port 1/1/3
-                sap 1/1/3 create
+            interface "p3/2/18" create
+                description "Customer5"
+                address 10.10.30.25/29
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables   
+                exit
+                sap 3/2/18 create
                     ingress
-                        qos 10
-                    exit
-                    egress
-                        qos 10
+                        filter ip 10
                     exit
                 exit
+            exit
+            interface "p3/1/12-p3/1/20" create
+                description "Customer6_3_100M"
+                address 10.10.30.241/30
                 icmp
                     no mask-reply
                     no redirects
                     no unreachables
                 exit
-                vrrp 20
-                    backup 10.2.1.1
-                    priority 110
-                    ping-reply
-                    traceroute-reply
-                exit
-                vpls "Customer-C-VPLS"
+                vpls "Customer6_3_100M"
                 exit
             exit
-            
-            #--------------------------------------------------
-            # Static Routes
-            #--------------------------------------------------
-            static-route 192.168.10.0/24 next-hop 10.1.1.4
-            static-route 192.168.20.0/24 next-hop 10.2.1.2
-            static-route 10.2.0.0/24 next-hop 10.2.1.4
-            
+            interface "p4/1/13" create
+                description "Customer6_1"
+                address 10.10.10.53/30
+                icmp
+                    no mask-reply
+                    no redirects
+                    no unreachables
+                exit
+                sap 4/1/13 create
+                    ingress
+                        filter ip 10
+                    exit
+                exit
+            exit            
         exit
-        
-        #--------------------------------------------------
-        # VPLS Services
-        #--------------------------------------------------
-        vpls 200 customer 1 create
-            description "Customer-A-VPLS"
-            service-mtu 1514
-            sap 1/1/1 create
+        vpls 2800 customer 1 create
+            allow-ip-int-binding
+            stp
+                shutdown
+            exit
+            service-name "Anti-DDoS_MGMT"
+            sap 3/2/11 create
+                ingress
+                    filter ip 10
+                exit
+            exit
+            no shutdown
+        exit
+        vpls 4065 customer 1 create
+            description "Customer6_3_100M"
+            allow-ip-int-binding
+            stp
+                shutdown
+            exit
+            service-name "Customer6_3_100M"
+            sap 3/1/12 create
+                ingress
+                    qos 100
+                    filter ip 10
+                exit
+                egress
+                    qos 100
+                exit
+            exit
+            sap 3/1/20 create
+                ingress
+                    qos 100
+                    filter ip 10
+                exit
+                egress
+                    qos 100
+                exit
+            exit                      
+            mac-move
+                no shutdown
+            exit
+            no shutdown
+        exit
+        vpls 4068 customer 1 create
+            description "To_Customer3_FW1_Wan1_20241210001"
+            allow-ip-int-binding
+            stp
+                shutdown
+            exit
+            service-name "To_Customer3_FW1_Wan1_20241210001"
+            sap 3/1/13 create
+                ingress
+                    qos 10
+                    filter ip 10
+                exit
+            exit
+            sap 3/1/24:1047 create
+            exit
+            no shutdown
+        exit
+#--------------------------------------------------
+echo "CPM Filter Router and Svc-id Match Configuration"
+#--------------------------------------------------
+#--------------------------------------------------
+echo "Router (Service Side) Configuration"
+#--------------------------------------------------
+    router 
+#--------------------------------------------------
+echo "OSPFv2 Configuration"
+#--------------------------------------------------
+        ospf
+            area 0.0.0.0              
+                interface "p3/1/2"
+                    interface-type point-to-point
+                    metric 1000
+                    no shutdown
+                exit
+                interface "p3/1/3"
+                    interface-type point-to-point
+                    metric 100
+                    no shutdown
+                exit
             exit
         exit
-        
-        vpls 201 customer 1 create
-            description "Customer-B-VPLS"
-            service-mtu 1514
-            sap 1/1/2 create
+#--------------------------------------------------
+echo "Policy Configuration"
+#--------------------------------------------------
+        policy-options
+            begin
+            prefix-list "default_route"
+                prefix 0.0.0.0/0 exact
             exit
         exit
-        
-        vpls 202 customer 1 create
-            description "Customer-C-VPLS"
-            service-mtu 1514
-            sap 1/1/3 create
-            exit
+#--------------------------------------------------
+echo "BGP Configuration"
+#--------------------------------------------------
+        bgp
+            damping
+            multipath 16
+            no shutdown
         exit
-        
     exit
 
 #--------------------------------------------------
-echo "Router (Network Side) Configuration"
+echo "System Time NTP Configuration"
 #--------------------------------------------------
-    router Base
-        interface "system"
-            address 192.0.2.1/32
+    system
+        time
+            ntp
+            exit
         exit
     exit
-
+                                      
 exit all
