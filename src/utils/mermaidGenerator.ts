@@ -40,6 +40,18 @@ export function findPeerAndRoutes(device: NokiaDevice, intf: NokiaInterface): { 
     }
   }
 
+  // VRRP-based peer inference
+  if (peerIp === 'Unknown' && intf.vrrpVip) {
+    const hosts = getHostsInNetwork(network.ip, network.prefixLen);
+    for (const h of hosts) {
+      // Find IP that is not our own IP and not the VIP
+      if (h !== network.ip && h !== intf.vrrpVip) {
+        peerIp = h;
+        break;
+      }
+    }
+  }
+
   return { peerIp, relatedRoutes };
 }
 

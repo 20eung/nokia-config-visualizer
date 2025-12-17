@@ -75,8 +75,55 @@ export const analyzeTopology = (topology: NetworkTopology): NetworkTopology => {
         }
     }
 
+    // 3. Identify VRRP-based HA Pairs (interfaces with same VRRP VIP)
+    console.log('🔍 [HA Detection] Checking for VRRP-based HA pairs...');
+    const vrrpGroups: Record<string, Array<{ ip: string; hostname: string; interfaceName: string; priority?: number }>> = {};
+
+    for (const device of topology.devices) {
+        for (const intf of device.interfaces) {
+            if (intf.vrrpVip) {
+                if (!vrrpGroups[intf.vrrpVip]) {
+                    vrrpGroups[intf.vrrpVip] = [];
+                }
+                const intfIp = intf.ipAddress?.split('/')[0] || '';
+                vrrpGroups[intf.vrrpVip].push({
+                    ip: intfIp,
+                    hostname: device.hostname,
+                    interfaceName: intf.name,
+                    priority: intf.vrrpPriority
+                });
+            }
+        }
+    }
+
+    console.log(`🔗 [HA Detection] VRRP VIP groups found: ${Object.keys(vrrpGroups).length}`);
+
+    // Add VRRP pairs to detectedPairs
+    for (const [vip, interfaces] of Object.entries(vrrpGroups)) {
+        if (interfaces.length === 2) {
+            const [intf1, intf2] = interfaces.sort((a, b) => {
+                const numA = ipToLong(a.ip);
+                const numB = ipToLong(b.ip);
+                return numA - numB;
+            });
+
+            const pairKey = `vrrp-${vip}`;
+            if (!detectedPairs[pairKey]) {
+                detectedPairs[pairKey] = {
+                    device1: intf1.ip,
+                    device2: intf2.ip,
+                    type: 'vrrp',
+                    commonNetwork: vip
+                };
+                console.log(`✅ [HA Detection] VRRP HA Pair found: VIP ${vip} → ${intf1.hostname}:${intf1.interfaceName} (${intf1.ip}, priority: ${intf1.priority || 'default'}) & ${intf2.hostname}:${intf2.interfaceName} (${intf2.ip}, priority: ${intf2.priority || 'default'})`);
+            }
+        } else if (interfaces.length > 2) {
+            console.log(`⚠️ [HA Detection] Multiple VRRP interfaces (${interfaces.length}) for VIP ${vip}:`, interfaces.map(i => `${i.hostname}:${i.interfaceName} (${i.ip})`));
+        }
+    }
+
     topology.haPairs = Object.values(detectedPairs);
-    console.log(`🎯 [HA Detection] Total HA Pairs detected: ${topology.haPairs.length}`);
+    console.log(`🎯 [HA Detection] Total HA Pairs detected: ${topology.haPairs.length} (Static Route: ${Object.values(detectedPairs).filter(p => p.type === 'static-route').length}, VRRP: ${Object.values(detectedPairs).filter(p => p.type === 'vrrp').length})`);
 
     if (topology.haPairs.length > 0) {
         console.log('📋 [HA Detection] HA Pairs:', topology.haPairs);

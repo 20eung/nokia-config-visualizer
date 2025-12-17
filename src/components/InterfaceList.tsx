@@ -85,6 +85,7 @@ export const InterfaceList: React.FC<InterfaceListProps> = ({
         // A pair is defined by having a common network (routes) or just being in the list
         // findPeerAndRoutes returns a peerIp.
         // If peerIp matches any device in haPairs, we select it.
+        // For VRRP pairs, the interface's own IP might also be in haPairs.
 
         const haIps = new Set<string>();
         topology.haPairs.forEach(pair => {
@@ -92,30 +93,27 @@ export const InterfaceList: React.FC<InterfaceListProps> = ({
             haIps.add(pair.device2);
         });
 
+        console.log('🔍 [HA Filter] HA IPs from pairs:', Array.from(haIps));
+
         const haInterfaceIds: string[] = [];
 
-        // Iterate all devices (ignoring current search filter for now, or should we respect it?
-        // Let's re-calculate to find *all* HA interfaces in the full list, 
-        // OR better: find HA interfaces within the current filtered structure?
-        // Generally "Filter" buttons act on the current view or specialized view. 
-        // But usually "Smart Filters" might want to pull everything relevant.
-        // Let's stick to the visible (filtered) structure to be consistent with "Select All"
-        // actually, user asked to "find HA easily", so maybe select ALL HA interfaces regardless of search term?
-        // Let's respect the filteredStructure so it composes with search.
-
-        filteredStructure.forEach(group => {
-            // Find the full device object for context (helper needs full device for routes)
-            const device = devices.find(d => d.hostname === group.hostname);
-            if (!device) return;
-
-            group.interfaces.forEach(intf => {
+        // Iterate over ALL devices (not filteredStructure) to find all HA interfaces
+        // This ensures we don't miss any HA pairs due to search filtering
+        devices.forEach(device => {
+            device.interfaces.forEach(intf => {
                 const { peerIp } = findPeerAndRoutes(device, intf);
-                if (haIps.has(peerIp)) {
-                    haInterfaceIds.push(getQualifiedId(group.hostname, intf.name));
+                const intfIp = intf.ipAddress?.split('/')[0] || '';
+
+                // Check if either the peer IP or the interface's own IP is in HA pairs
+                if (haIps.has(peerIp) || haIps.has(intfIp)) {
+                    const qualifiedId = getQualifiedId(device.hostname, intf.name);
+                    haInterfaceIds.push(qualifiedId);
+                    console.log(`✅ [HA Filter] Selected: ${device.hostname}:${intf.name} (IP: ${intfIp}, Peer: ${peerIp})`);
                 }
             });
         });
 
+        console.log(`🎯 [HA Filter] Total interfaces selected: ${haInterfaceIds.length}`);
         onSetSelected(haInterfaceIds);
     };
 
