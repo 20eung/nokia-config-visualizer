@@ -30,11 +30,43 @@
 
 ---
 
-## 🛠 필요한 Docker 설정 파일
+## 🚀 프로덕션 배포 절차
+
+### 전제 조건
+
+서버에 다음이 설치되어 있어야 합니다:
+- Docker
+- Docker Compose
+- Git
+- Nginx Proxy Manager (NPM) # 다른 서버에 설치되어 있어도 됨
+
+---
+
+### Step 1: GitHub에서 소스 코드 받기
+
+```bash
+# 1. 작업 디렉토리로 이동
+cd /data  # 또는 원하는 디렉토리
+
+# 2. GitHub에서 클론
+git clone https://github.com/20eung/mermaid-web.git nokia-visualizer
+
+# 3. 프로젝트 디렉토리로 이동
+cd nokia-visualizer
+
+# 4. 현재 버전 확인
+git log --oneline -1
+```
+
+---
+
+### Step 2: Docker 설정 파일 생성
+
+#### 🛠 필요한 Docker 설정 파일
 
 프로젝트 루트에 다음 4개 파일을 생성해야 합니다.
 
-### 📄 1. Dockerfile
+#### 📄 1. Dockerfile
 
 ```dockerfile
 # 멀티 스테이지 빌드 - 빌드 단계
@@ -68,7 +100,7 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ---
 
-### 📄 2. .dockerignore
+#### 📄 2. .dockerignore
 
 ```
 # 의존성
@@ -107,7 +139,7 @@ docker-compose.yml
 
 ---
 
-### 📄 3. nginx.conf
+#### 📄 3. nginx.conf
 
 ```nginx
 server {
@@ -152,7 +184,7 @@ server {
 
 ---
 
-### 📄 4. docker-compose.yml
+#### 📄 4. docker-compose.yml
 
 ```yaml
 version: '3.8'
@@ -182,38 +214,6 @@ networks:
 
 ---
 
-## 🚀 프로덕션 배포 절차
-
-### 전제 조건
-
-서버에 다음이 설치되어 있어야 합니다:
-- Docker
-- Docker Compose
-- Git
-- Nginx Proxy Manager (NPM)
-
----
-
-### Step 1: GitHub에서 소스 코드 받기
-
-```bash
-# 1. 작업 디렉토리로 이동
-cd /opt  # 또는 원하는 디렉토리
-
-# 2. GitHub에서 클론
-git clone https://github.com/20eung/mermaid-web.git
-
-# 3. 프로젝트 디렉토리로 이동
-cd mermaid-web
-
-# 4. 현재 버전 확인
-git log --oneline -1
-```
-
----
-
-### Step 2: Docker 설정 파일 생성
-
 위에서 설명한 4개 파일을 프로젝트 루트에 생성합니다:
 
 ```bash
@@ -226,13 +226,16 @@ ls -la Dockerfile docker-compose.yml nginx.conf .dockerignore
 ### Step 3: Docker Compose로 빌드 및 실행
 
 ```bash
-# 1. Docker Compose로 빌드 및 실행 (백그라운드)
+# 1. Docker Compose로 빌드
+docker-compose up --build
+
+# 2. Docker Compose로 실행 (백그라운드)
 docker-compose up -d --build
 
-# 2. 빌드 진행 상황 확인 (최초 빌드 시 2-3분 소요)
+# 3. 빌드 진행 상황 확인 (최초 빌드 시 2-3분 소요)
 docker-compose logs -f
 
-# 3. 컨테이너 상태 확인
+# 4. 컨테이너 상태 확인
 docker-compose ps
 
 # 예상 출력:
@@ -372,7 +375,7 @@ docker stats nokia-visualizer
 
 ```bash
 # 1. 최신 코드 받기
-cd /opt/mermaid-web
+cd /data/nokia-visualizer
 git pull origin main
 
 # 2. 컨테이너 재빌드 및 재시작
@@ -500,7 +503,7 @@ sudo ufw allow 443/tcp
 
 ```bash
 # 현재 이미지 저장
-docker save mermaid-web-nokia-visualizer:latest -o nokia-visualizer-backup.tar
+docker save nokia-visualizer:latest -o nokia-visualizer-backup.tar
 
 # 이미지 복원
 docker load -i nokia-visualizer-backup.tar
@@ -666,7 +669,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /opt/mermaid-web
+            cd /data/nokia-visualizer
             git pull origin main
             docker-compose up -d --build
 ```
@@ -727,6 +730,13 @@ jobs:
 **프로덕션 배포 핵심 단계:**
 
 1. **GitHub에서 소스 받기**
+   ```bash
+   git clone https://github.com/20eung/mermaid-web.git nokia-visualizer
+   cd nokia-visualizer
+   ```
+   
+   또는
+
    ```bash
    git clone https://github.com/20eung/mermaid-web.git
    cd mermaid-web
