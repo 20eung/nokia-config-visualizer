@@ -8,6 +8,7 @@
 - [필요한 Docker 설정 파일](#필요한-docker-설정-파일)
 - [프로덕션 배포 절차](#프로덕션-배포-절차)
 - [NPM 프록시 호스트 설정](#npm-프록시-호스트-설정)
+- [SSL/HTTPS 직접 적용 (사설망 서버용)](#sslhttps-직접-적용-사설망-서버용)
 - [컨테이너 관리](#컨테이너-관리)
 - [문제 해결](#문제-해결)
 - [추가 옵션](#추가-옵션)
@@ -194,11 +195,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "3300:80"
-    restart: unless-stopped
     container_name: nokia-visualizer
     hostname: nokia-visualizer
+    restart: unless-stopped
+    ports:
+      - "3300:80"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Seoul
@@ -227,10 +228,10 @@ ls -la Dockerfile docker-compose.yml nginx.conf .dockerignore
 
 ```bash
 # 1. Docker Compose로 빌드
-docker-compose up --build
+docker-compose build
 
 # 2. Docker Compose로 실행 (백그라운드)
-docker-compose up -d --build
+docker-compose up -d
 
 # 3. 빌드 진행 상황 확인 (최초 빌드 시 2-3분 소요)
 docker-compose logs -f
@@ -339,7 +340,312 @@ proxy_read_timeout 60s;
 
 ---
 
-## � 컨테이너 관리
+## 🔐 SSL/HTTPS 직접 적용 (사설망 서버용)
+
+> NPM이 공인망에 있고 컨테이너가 사설망에 있어 NPM을 사용할 수 없는 경우, 컨테이너에 직접 SSL을 적용할 수 있습니다.
+
+### 전제 조건
+
+- SSL 인증서 파일 보유 (NPM에서 다운로드 또는 별도 발급)
+- 인증서 파일: `fullchain2.pem`, `privkey2.pem`
+
+---
+
+### Step 1: SSL 인증서 파일 준비
+
+#### NPM에서 인증서 다운로드한 경우
+
+NPM에서 다운로드한 압축 파일에는 다음 파일들이 포함되어 있습니다:
+- `cert2.pem` - 도메인 인증서
+- `chain2.pem` - 중간 인증서 체인
+- `fullchain2.pem` - **전체 인증서** (cert + chain 결합) ✅ 사용
+- `privkey2.pem` - **개인키** ✅ 사용
+
+```bash
+# 프로젝트 디렉토리로 이동
+cd /data/nokia-visualizer
+
+# ssl 폴더 생성
+mkdir ssl
+
+# NPM에서 다운로드한 인증서 파일을 ssl 폴더로 복사
+cp fullchain2.pem /data/nokia-visualizer/ssl/
+cp privkey2.pem /data/nokia-visualizer/ssl/
+
+# 또는 압축 파일에서 직접 추출
+unzip certificate-archive.zip -d /data/nokia-visualizer/ssl/
+
+# 파일 확인
+ls -la /data/nokia-visualizer/ssl/
+
+# 권한 설정 (보안상 매우 중요!)
+chmod 600 /data/nokia-visualizer/ssl/privkey2.pem
+chmod 644 /data/nokia-visualizer/ssl/fullchain2.pem
+
+# 소유권 확인
+chown $USER:$USER /data/nokia-visualizer/ssl/*
+```
+
+#### 인증서 검증 (선택사항)
+
+```bash
+# 인증서 정보 확인
+openssl x509 -in /data/nokia-visualizer/ssl/fullchain2.pem -text -noout | head -20
+
+# 인증서 유효기간 확인
+openssl x509 -in /data/nokia-visualizer/ssl/fullchain2.pem -noout -dates
+
+# 개인키 확인
+openssl rsa -in /data/nokia-visualizer/ssl/privkey2.pem -check
+
+# 인증서와 개인키 매칭 확인 (두 값이 동일해야 함)
+openssl x509 -noout -modulus -in /data/nokia-visualizer/ssl/fullchain2.pem | openssl md5
+openssl rsa -noout -modulus -in /data/nokia-visualizer/ssl/privkey2.pem | openssl md5
+```
+
+---
+
+### Step 2: nginx.conf 수정
+
+기존 `nginx.conf`를 HTTPS를 지원하도록 수정합니다.
+
+```nginx
+# HTTP를 HTTPS로 리다이렉트
+server {
+    listen 80;
+    server_name localhost;
+    # 3443 포트로 명시적 리다이렉트 (포트 매핑 고려)
+    return 301 https://$host:3443$request_uri;
+}
+
+# HTTPS 서버
+server {
+    listen 443 ssl;
+    http2 on;  # Nginx 1.25.1+ 새로운 문법
+    server_name localhost;
+    
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # SSL 인증서 설정 (NPM에서 다운로드한 파일)
+    ssl_certificate /etc/nginx/ssl/fullchain2.pem;      # 전체 인증서 체인
+    ssl_certificate_key /etc/nginx/ssl/privkey2.pem;    # 개인키
+
+    # SSL 프로토콜 및 암호화 설정
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off;
+
+    # SSL 세션 캐시
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # 실제 클라이언트 IP 전달
+    real_ip_header X-Forwarded-For;
+    set_real_ip_from 0.0.0.0/0;
+
+    # SPA 라우팅 지원
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 정적 파일 캐싱 최적화
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # HTML 파일은 캐싱하지 않음
+    location ~* \.html$ {
+        expires -1;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
+    # Gzip 압축 활성화
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
+
+    # 보안 헤더
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+}
+```
+
+**주요 포인트:**
+- `return 301 https://$host:3443$request_uri;` - 포트 3443으로 명시적 리다이렉트
+- `listen 443 ssl;` + `http2 on;` - Nginx 1.25.1+ 새로운 문법
+- `ssl_certificate` - fullchain2.pem 사용 (전체 인증서 체인 포함)
+
+---
+
+### Step 3: docker-compose.yml 수정
+
+SSL 인증서를 컨테이너에 마운트하고 HTTPS 포트를 노출합니다.
+
+```yaml
+version: '3.8'
+
+services:
+  nokia-visualizer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nokia-visualizer
+    hostname: nokia-visualizer
+    restart: unless-stopped
+    ports:
+      - "3300:80"    # HTTP (HTTPS로 리다이렉트됨)
+      - "3443:443"   # HTTPS
+    volumes:
+      - ./ssl:/etc/nginx/ssl:ro  # SSL 인증서 마운트 (읽기 전용)
+    environment:
+      - NODE_ENV=production
+      - TZ=Asia/Seoul
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+```
+
+**주요 변경점:**
+- `ports`: 3443 포트 추가 (HTTPS)
+- `volumes`: ssl 폴더를 컨테이너에 읽기 전용으로 마운트
+- `networks`: NPM을 사용하지 않으므로 독립적인 네트워크 사용
+
+---
+
+### Step 4: 컨테이너 재빌드 및 실행
+
+```bash
+# 기존 컨테이너 중지 및 삭제
+docker-compose down
+
+# 새로운 설정으로 빌드
+docker-compose build
+
+# 컨테이너 실행
+docker-compose up -d
+
+# 로그 확인
+docker-compose logs -f
+
+# Nginx 설정 테스트
+docker exec nokia-visualizer nginx -t
+
+# 예상 출력:
+# nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+# nginx: configuration file /etc/nginx/nginx.conf test is successful
+```
+
+---
+
+### Step 5: 방화벽 설정 (필요 시)
+
+```bash
+# 포트 3300 (HTTP) 오픈
+sudo ufw allow 3300/tcp
+
+# 포트 3443 (HTTPS) 오픈
+sudo ufw allow 3443/tcp
+
+# 방화벽 상태 확인
+sudo ufw status
+```
+
+---
+
+### Step 6: 접속 테스트
+
+```bash
+# HTTP 접속 (HTTPS로 리다이렉트되어야 함)
+curl -I http://서버IP:3300
+
+# 예상 응답:
+# HTTP/1.1 301 Moved Permanently
+# Location: https://서버IP:3443/
+
+# HTTPS 접속
+curl -k https://서버IP:3443
+
+# 브라우저 테스트
+# http://서버IP:3300 → https://서버IP:3443 (자동 리다이렉트)
+# https://서버IP:3443 (직접 접속)
+```
+
+---
+
+### 포트 매핑 설명
+
+| 외부 포트 | 내부 포트 | 프로토콜 | 용도 |
+|-----------|-----------|----------|------|
+| 3300 | 80 | HTTP | HTTPS로 리다이렉트 |
+| 3443 | 443 | HTTPS | 실제 서비스 |
+
+**리다이렉트 흐름:**
+1. 사용자가 `http://서버IP:3300` 접속
+2. Docker가 3300 → 80 포트로 전달
+3. Nginx가 HTTPS로 리다이렉트: `https://서버IP:3443`
+4. Docker가 3443 → 443 포트로 전달
+5. Nginx가 HTTPS로 응답
+
+---
+
+### 문제 해결
+
+#### 1. 리다이렉트 URL이 잘못된 경우
+
+**증상:** `http://서버IP:3300` 접속 시 `https://서버IP:3000`으로 리다이렉트됨
+
+**원인:** nginx.conf에서 포트를 명시하지 않음
+
+**해결:**
+```nginx
+# 잘못된 설정
+return 301 https://$host$request_uri;  # 포트 누락
+
+# 올바른 설정
+return 301 https://$host:3443$request_uri;  # 포트 명시
+```
+
+#### 2. SSL 인증서 오류
+
+```bash
+# 인증서 파일 권한 확인
+ls -la /data/nokia-visualizer/ssl/
+
+# 권한 재설정
+chmod 600 /data/nokia-visualizer/ssl/privkey2.pem
+chmod 644 /data/nokia-visualizer/ssl/fullchain2.pem
+
+# 컨테이너 재시작
+docker-compose restart
+```
+
+#### 3. Nginx 설정 오류
+
+```bash
+# 컨테이너 내부 접속
+docker exec -it nokia-visualizer sh
+
+# Nginx 설정 테스트
+nginx -t
+
+# 설정 파일 확인
+cat /etc/nginx/conf.d/default.conf
+
+# SSL 파일 확인
+ls -la /etc/nginx/ssl/
+```
+
+---
+
+## 📦 컨테이너 관리
 
 ### 기본 명령어
 
