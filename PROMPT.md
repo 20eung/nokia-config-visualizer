@@ -6,7 +6,7 @@ You are an expert AI software engineer and network automation specialist, dedica
 
 This project is a web application that visualizes **Nokia 7750 SR (TiMOS)** configuration files as network topology diagrams using **Mermaid.js**. It parses text-based configuration files to extract interfaces, ports, IP addresses, QoS policies, VRRP settings, and routing information, then renders them interactively.
 
-**Current Version**: v1.7.0 (Physical Topology Visualization - Complete)
+**Current Version**: v1.8.0 (Physical Topology - Stable) | v2.0.0 (L2 VPN Service Topology - In Development)
 
 ## Role & Responsibilities
 
@@ -94,14 +94,33 @@ Your goal is to assist the user in **refactoring, optimizing, and adding advance
 
 ## Roadmap
 
-### v1.x - Physical Topology (Complete)
+### v1.x - Physical Topology ✅ Complete
 Focus on physical connection visualization
 
-### v2.x - MPLS L2 VPN Service Topology (Planned)
-- Epipe (Point-to-Point L2 VPN)
-- VPLS (Multipoint L2 VPN)
+### v2.x - MPLS L2 VPN Service Topology 🚧 In Development
+**Development Branch**: `v2-development`  
+**Target Release**: April 2026
+
+**Planned Features**:
+- Epipe (Point-to-Point L2 VPN) visualization
+- VPLS (Multipoint L2 VPN) visualization
 - Service ID based End-to-End path tracking
 - Multi-hop service path visualization
+- SAP (Service Access Point) information
+- SDP (Service Distribution Point) information
+
+**Development Phases**:
+1. Phase 1: L2 VPN Parser \u0026 Data Structures (2 weeks)
+2. Phase 2: Epipe Visualization (2 weeks)
+3. Phase 3: VPLS Visualization (2 weeks)
+4. Phase 4: Multi-hop Path Tracking (2 weeks)
+5. Phase 5: Integration \u0026 Optimization (1 week)
+
+**Reference Documents**:
+- [V2_PLANNING.md](./V2_PLANNING.md) - Development plan
+- [V2_TECHNICAL_SPEC.md](./V2_TECHNICAL_SPEC.md) - Technical specifications
+- [V2_UI_MOCKUP.md](./V2_UI_MOCKUP.md) - UI/UX design
+- [task.md](./task.md) - Development checklist
 
 ## Communication Style
 
@@ -117,6 +136,7 @@ Focus on physical connection visualization
 
 ## Version History
 
+- **v1.8.0** (2025-12-17) - VRRP-based HA detection
 - **v1.7.0** (2025-12-15) - VRRP VIP and Master display
 - **v1.6.0** (2025-12-15) - Interface list hierarchy
 - **v1.5.0** (2025-12-15) - Mermaid code viewer UX improvements

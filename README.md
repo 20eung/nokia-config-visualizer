@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v1.8.0** - Nokia 7750 SR 라우터 설정 파일을 분석하여 네트워크 토폴로지를 자동으로 시각화하는 웹 애플리케이션
+> 🚀 **v1.8.0** (Stable) | **v2.0.0** (In Development) - Nokia 7750 SR 라우터 설정 파일을 분석하여 네트워크 토폴로지를 자동으로 시각화하는 웹 애플리케이션
 
 ![Application Screenshot](./docs/screenshot.png)
 
@@ -168,14 +168,21 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 
 ## 🗺 로드맵
 
-### v1.x - 물리적 연결 토폴로지 (완료)
+### v1.x - 물리적 연결 토폴로지 ✅ 완료
 물리적 연결 구조 시각화
 
-### v2.x - MPLS L2 VPN 서비스 토폴로지 (계획)
-- Epipe (Point-to-Point L2 VPN)
-- VPLS (Multipoint L2 VPN)
-- Service ID 기반 End-to-End 경로 추적
-- Multi-hop 서비스 경로 시각화
+### v2.x - MPLS L2 VPN 서비스 토폴로지 🚧 개발 중
+- 🎯 Epipe (Point-to-Point L2 VPN)
+- 🎯 VPLS (Multipoint L2 VPN)
+- 🎯 Service ID 기반 End-to-End 경로 추적
+- 🎯 Multi-hop 서비스 경로 시각화
+- 🎯 SAP (Service Access Point) 정보
+- 🎯 SDP (Service Distribution Point) 정보
+
+**개발 브랜치**: `v2-development`  
+**예상 릴리즈**: 2026년 4월
+
+자세한 내용은 [V2_PLANNING.md](./V2_PLANNING.md)를 참조하세요.
 
 ## 📊 버전 히스토리
 
@@ -201,10 +208,17 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 
 ## 🔗 링크
 
+### 프로덕션
+- **Production (v1.x)**: https://nokia.hub.sk-net.com
+- **Internal (v1.x)**: https://nokia-int.hub.sk-net.com
+
+### 데모
+- **Demo (v1.x)**: https://demo.hub.sk-net.com (샘플 config 포함)
+
+### 개발
 - **GitHub Repository**: https://github.com/20eung/mermaid-web
 - **Latest Release**: https://github.com/20eung/mermaid-web/releases/latest
-- **Demo (Beta)**: https://beta.hub.sk-net.com (Beta 환경에서 데모 config 자동 로드)
-- **Production**: https://nokia.hub.sk-net.com
+- **v2 Development Branch**: https://github.com/20eung/mermaid-web/tree/v2-development
 
 ---
 
