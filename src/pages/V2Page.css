@@ -1,0 +1,99 @@
+.v2-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #f5f5f5;
+}
+
+.v2-header {
+    background: white;
+    border-bottom: 2px solid #e0e0e0;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.app-icon {
+    width: 36px;
+    height: 36px;
+}
+
+.logo h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.version-badge {
+    padding: 6px 12px;
+    background: #e3f2fd;
+    color: #1565c0;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.v2-main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.v2-sidebar {
+    width: 320px;
+    background: white;
+    border-right: 1px solid #e0e0e0;
+    overflow-y: auto;
+}
+
+.v2-content {
+    flex: 1;
+    overflow-y: auto;
+    background: #fafafa;
+}
+
+.diagrams-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 40px;
+    text-align: center;
+}
+
+.empty-state h3 {
+    margin: 0 0 12px 0;
+    font-size: 24px;
+    color: #333;
+}
+
+.empty-state p {
+    margin: 0 0 24px 0;
+    font-size: 16px;
+    color: #666;
+}
+
+.upload-hint {
+    margin-top: 20px;
+}
