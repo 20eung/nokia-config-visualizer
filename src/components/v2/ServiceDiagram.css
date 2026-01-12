@@ -1,0 +1,243 @@
+.service-diagram {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background: white;
+}
+
+.diagram-header {
+    padding: 20px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.diagram-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.service-type-badge {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.service-type-badge[data-type="epipe"] {
+    background: #e1f5ff;
+    color: #01579b;
+}
+
+.service-type-badge[data-type="vpls"] {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.diagram-title h3 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.diagram-description {
+    color: #666;
+    font-size: 14px;
+}
+
+.diagram-controls {
+    padding: 12px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.control-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.control-btn {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+}
+
+.control-btn:hover {
+    background: #f5f5f5;
+}
+
+.zoom-level {
+    font-size: 13px;
+    color: #666;
+    min-width: 50px;
+    text-align: center;
+}
+
+.diagram-container {
+    flex: 1;
+    padding: 20px;
+    overflow: auto;
+    min-height: 400px;
+}
+
+.diagram-content {
+    transition: transform 0.2s;
+}
+
+.diagram-code {
+    border-top: 1px solid #e0e0e0;
+    background: #f9f9f9;
+}
+
+.code-header {
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e0e0e0;
+    font-weight: 600;
+}
+
+.copy-btn {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.copy-btn:hover {
+    background: #f5f5f5;
+}
+
+.code-content {
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.service-details {
+    padding: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.service-details h4 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-label {
+    font-size: 12px;
+    color: #999;
+    font-weight: 500;
+}
+
+.detail-value {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.detail-value.state-up {
+    color: #4caf50;
+}
+
+.detail-value.state-down {
+    color: #f44336;
+}
+
+.sap-list,
+.sdp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.sap-item,
+.sdp-item {
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fafafa;
+}
+
+.sap-header,
+.sdp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.sap-id,
+.sdp-id {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.sap-state {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.sap-state.state-up {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.sap-state.state-down {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.sap-description,
+.sdp-description {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.sap-details {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: #999;
+}
+
+.error {
+    color: #f44336;
+    padding: 20px;
+    text-align: center;
+}
