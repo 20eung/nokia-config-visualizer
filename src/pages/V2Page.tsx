@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { parseL2VPNConfig } from '../utils/v2/l2vpnParser';
 import { generateServiceDiagram } from '../utils/v2/mermaidGeneratorV2';
 import type { ParsedL2VPNConfig } from '../types/v2';
@@ -10,6 +10,23 @@ import './V2Page.css';
 export function V2Page() {
     const [config, setConfig] = useState<ParsedL2VPNConfig | null>(null);
     const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
+
+    // Auto-load sample config in demo/beta environment
+    useEffect(() => {
+        const isDemoEnvironment = window.location.hostname.includes('demo') || window.location.hostname.includes('beta');
+
+        if (isDemoEnvironment && !config) {
+            fetch('/docs/v2/pe-router-1-l2vpn.cfg')
+                .then(r => r.text())
+                .then(text => {
+                    handleConfigLoaded([text]);
+                    console.log('✅ Demo/Beta environment: Auto-loaded pe-router-1-l2vpn.cfg');
+                })
+                .catch(error => {
+                    console.warn('⚠️ Demo/Beta environment: Could not auto-load sample config:', error);
+                });
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleConfigLoaded = (contents: string[]) => {
         try {
