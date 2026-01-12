@@ -8,10 +8,10 @@
 - [x] 기술 스펙 작성
 - [x] UI/UX 설계
 - [x] 샘플 Config 준비
-- [/] 개발 환경 설정
-- [ ] Phase 1: 파서 개발
-- [ ] Phase 2: Epipe 시각화
-- [ ] Phase 3: VPLS 시각화
+- [x] 개발 환경 설정
+- [x] Phase 1: 파서 개발
+- [x] Phase 2: Epipe/VPLS 시각화
+- [/] Phase 3: v1+v2 통합
 - [ ] Phase 4: Multi-hop 경로 추적
 - [ ] Phase 5: 통합 및 최적화
 
@@ -102,32 +102,34 @@
 
 ### 다이어그램 생성기
 
-- [ ] src/utils/v2/mermaidGeneratorV2.ts
-  - [ ] generateEpipeDiagram 함수
-  - [ ] SAP 노드 생성
-  - [ ] Epipe 서비스 노드 생성
-  - [ ] 연결선 생성
-  - [ ] 스타일 적용
+- [x] src/utils/v2/mermaidGeneratorV2.ts
+  - [x] generateEpipeDiagram 함수
+  - [x] SAP 노드 생성
+  - [x] Epipe 서비스 노드 생성
+  - [x] 연결선 생성
+  - [x] 스타일 적용
 
 ### UI 컴포넌트
 
-- [ ] src/components/v2/ServiceList.tsx
-  - [ ] 서비스 목록 표시
-  - [ ] 서비스 타입별 그룹화
-  - [ ] 검색 기능
-  - [ ] 필터링 기능
-  - [ ] 다중 선택
+- [x] src/components/v2/ServiceList.tsx
+  - [x] 서비스 목록 표시
+  - [x] 서비스 타입별 그룹화
+  - [x] 검색 기능
+  - [x] 필터링 기능
+  - [x] 다중 선택
 
-- [ ] src/components/v2/EpipeViewer.tsx
-  - [ ] Epipe 다이어그램 표시
-  - [ ] 서비스 상세 정보
-  - [ ] SAP 상세 정보
-  - [ ] 확대/축소 기능
-  - [ ] PNG/SVG 내보내기
+- [x] src/components/v2/ServiceDiagram.tsx (Epipe + VPLS)
+  - [x] Epipe 다이어그램 표시
+  - [x] VPLS 다이어그램 표시
+  - [x] 서비스 상세 정보
+  - [x] SAP 상세 정보
+  - [x] 확대/축소 기능
+  - [x] PNG/SVG 내보내기
 
 ### 테스트
 
-- [ ] Epipe 다이어그램 생성 테스트
+- [x] Epipe 다이어그램 생성 테스트 (빌드 성공)
+- [x] VPLS 다이어그램 생성 테스트 (빌드 성공)
 - [ ] UI 컴포넌트 렌더링 테스트
 - [ ] 사용자 인터랙션 테스트
 
