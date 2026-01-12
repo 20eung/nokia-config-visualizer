@@ -64,28 +64,28 @@
 
 ### 타입 정의
 
-- [ ] src/types/v2.ts 생성
-  - [ ] ServiceType 타입
-  - [ ] BaseService 인터페이스
-  - [ ] SAP 인터페이스
-  - [ ] SDP 인터페이스
-  - [ ] EpipeService 인터페이스
-  - [ ] VPLSService 인터페이스
-  - [ ] L2VPNService 타입
-  - [ ] ParsedL2VPNConfig 인터페이스
-  - [ ] ServiceConnection 인터페이스
+- [x] src/types/v2.ts 생성
+  - [x] ServiceType 타입
+  - [x] BaseService 인터페이스
+  - [x] SAP 인터페이스
+  - [x] SDP 인터페이스
+  - [x] EpipeService 인터페이스
+  - [x] VPLSService 인터페이스
+  - [x] L2VPNService 타입
+  - [x] ParsedL2VPNConfig 인터페이스
+  - [x] ServiceConnection 인터페이스
 
 ### 파서 개발
 
-- [ ] src/utils/v2/l2vpnParser.ts 생성
-  - [ ] extractSection 함수
-  - [ ] parseL2VPNServices 함수
-  - [ ] parseEpipe 함수
-  - [ ] parseVPLS 함수
-  - [ ] parseSAPs 함수
-  - [ ] parseSDPs 함수
-  - [ ] parseSpokeSDP 함수
-  - [ ] parseMeshSDP 함수
+- [x] src/utils/v2/l2vpnParser.ts 생성
+  - [x] extractSection 함수
+  - [x] parseL2VPNServices 함수
+  - [x] parseEpipe 함수
+  - [x] parseVPLS 함수
+  - [x] parseSAPs 함수
+  - [x] parseSDPs 함수
+  - [x] parseSpokeSDP 함수
+  - [x] parseMeshSDP 함수
 
 ### 테스트
 
