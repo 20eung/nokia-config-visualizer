@@ -32,7 +32,7 @@
 - **Hostname Parsing**: VPRN 내 호스트네임 파싱 로직 개선
 
 ### ⚠️ 변경사항 (Breaking Changes)
-- `/v2` 경로로 새로운 UI가 제공되며, 기존 `/` (Physical Topology)와 분리 운영됩니다.
+- **Root Path 변경**: `/` 경로가 **MPLS L2 VPN (V2)** UI로 변경되었습니다. (기존 Topology V1은 `/v1`으로 이동)
 
 ## [1.7.0] - 2025-12-15
 

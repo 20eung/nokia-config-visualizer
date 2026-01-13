@@ -7,11 +7,11 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* v1 - 기본 경로 */}
-        <Route path="/" element={<V1Page />} />
+        {/* v2 - 메인 경로 (New Default) */}
+        <Route path="/" element={<V2Page />} />
 
-        {/* v2 - 새로운 경로 */}
-        <Route path="/v2" element={<V2Page />} />
+        {/* v1 - 레거시 경로 */}
+        <Route path="/v1" element={<V1Page />} />
 
         {/* 404 처리 */}
         <Route path="*" element={<Navigate to="/" replace />} />

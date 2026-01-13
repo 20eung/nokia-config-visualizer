@@ -83,7 +83,7 @@ npm install
 npm run dev
 ```
 
-브라우저에서 `http://localhost:5173`으로 접속하여 확인합니다.
+브라우저에서 `http://localhost:5173`으로 접속하여 확인합니다. (기본 V2 UI)
 
 ### 프로덕션 빌드
 
