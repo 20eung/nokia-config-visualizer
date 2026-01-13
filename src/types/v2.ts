@@ -28,6 +28,7 @@ export interface BaseService {
     serviceType: ServiceType;
     customerId: number;
     description: string;
+    serviceName?: string;       // Service Name (e.g., "EPIPE_NAME")
     adminState: AdminState;
     operState?: OperState;
     serviceMtu?: number;
@@ -49,6 +50,7 @@ export interface SAP {
     portId: string;             // 예: "1/1/1" 또는 "lag-1"
     vlanId: number;             // 예: 100
     description: string;
+    portDescription?: string;   // Physical Port description
     adminState: AdminState;
 
     // QoS 정보
@@ -132,20 +134,52 @@ export interface VPLSService extends BaseService {
 }
 
 /**
+ * L3 Interface (for VPRN)
+ */
+export interface L3Interface {
+    interfaceName: string;
+    description: string;
+    ipAddress?: string;         // IP/Prefix
+    portId?: string;            // Physical Port or SAP
+    vrrpGroupId?: number;
+    vrrpBackupIp?: string;
+    vrrpPriority?: number;
+    adminState: AdminState;
+}
+
+/**
+ * VPRN Service (L3 VPN)
+ */
+export interface VPRNService extends BaseService {
+    serviceType: 'vprn';
+    autonomousSystem?: number;
+    routeDistinguisher?: string;
+    interfaces: L3Interface[];
+    bgpNeighbors: string[];     // Neighbor IPs
+    staticRoutes: string[];     // Prefix/NextHop summaries
+}
+
+/**
  * 통합 L2 VPN 서비스 타입
  */
-export type L2VPNService = EpipeService | VPLSService;
+/**
+ * 통합 서비스 타입 (L2 + L3)
+ */
+export type NokiaService = EpipeService | VPLSService | VPRNService;
+
+// Legacy alias for backward compatibility
+export type L2VPNService = NokiaService;
 
 /**
  * 서비스 연결 타입
  */
-export type ConnectionType = 'sap-sap' | 'sap-sdp' | 'sdp-sdp';
+export type ConnectionType = 'sap-sap' | 'sap-sdp' | 'sdp-sdp' | 'interface-interface';
 
 /**
  * 연결 엔드포인트
  */
 export interface ConnectionEndpoint {
-    type: 'sap' | 'sdp';
+    type: 'sap' | 'sdp' | 'interface';
     id: string;
     description: string;
 }
@@ -166,12 +200,12 @@ export interface ServiceConnection {
 }
 
 /**
- * 파싱된 L2 VPN 설정
+ * 파싱된 Nokia 설정 (L2 + L3)
  */
 export interface ParsedL2VPNConfig {
     hostname: string;
     systemIp: string;
-    services: L2VPNService[];
+    services: NokiaService[];
     sdps: SDP[];
 
     // 연결 관계 (계산된 값)

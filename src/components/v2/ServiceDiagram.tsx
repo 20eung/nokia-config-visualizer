@@ -11,7 +11,7 @@ interface ServiceDiagramProps {
     hostname: string;
 }
 
-export function ServiceDiagram({ service, diagram, hostname: _hostname }: ServiceDiagramProps) {
+export function ServiceDiagram({ service, diagram, hostname }: ServiceDiagramProps) {
     const diagramRef = useRef<HTMLDivElement>(null);
     const [showCode, setShowCode] = useState(false);
     const [zoom, setZoom] = useState(1);
@@ -24,7 +24,7 @@ export function ServiceDiagram({ service, diagram, hostname: _hostname }: Servic
                 theme: 'default',
                 securityLevel: 'loose',
                 flowchart: {
-                    useMaxWidth: true,
+                    useMaxWidth: false, // Let CSS control the width
                     htmlLabels: true,
                     curve: 'basis',
                 },
@@ -33,7 +33,11 @@ export function ServiceDiagram({ service, diagram, hostname: _hostname }: Servic
             // 다이어그램 렌더링
             const renderDiagram = async () => {
                 try {
-                    const id = `mermaid-${service.serviceId}-${Date.now()}`;
+                    // Use serviceId AND hostname AND random string to ensure uniqueness
+                    // Replace special chars in hostname for ID safety
+                    const safeHost = hostname.replace(/[^a-zA-Z0-9]/g, '_');
+                    const uniqueSuffix = Math.random().toString(36).substring(2, 9);
+                    const id = `mermaid-${service.serviceId}-${safeHost}-${uniqueSuffix}`;
                     const { svg } = await mermaid.render(id, diagram);
                     if (diagramRef.current) {
                         diagramRef.current.innerHTML = svg;
@@ -41,7 +45,11 @@ export function ServiceDiagram({ service, diagram, hostname: _hostname }: Servic
                 } catch (error) {
                     console.error('Mermaid rendering error:', error);
                     if (diagramRef.current) {
-                        diagramRef.current.innerHTML = '<p class="error">Failed to render diagram</p>';
+                        const errorMessage = error instanceof Error ? error.message : String(error);
+                        diagramRef.current.innerHTML = `<div class="error-container">
+                            <p class="error-title">Failed to render diagram</p>
+                            <pre class="error-message">${errorMessage}</pre>
+                        </div>`;
                     }
                 }
             };
@@ -168,88 +176,7 @@ export function ServiceDiagram({ service, diagram, hostname: _hostname }: Servic
                 </div>
             )}
 
-            {/* 서비스 상세 정보 */}
-            <div className="service-details">
-                <h4>Service Details</h4>
-                <div className="details-grid">
-                    <div className="detail-item">
-                        <span className="detail-label">Service ID:</span>
-                        <span className="detail-value">{service.serviceId}</span>
-                    </div>
-                    <div className="detail-item">
-                        <span className="detail-label">Type:</span>
-                        <span className="detail-value">{service.serviceType.toUpperCase()}</span>
-                    </div>
-                    <div className="detail-item">
-                        <span className="detail-label">Customer:</span>
-                        <span className="detail-value">{service.customerId}</span>
-                    </div>
-                    <div className="detail-item">
-                        <span className="detail-label">Admin State:</span>
-                        <span className={`detail-value state-${service.adminState}`}>
-                            {service.adminState.toUpperCase()}
-                        </span>
-                    </div>
-                    {service.serviceMtu && (
-                        <div className="detail-item">
-                            <span className="detail-label">Service MTU:</span>
-                            <span className="detail-value">{service.serviceMtu}</span>
-                        </div>
-                    )}
-                    {service.serviceType === 'vpls' && service.fdbSize && (
-                        <div className="detail-item">
-                            <span className="detail-label">FDB Size:</span>
-                            <span className="detail-value">{service.fdbSize}</span>
-                        </div>
-                    )}
-                </div>
 
-                {/* SAP 정보 */}
-                <h4>SAPs ({service.saps.length})</h4>
-                <div className="sap-list">
-                    {service.saps.map((sap, index) => (
-                        <div key={index} className="sap-item">
-                            <div className="sap-header">
-                                <span className="sap-id">📍 {sap.sapId}</span>
-                                <span className="sap-state state-{sap.adminState}">{sap.adminState}</span>
-                            </div>
-                            <div className="sap-description">{sap.description}</div>
-                            <div className="sap-details">
-                                <span>Port: {sap.portId}</span>
-                                <span>VLAN: {sap.vlanId}</span>
-                                {sap.ingressQos && <span>Ingress QoS: {sap.ingressQos.policyId}</span>}
-                                {sap.egressQos && <span>Egress QoS: {sap.egressQos.policyId}</span>}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* SDP 정보 */}
-                {((service.spokeSdps && service.spokeSdps.length > 0) ||
-                    (service.serviceType === 'vpls' && service.meshSdps && service.meshSdps.length > 0)) && (
-                        <>
-                            <h4>SDPs</h4>
-                            <div className="sdp-list">
-                                {service.spokeSdps?.map((sdp, index) => (
-                                    <div key={index} className="sdp-item">
-                                        <div className="sdp-header">
-                                            <span className="sdp-id">🔀 Spoke SDP {sdp.sdpId}:{sdp.vcId}</span>
-                                        </div>
-                                        <div className="sdp-description">{sdp.description}</div>
-                                    </div>
-                                ))}
-                                {service.serviceType === 'vpls' && service.meshSdps?.map((sdp, index) => (
-                                    <div key={index} className="sdp-item">
-                                        <div className="sdp-header">
-                                            <span className="sdp-id">🔀 Mesh SDP {sdp.sdpId}:{sdp.vcId}</span>
-                                        </div>
-                                        <div className="sdp-description">{sdp.description}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </>
-                    )}
-            </div>
         </div>
     );
 }

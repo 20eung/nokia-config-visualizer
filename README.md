@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v1.8.0** (Stable) | **v2.0.0** (In Development) - Nokia 7750 SR 라우터 설정 파일을 분석하여 네트워크 토폴로지를 자동으로 시각화하는 웹 애플리케이션
+> 🚀 **v2.0.0** (Latest) - Nokia 7750 SR / MPLS L2 VPN Service Visualizer
 
 ![Application Screenshot](./docs/screenshot.png)
 
@@ -171,13 +171,13 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 ### v1.x - 물리적 연결 토폴로지 ✅ 완료
 물리적 연결 구조 시각화
 
-### v2.x - MPLS L2 VPN 서비스 토폴로지 🚧 개발 중
-- 🎯 Epipe (Point-to-Point L2 VPN)
-- 🎯 VPLS (Multipoint L2 VPN)
-- 🎯 Service ID 기반 End-to-End 경로 추적
-- 🎯 Multi-hop 서비스 경로 시각화
-- 🎯 SAP (Service Access Point) 정보
-- 🎯 SDP (Service Distribution Point) 정보
+### v2.x - MPLS L2 VPN 서비스 토폴로지 ✅ 완료 (v2.0.0 released)
+- ✅ Epipe (Point-to-Point L2 VPN)
+- ✅ VPLS (Multipoint L2 VPN)
+- ✅ VPRN (L3 VPN Integration)
+- ✅ Service ID 기반 End-to-End 경로 추적
+- ✅ Multi-hop 서비스 경로 시각화
+- ✅ SAP (Service Access Point) / SDP 정보 시각화
 
 **개발 브랜치**: `v2-development`  
 **예상 릴리즈**: 2026년 4월

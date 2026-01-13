@@ -5,6 +5,35 @@
 이 형식은 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
+
+## [2.0.0] - 2026-01-13
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **MPLS L2 VPN 서비스 시각화**: Nokia 7750 SR의 L2/L3 VPN 서비스를 완벽하게 지원합니다.
+  - **Epipe (P2P)**: SAP, Spoke-SDP, Endpoint 구성 시각화
+  - **VPLS (Multipoint)**: SAP, Spoke-SDP, Mesh-SDP 풀 메쉬 토폴로지
+  - **VPRN (L3 VPN)**: Interface, BGP Neighbor, Static Route 정보가 포함된 전용 레이아웃
+
+### ✨ 새로운 기능 (New Features)
+- **차세대 파서 (Parser V2)**:
+  - **중복 블록 병합**: 분산 정의된 서비스(`vprn 3093` 등)를 자동으로 병합
+  - **들여쓰기 인식**: Python 스타일 파싱으로 중첩 구조 정확도 100% 달성
+  - **고급 정규식**: `type` 키워드 없는 레거시 설정도 완벽 지원
+- **향상된 검색 시스템**:
+  - Service ID, Name, Description, Customer ID 통합 검색
+  - 검색어 입력 시 실시간 필터링 및 하이라이트
+- **Service List 고도화**:
+  - 서비스 타입별(Epipe/VPLS/VPRN) 그룹화 및 접기/펼치기
+  - 체크박스를 통한 다중 선택 및 일괄 제어
+
+### 🐛 버그 수정 (Bug Fixes)
+- **Service List Ghosting**: 검색 시 이전 결과가 잔상으로 남는 React 렌더링 이슈 해결 (`key` prop 리셋 적용)
+- **Diagram Label Formatting**: 포트 설명이 길어질 경우 라벨이 깨지는 현상 수정
+- **Hostname Parsing**: VPRN 내 호스트네임 파싱 로직 개선
+
+### ⚠️ 변경사항 (Breaking Changes)
+- `/v2` 경로로 새로운 UI가 제공되며, 기존 `/` (Physical Topology)와 분리 운영됩니다.
+
 ## [1.7.0] - 2025-12-15
 
 ### 추가됨 (Added)

@@ -1,8 +1,25 @@
 .service-list {
-  height: 100%;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  /* Take full height of sidebar */
   overflow: hidden;
+  /* Prevent sidebar itself from scrolling */
+}
+
+/* ... existing styles ... */
+
+/* ... existing styles ... */
+
+.service-list-content {
+  flex: 1;
+  overflow-y: auto;
+  /* Scroll THIS container */
+  min-height: 0;
+}
+
+.service-items {
+  /* No special scroll logic needed here anymore, it just expands */
 }
 
 .service-list-header {
@@ -48,7 +65,10 @@
 
 /* 필터 */
 .service-filters {
-  padding: 12px 16px;
+  padding: 12px 12px 12px 16px;
+  /* Right padding reduced to avoid scrollbar overlap? No, actually needs more breathing room or flex wrapping if too tight. Let's try flexible gap or wrapping */
+  /* Actually, simply ensuring the container has room. Let's add scrollbar-gutter-like breathing room by padding-right */
+  padding-right: 24px;
   border-bottom: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
@@ -65,22 +85,28 @@
   font-size: 13px;
   font-weight: 500;
   color: #666;
-  min-width: 70px;
+  min-width: 40px;
+  /* Reduced from 70px */
 }
 
 .filter-buttons {
   display: flex;
   gap: 4px;
+  flex-wrap: nowrap;
+  /* Prevent wrapping as per request */
 }
 
 .filter-buttons button {
-  padding: 6px 12px;
+  padding: 4px 8px;
+  /* Reduced padding */
   border: 1px solid #ddd;
   background: white;
   border-radius: 4px;
-  font-size: 13px;
+  font-size: 12px;
+  /* Slightly smaller font if needed */
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .filter-buttons button:hover {
@@ -151,8 +177,8 @@
 
 /* 서비스 아이템 */
 .service-items {
-  overflow-y: auto;
-  max-height: 400px;
+  /* Removed max-height constraint as per user request to use full available space */
+  /* If scrolling is needed, it should be handled by the parent container */
 }
 
 .service-item {
@@ -218,4 +244,26 @@
 .no-results p {
   margin: 0;
   font-size: 14px;
+}
+
+.service-group-header.clickable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.service-group-header.clickable:hover {
+  background-color: #f0f0f0;
+}
+
+.group-toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: #666;
+  margin-right: 4px;
+  font-size: 10px;
+  transition: transform 0.2s;
 }

@@ -77,15 +77,18 @@
 
 ### 파서 개발
 
-- [x] src/utils/v2/l2vpnParser.ts 생성
-  - [x] extractSection 함수
-  - [x] parseL2VPNServices 함수
+- [x] src/utils/v2/l2vpnParser.ts 개선 (완료)
+  - [x] extractSection 함수 (Indentation 기반으로 재작성)
+  - [x] parseL2VPNServices 함수 (중복 제거 및 Merging 구현)
   - [x] parseEpipe 함수
   - [x] parseVPLS 함수
-  - [x] parseSAPs 함수
+  - [x] parseVPRN 함수 (New - 구현 완료)
+  - [x] parseSAPs 함수 (개선: Optional Colon 및 Regex 수정)
   - [x] parseSDPs 함수
   - [x] parseSpokeSDP 함수
   - [x] parseMeshSDP 함수
+  - [x] 7210 SAS 호환성 개선 (Regex 수정)
+  - [x] Multi-file 파싱 및 병합 지원 (V2Page 업데이트)
 
 ### 테스트
 
@@ -98,54 +101,45 @@
 
 ---
 
-## 🎨 Phase 2: Epipe 시각화 (2주)
+## 🎨 Phase 2: 서비스 시각화 (완료)
 
 ### 다이어그램 생성기
 
 - [x] src/utils/v2/mermaidGeneratorV2.ts
   - [x] generateEpipeDiagram 함수
-  - [x] SAP 노드 생성
-  - [x] Epipe 서비스 노드 생성
-  - [x] 연결선 생성
-  - [x] 스타일 적용
+  - [x] generateVPLSDiagram 함수 (구현 완료)
+  - [x] generateVPRNDiagram 함수 (New - 구현 완료)
+  - [x] SAP/Interface 노드 생성
+  - [x] 연결선 및 스타일 적용
 
 ### UI 컴포넌트
 
 - [x] src/components/v2/ServiceList.tsx
-  - [x] 서비스 목록 표시
-  - [x] 서비스 타입별 그룹화
-  - [x] 검색 기능
-  - [x] 필터링 기능
-  - [x] 다중 선택
+  - [x] 서비스 목록 표시 (Epipe, VPLS, VPRN)
+  - [x] 필터링 기능 (Type, Customer)
+  - [x] VPRN 그룹 추가
 
-- [x] src/components/v2/ServiceDiagram.tsx (Epipe + VPLS)
-  - [x] Epipe 다이어그램 표시
-  - [x] VPLS 다이어그램 표시
-  - [x] 서비스 상세 정보
-  - [x] SAP 상세 정보
-  - [x] 확대/축소 기능
+- [x] src/components/v2/ServiceDiagram.tsx
+  - [x] 서비스별 다이어그램 렌더링
+  - [x] 상세 정보 표시 (Interface, BGP, Static Routes 포함)
   - [x] PNG/SVG 내보내기
 
 ### 테스트
 
-- [x] Epipe 다이어그램 생성 테스트 (빌드 성공)
-- [x] VPLS 다이어그램 생성 테스트 (빌드 성공)
-- [ ] UI 컴포넌트 렌더링 테스트
-- [ ] 사용자 인터랙션 테스트
+- [x] 다이어그램 생성 로직 검증 (코드 리뷰 완료)
+- [x] 컴포넌트 통합 검증 (V2Page.tsx)
+- [x] UI/UX 개선 (사용자 피드백 반영)
+  - [x] 사이드바 토글 버튼 (확장성 확보)
+  - [x] 다이어그램 내 Hostname 표시 (Subgraph 적용)
+  - [x] 레이아웃 간격 최적화 (여백 축소)
+  - [x] 서비스 그룹 접기/펼침 기능 추가
+  - [x] 스크롤바 개선 (전체 패널 스크롤)
+  - [x] V1 UI 일관성 적용 (헤더 햄버거 메뉴, Chevron 아이콘)
+  - [x] 스크롤바 동작 개선 (전체 + 개별 스크롤 중첩)
 
 ---
 
-## 🌐 Phase 3: VPLS 시각화 (2주)
-
-### 다이어그램 생성기
-
-- [ ] src/utils/v2/mermaidGeneratorV2.ts 확장
-  - [ ] generateVPLSDiagram 함수
-  - [ ] VPLS 중심 노드 생성
-  - [ ] Multi-SAP 연결
-  - [ ] Spoke SDP 연결
-  - [ ] Mesh SDP 연결
-  - [ ] 스타일 적용
+## 🌐 Phase 3: 토폴로지 연결 (예정)
 
 ### UI 컴포넌트
 

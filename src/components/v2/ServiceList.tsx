@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { L2VPNService } from '../../types/v2';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import './ServiceList.css';
 
 interface ServiceListProps {
@@ -16,7 +17,7 @@ export function ServiceList({
     onSetSelected,
 }: ServiceListProps) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterType, setFilterType] = useState<'all' | 'epipe' | 'vpls'>('all');
+    const [filterType, setFilterType] = useState<'all' | 'epipe' | 'vpls' | 'vprn'>('all');
     const [filterCustomer, setFilterCustomer] = useState<number | 'all'>('all');
 
     // 고유한 Customer ID 목록
@@ -40,16 +41,18 @@ export function ServiceList({
             return (
                 service.serviceId.toString().includes(query) ||
                 service.description.toLowerCase().includes(query) ||
+                (service.serviceName && service.serviceName.toLowerCase().includes(query)) ||
                 service.customerId.toString().includes(query)
             );
         }
 
         return true;
-    });
+    }).sort((a, b) => a.serviceId - b.serviceId);
 
     // 타입별 그룹화
     const epipeServices = filteredServices.filter(s => s.serviceType === 'epipe');
     const vplsServices = filteredServices.filter(s => s.serviceType === 'vpls');
+    const vprnServices = filteredServices.filter(s => s.serviceType === 'vprn');
 
     const handleSelectAll = () => {
         onSetSelected(filteredServices.map(s => s.serviceId));
@@ -57,6 +60,20 @@ export function ServiceList({
 
     const handleSelectNone = () => {
         onSetSelected([]);
+    };
+
+    // 그룹 접기/펼침 상태 (기본값: 모두 펼침)
+    const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({
+        epipe: true,
+        vpls: true,
+        vprn: true,
+    });
+
+    const toggleGroup = (group: string) => {
+        setExpandedGroups(prev => ({
+            ...prev,
+            [group]: !prev[group]
+        }));
     };
 
     return (
@@ -102,22 +119,31 @@ export function ServiceList({
                         >
                             VPLS
                         </button>
+                        <button
+                            className={filterType === 'vprn' ? 'active' : ''}
+                            onClick={() => setFilterType('vprn')}
+                        >
+                            VPRN
+                        </button>
                     </div>
                 </div>
 
-                <div className="filter-group">
-                    <label>Customer:</label>
-                    <select
-                        value={filterCustomer}
-                        onChange={(e) => setFilterCustomer(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-                        className="filter-select"
-                    >
-                        <option value="all">All</option>
-                        {customerIds.map(id => (
-                            <option key={id} value={id}>Customer {id}</option>
-                        ))}
-                    </select>
-                </div>
+                {/* Customer 필터: 사용자가 2명 이상일 때만 표시 */}
+                {customerIds.length > 1 && (
+                    <div className="filter-group">
+                        <label>Customer:</label>
+                        <select
+                            value={filterCustomer}
+                            onChange={(e) => setFilterCustomer(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                            className="filter-select"
+                        >
+                            <option value="all">All</option>
+                            {customerIds.map(id => (
+                                <option key={id} value={id}>Customer {id}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
             </div>
 
             {/* 선택 버튼 */}
@@ -130,97 +156,177 @@ export function ServiceList({
                 </button>
             </div>
 
-            {/* Epipe 서비스 */}
-            {epipeServices.length > 0 && (
-                <div className="service-group">
-                    <div className="service-group-header">
-                        <span className="service-icon">🔗</span>
-                        <h3>Epipe Services ({epipeServices.length})</h3>
-                    </div>
-                    <div className="service-items">
-                        {epipeServices.map(service => (
-                            <div
-                                key={service.serviceId}
-                                className={`service-item ${selectedServiceIds.includes(service.serviceId) ? 'selected' : ''}`}
-                                onClick={() => onToggleService(service.serviceId)}
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={selectedServiceIds.includes(service.serviceId)}
-                                    onChange={() => { }}
-                                    className="service-checkbox"
-                                />
-                                <div className="service-info">
-                                    <div className="service-title">
-                                        Epipe {service.serviceId}
-                                    </div>
-                                    <div className="service-description">
-                                        {service.description}
-                                    </div>
-                                    <div className="service-meta">
-                                        <span className="meta-item">Customer {service.customerId}</span>
-                                        <span className="meta-item">{service.saps.length} SAPs</span>
-                                        {service.spokeSdps && service.spokeSdps.length > 0 && (
-                                            <span className="meta-item">{service.spokeSdps.length} SDPs</span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
 
-            {/* VPLS 서비스 */}
-            {vplsServices.length > 0 && (
-                <div className="service-group">
-                    <div className="service-group-header">
-                        <span className="service-icon">🌐</span>
-                        <h3>VPLS Services ({vplsServices.length})</h3>
-                    </div>
-                    <div className="service-items">
-                        {vplsServices.map(service => (
-                            <div
-                                key={service.serviceId}
-                                className={`service-item ${selectedServiceIds.includes(service.serviceId) ? 'selected' : ''}`}
-                                onClick={() => onToggleService(service.serviceId)}
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={selectedServiceIds.includes(service.serviceId)}
-                                    onChange={() => { }}
-                                    className="service-checkbox"
-                                />
-                                <div className="service-info">
-                                    <div className="service-title">
-                                        VPLS {service.serviceId}
-                                    </div>
-                                    <div className="service-description">
-                                        {service.description}
-                                    </div>
-                                    <div className="service-meta">
-                                        <span className="meta-item">Customer {service.customerId}</span>
-                                        <span className="meta-item">{service.saps.length} SAPs</span>
-                                        {service.spokeSdps && service.spokeSdps.length > 0 && (
-                                            <span className="meta-item">{service.spokeSdps.length} Spoke SDPs</span>
-                                        )}
-                                        {service.meshSdps && service.meshSdps.length > 0 && (
-                                            <span className="meta-item">{service.meshSdps.length} Mesh SDPs</span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+            {/* Services Content (Scrollable) - Force Remount on Search Change */}
+            <div className="service-list-content" key={searchQuery}>
+                {/* Epipe 서비스 */}
+                {epipeServices.length > 0 && (
+                    <div className="service-group">
+                        <div
+                            className="service-group-header clickable"
+                            onClick={() => toggleGroup('epipe')}
+                        >
+                            <span className="group-toggle-icon">
+                                {expandedGroups['epipe'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            </span>
+                            <span className="service-icon">🔗</span>
+                            <h3>Epipe Services ({epipeServices.length})</h3>
+                        </div>
+                        {expandedGroups['epipe'] && (
+                            <div className="service-items">
+                                {epipeServices.map((service, idx) => {
+                                    // Debug: Determine match reason
+                                    const query = searchQuery.toLowerCase();
+                                    const matchReasons = [];
+                                    if (searchQuery) {
+                                        if (service.serviceId.toString().includes(query)) matchReasons.push('ID');
+                                        if (service.description.toLowerCase().includes(query)) matchReasons.push('Desc');
+                                        if (service.serviceName && service.serviceName.toLowerCase().includes(query)) matchReasons.push('Name');
+                                        if (service.customerId.toString().includes(query)) matchReasons.push('Cust');
+                                    }
 
-            {/* 결과 없음 */}
-            {filteredServices.length === 0 && (
-                <div className="no-results">
-                    <p>No services found</p>
-                </div>
-            )}
+                                    return (
+                                        <div
+                                            key={service.serviceId}
+                                            className={`service-item ${selectedServiceIds.includes(service.serviceId) ? 'selected' : ''}`}
+                                            onClick={() => onToggleService(service.serviceId)}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedServiceIds.includes(service.serviceId)}
+                                                onChange={() => { }}
+                                                className="service-checkbox"
+                                            />
+                                            <div className="service-info">
+                                                <div className="service-title">
+                                                    Epipe {service.serviceId}
+                                                </div>
+                                                <div className="service-description">
+                                                    {service.description}
+                                                </div>
+                                                <div className="service-meta">
+                                                    <span className="meta-item">Customer {service.customerId}</span>
+                                                    {/* @ts-ignore */}
+                                                    <span className="meta-item">{service.saps.length} SAPs</span>
+                                                    {'spokeSdps' in service && service.spokeSdps && service.spokeSdps.length > 0 && (
+                                                        <span className="meta-item">{service.spokeSdps.length} SDPs</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* VPLS 서비스 */}
+                {vplsServices.length > 0 && (
+                    <div className="service-group">
+                        <div
+                            className="service-group-header clickable"
+                            onClick={() => toggleGroup('vpls')}
+                        >
+                            <span className="group-toggle-icon">
+                                {expandedGroups['vpls'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            </span>
+                            <span className="service-icon">🌐</span>
+                            <h3>VPLS Services ({vplsServices.length})</h3>
+                        </div>
+                        {expandedGroups['vpls'] && (
+                            <div className="service-items">
+                                {vplsServices.map(service => (
+                                    <div
+                                        key={service.serviceId}
+                                        className={`service-item ${selectedServiceIds.includes(service.serviceId) ? 'selected' : ''}`}
+                                        onClick={() => onToggleService(service.serviceId)}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedServiceIds.includes(service.serviceId)}
+                                            onChange={() => { }}
+                                            className="service-checkbox"
+                                        />
+                                        <div className="service-info">
+                                            <div className="service-title">
+                                                VPLS {service.serviceId}
+                                            </div>
+                                            <div className="service-description">
+                                                {service.description}
+                                            </div>
+                                            <div className="service-meta">
+                                                <span className="meta-item">Customer {service.customerId}</span>
+                                                {/* @ts-ignore */}
+                                                <span className="meta-item">{service.saps.length} SAPs</span>
+                                                {'spokeSdps' in service && service.spokeSdps && service.spokeSdps.length > 0 && (
+                                                    <span className="meta-item">{service.spokeSdps.length} Spoke SDPs</span>
+                                                )}
+                                                {'meshSdps' in service && service.meshSdps && service.meshSdps.length > 0 && (
+                                                    <span className="meta-item">{service.meshSdps.length} Mesh SDPs</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* VPRN 서비스 */}
+                {vprnServices.length > 0 && (
+                    <div className="service-group">
+                        <div
+                            className="service-group-header clickable"
+                            onClick={() => toggleGroup('vprn')}
+                        >
+                            <span className="group-toggle-icon">
+                                {expandedGroups['vprn'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            </span>
+                            <span className="service-icon">📡</span>
+                            <h3>VPRN Services ({vprnServices.length})</h3>
+                        </div>
+                        {expandedGroups['vprn'] && (
+                            <div className="service-items">
+                                {vprnServices.map(service => (
+                                    <div
+                                        key={service.serviceId}
+                                        className={`service-item ${selectedServiceIds.includes(service.serviceId) ? 'selected' : ''}`}
+                                        onClick={() => onToggleService(service.serviceId)}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedServiceIds.includes(service.serviceId)}
+                                            onChange={() => { }}
+                                            className="service-checkbox"
+                                        />
+                                        <div className="service-info">
+                                            <div className="service-title">
+                                                VPRN {service.serviceId}
+                                            </div>
+                                            <div className="service-description">
+                                                {service.description}
+                                            </div>
+                                            <div className="service-meta">
+                                                <span className="meta-item">Customer {service.customerId}</span>
+                                                {/* @ts-ignore */}
+                                                <span className="meta-item">{service.interfaces.length} IFs</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {filteredServices.length === 0 && (
+                    <div className="no-results">
+                        <p>No services found showing</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

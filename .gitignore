@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Local config directory
+config/
+
 # Sensitive config files
 docs/202*
 docs/*.zip
