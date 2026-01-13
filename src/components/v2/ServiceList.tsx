@@ -174,7 +174,7 @@ export function ServiceList({
                         </div>
                         {expandedGroups['epipe'] && (
                             <div className="service-items">
-                                {epipeServices.map((service, idx) => {
+                                {epipeServices.map(service => {
                                     // Debug: Determine match reason
                                     const query = searchQuery.toLowerCase();
                                     const matchReasons = [];

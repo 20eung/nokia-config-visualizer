@@ -544,7 +544,7 @@ export function parseL2VPNServices(configText: string): NokiaService[] {
  */
 export function extractPortDescriptions(configText: string): Map<string, string> {
     const portMap = new Map<string, string>();
-    const portSection = extractSection(configText, 'port'); // This might not work if 'port' are top level commands, let's try regex global scan
+    // const portSection = extractSection(configText, 'port'); // Not used, removed to fix build error
 
     // Config often has top-level "port 1/1/1"
     // or inside a card/mda context? No, usually top level or just "port X".

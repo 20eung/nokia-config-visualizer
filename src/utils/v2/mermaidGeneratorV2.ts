@@ -194,7 +194,7 @@ export function generateVPLSDiagram(
     lines.push(`${vplsNodeId}["${vplsLabel}"]`);
 
     // SAPs attached to VPLS node
-    vpls.saps.forEach((sap, idx) => {
+    vpls.saps.forEach((sap) => {
         const sapId = `SAP_${safeHost}_${sanitizeNodeId(sap.sapId)}`;
         let sapLabel = `<div style="text-align: left">`;
         sapLabel += `<b>SAP:</b> ${sap.sapId}${fmtDesc(sap.description)}<br/>`;
