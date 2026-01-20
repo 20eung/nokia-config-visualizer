@@ -54,8 +54,8 @@ const fmtDesc = (desc?: string): string => {
 export function generateEpipeDiagram(
     epipes: EpipeService | EpipeService[],
     hostname: string | string[],
-    sdps: SDP[] = [],
-    remoteDeviceMap?: Map<string, string>
+    _sdps: SDP[] = [],
+    _remoteDeviceMap?: Map<string, string>
 ): string {
     // 배열로 정규화
     const epipeArray = Array.isArray(epipes) ? epipes : [epipes];
@@ -176,8 +176,8 @@ export function generateEpipeDiagram(
 export function generateVPLSDiagram(
     vpls: VPLSService | VPLSService[],
     hostname: string | string[],
-    sdps: SDP[] = [],
-    remoteDeviceMap?: Map<string, string>
+    _sdps: SDP[] = [],
+    _remoteDeviceMap?: Map<string, string>
 ): string {
     // 배열로 정규화
     const vplsArray = Array.isArray(vpls) ? vpls : [vpls];

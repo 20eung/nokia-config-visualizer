@@ -193,12 +193,12 @@ export function ServiceList({
                                     return (
                                         <div
                                             key={representative.serviceId}
-                                            className={`service-item ${selectedServiceIds.includes(representative.serviceId) ? 'selected' : ''}`}
-                                            onClick={() => onToggleService(representative.serviceId)}
+                                            className={`service-item ${selectedServiceIds.includes(`${representative.serviceType}-${representative.serviceId}`) ? 'selected' : ''}`}
+                                            onClick={() => onToggleService(`${representative.serviceType}-${representative.serviceId}`)}
                                         >
                                             <input
                                                 type="checkbox"
-                                                checked={selectedServiceIds.includes(representative.serviceId)}
+                                                checked={selectedServiceIds.includes(`${representative.serviceType}-${representative.serviceId}`)}
                                                 onChange={() => { }}
                                                 className="service-checkbox"
                                             />
@@ -270,12 +270,12 @@ export function ServiceList({
                                     return (
                                         <div
                                             key={representative.serviceId}
-                                            className={`service-item ${selectedServiceIds.includes(representative.serviceId) ? 'selected' : ''}`}
-                                            onClick={() => onToggleService(representative.serviceId)}
+                                            className={`service-item ${selectedServiceIds.includes(`${representative.serviceType}-${representative.serviceId}`) ? 'selected' : ''}`}
+                                            onClick={() => onToggleService(`${representative.serviceType}-${representative.serviceId}`)}
                                         >
                                             <input
                                                 type="checkbox"
-                                                checked={selectedServiceIds.includes(representative.serviceId)}
+                                                checked={selectedServiceIds.includes(`${representative.serviceType}-${representative.serviceId}`)}
                                                 onChange={() => { }}
                                                 className="service-checkbox"
                                             />
@@ -337,12 +337,12 @@ export function ServiceList({
                                     return (
                                         <div
                                             key={representative.serviceId}
-                                            className={`service-item ${selectedServiceIds.includes(representative.serviceId) ? 'selected' : ''}`}
-                                            onClick={() => onToggleService(representative.serviceId)}
+                                            className={`service-item ${selectedServiceIds.includes(`${representative.serviceType}-${representative.serviceId}`) ? 'selected' : ''}`}
+                                            onClick={() => onToggleService(`${representative.serviceType}-${representative.serviceId}`)}
                                         >
                                             <input
                                                 type="checkbox"
-                                                checked={selectedServiceIds.includes(representative.serviceId)}
+                                                checked={selectedServiceIds.includes(`${representative.serviceType}-${representative.serviceId}`)}
                                                 onChange={() => { }}
                                                 className="service-checkbox"
                                             />
