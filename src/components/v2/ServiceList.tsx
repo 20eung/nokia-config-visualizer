@@ -1,17 +1,19 @@
 import { useState } from 'react';
-import type { L2VPNService } from '../../types/v2';
+import type { L2VPNService, ParsedL2VPNConfig } from '../../types/v2';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import './ServiceList.css';
 
 interface ServiceListProps {
     services: L2VPNService[];
-    selectedServiceIds: number[];
-    onToggleService: (serviceId: number) => void;
-    onSetSelected: (serviceIds: number[]) => void;
+    configs: ParsedL2VPNConfig[];
+    selectedServiceIds: string[];
+    onToggleService: (serviceKey: string) => void;
+    onSetSelected: (serviceKeys: string[]) => void;
 }
 
 export function ServiceList({
     services,
+    configs,
     selectedServiceIds,
     onToggleService,
     onSetSelected,
@@ -49,13 +51,23 @@ export function ServiceList({
         return true;
     }).sort((a, b) => a.serviceId - b.serviceId);
 
-    // 타입별 그룹화
-    const epipeServices = filteredServices.filter(s => s.serviceType === 'epipe');
-    const vplsServices = filteredServices.filter(s => s.serviceType === 'vpls');
-    const vprnServices = filteredServices.filter(s => s.serviceType === 'vprn');
+    // 서비스를 serviceId와 serviceType별로 그룹화
+    const groupedServices = filteredServices.reduce((acc, service) => {
+        const key = `${service.serviceType}-${service.serviceId}`;
+        if (!acc[key]) {
+            acc[key] = [];
+        }
+        acc[key].push(service);
+        return acc;
+    }, {} as Record<string, L2VPNService[]>);
+
+    // 타입별 그룹화 (그룹화된 서비스 기준)
+    const epipeServices = Object.values(groupedServices).filter(group => group[0].serviceType === 'epipe');
+    const vplsServices = Object.values(groupedServices).filter(group => group[0].serviceType === 'vpls');
+    const vprnServices = Object.values(groupedServices).filter(group => group[0].serviceType === 'vprn');
 
     const handleSelectAll = () => {
-        onSetSelected(filteredServices.map(s => s.serviceId));
+        onSetSelected(filteredServices.map(s => `${s.serviceType}-${s.serviceId}`));
     };
 
     const handleSelectNone = () => {
@@ -174,44 +186,60 @@ export function ServiceList({
                         </div>
                         {expandedGroups['epipe'] && (
                             <div className="service-items">
-                                {epipeServices.map(service => {
-                                    // Debug: Determine match reason
-                                    const query = searchQuery.toLowerCase();
-                                    const matchReasons = [];
-                                    if (searchQuery) {
-                                        if (service.serviceId.toString().includes(query)) matchReasons.push('ID');
-                                        if (service.description.toLowerCase().includes(query)) matchReasons.push('Desc');
-                                        if (service.serviceName && service.serviceName.toLowerCase().includes(query)) matchReasons.push('Name');
-                                        if (service.customerId.toString().includes(query)) matchReasons.push('Cust');
-                                    }
+                                {epipeServices.map(serviceGroup => {
+                                    // 대표 서비스 (첫 번째)
+                                    const representative = serviceGroup[0];
 
                                     return (
                                         <div
-                                            key={service.serviceId}
-                                            className={`service-item ${selectedServiceIds.includes(service.serviceId) ? 'selected' : ''}`}
-                                            onClick={() => onToggleService(service.serviceId)}
+                                            key={representative.serviceId}
+                                            className={`service-item ${selectedServiceIds.includes(representative.serviceId) ? 'selected' : ''}`}
+                                            onClick={() => onToggleService(representative.serviceId)}
                                         >
                                             <input
                                                 type="checkbox"
-                                                checked={selectedServiceIds.includes(service.serviceId)}
+                                                checked={selectedServiceIds.includes(representative.serviceId)}
                                                 onChange={() => { }}
                                                 className="service-checkbox"
                                             />
                                             <div className="service-info">
                                                 <div className="service-title">
-                                                    Epipe {service.serviceId}
+                                                    Epipe {representative.serviceId}
                                                 </div>
                                                 <div className="service-description">
-                                                    {service.description}
+                                                    {representative.description}
                                                 </div>
-                                                <div className="service-meta">
-                                                    <span className="meta-item">Customer {service.customerId}</span>
-                                                    {/* @ts-ignore */}
-                                                    <span className="meta-item">{service.saps.length} SAPs</span>
-                                                    {'spokeSdps' in service && service.spokeSdps && service.spokeSdps.length > 0 && (
-                                                        <span className="meta-item">{service.spokeSdps.length} SDPs</span>
-                                                    )}
-                                                </div>
+                                                {serviceGroup.map((service, idx) => {
+                                                    // 해당 서비스가 속한 Config 찾기
+                                                    const parentConfig = configs.find(c => c.services.includes(service));
+                                                    const hostname = parentConfig?.hostname || 'Unknown';
+
+                                                    // SAP IDs 추출
+                                                    const sapIds = 'saps' in service
+                                                        ? service.saps.map(sap => sap.sapId).join(', ')
+                                                        : '';
+
+                                                    // SDP IDs 추출
+                                                    const sdpIds = 'spokeSdps' in service && service.spokeSdps
+                                                        ? service.spokeSdps.map(sdp => `${sdp.sdpId}:${sdp.vcId}`).join(', ')
+                                                        : '';
+
+                                                    return (
+                                                        <div key={idx}>
+                                                            <div className="service-meta">
+                                                                <span className="meta-item" style={{ fontWeight: 'bold', color: '#0066cc' }}>{hostname}</span>
+                                                            </div>
+                                                            <div className="service-meta">
+                                                                {sapIds && (
+                                                                    <span className="meta-item">SAP: {sapIds}</span>
+                                                                )}
+                                                                {sdpIds && (
+                                                                    <span className="meta-item">SDP: {sdpIds}</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     );
@@ -236,39 +264,53 @@ export function ServiceList({
                         </div>
                         {expandedGroups['vpls'] && (
                             <div className="service-items">
-                                {vplsServices.map(service => (
-                                    <div
-                                        key={service.serviceId}
-                                        className={`service-item ${selectedServiceIds.includes(service.serviceId) ? 'selected' : ''}`}
-                                        onClick={() => onToggleService(service.serviceId)}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedServiceIds.includes(service.serviceId)}
-                                            onChange={() => { }}
-                                            className="service-checkbox"
-                                        />
-                                        <div className="service-info">
-                                            <div className="service-title">
-                                                VPLS {service.serviceId}
-                                            </div>
-                                            <div className="service-description">
-                                                {service.description}
-                                            </div>
-                                            <div className="service-meta">
-                                                <span className="meta-item">Customer {service.customerId}</span>
-                                                {/* @ts-ignore */}
-                                                <span className="meta-item">{service.saps.length} SAPs</span>
-                                                {'spokeSdps' in service && service.spokeSdps && service.spokeSdps.length > 0 && (
-                                                    <span className="meta-item">{service.spokeSdps.length} Spoke SDPs</span>
-                                                )}
-                                                {'meshSdps' in service && service.meshSdps && service.meshSdps.length > 0 && (
-                                                    <span className="meta-item">{service.meshSdps.length} Mesh SDPs</span>
-                                                )}
+                                {vplsServices.map(serviceGroup => {
+                                    const representative = serviceGroup[0];
+
+                                    return (
+                                        <div
+                                            key={representative.serviceId}
+                                            className={`service-item ${selectedServiceIds.includes(representative.serviceId) ? 'selected' : ''}`}
+                                            onClick={() => onToggleService(representative.serviceId)}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedServiceIds.includes(representative.serviceId)}
+                                                onChange={() => { }}
+                                                className="service-checkbox"
+                                            />
+                                            <div className="service-info">
+                                                <div className="service-title">
+                                                    VPLS {representative.serviceId}
+                                                </div>
+                                                <div className="service-description">
+                                                    {representative.description}
+                                                </div>
+                                                {serviceGroup.map((service, idx) => {
+                                                    const parentConfig = configs.find(c => c.services.includes(service));
+                                                    const hostname = parentConfig?.hostname || 'Unknown';
+
+                                                    const sapIds = 'saps' in service ? service.saps.map(sap => sap.sapId).join(', ') : '';
+                                                    const spokeSdpIds = 'spokeSdps' in service && service.spokeSdps ? service.spokeSdps.map(sdp => `${sdp.sdpId}:${sdp.vcId}`).join(', ') : '';
+                                                    const meshSdpIds = 'meshSdps' in service && service.meshSdps ? service.meshSdps.map(sdp => `${sdp.sdpId}`).join(', ') : '';
+
+                                                    return (
+                                                        <div key={idx}>
+                                                            <div className="service-meta">
+                                                                <span className="meta-item" style={{ fontWeight: 'bold', color: '#0066cc' }}>{hostname}</span>
+                                                            </div>
+                                                            <div className="service-meta">
+                                                                {sapIds && <span className="meta-item">SAP: {sapIds}</span>}
+                                                                {spokeSdpIds && <span className="meta-item">Spoke SDP: {spokeSdpIds}</span>}
+                                                                {meshSdpIds && <span className="meta-item">Mesh SDP: {meshSdpIds}</span>}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
@@ -289,33 +331,49 @@ export function ServiceList({
                         </div>
                         {expandedGroups['vprn'] && (
                             <div className="service-items">
-                                {vprnServices.map(service => (
-                                    <div
-                                        key={service.serviceId}
-                                        className={`service-item ${selectedServiceIds.includes(service.serviceId) ? 'selected' : ''}`}
-                                        onClick={() => onToggleService(service.serviceId)}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedServiceIds.includes(service.serviceId)}
-                                            onChange={() => { }}
-                                            className="service-checkbox"
-                                        />
-                                        <div className="service-info">
-                                            <div className="service-title">
-                                                VPRN {service.serviceId}
-                                            </div>
-                                            <div className="service-description">
-                                                {service.description}
-                                            </div>
-                                            <div className="service-meta">
-                                                <span className="meta-item">Customer {service.customerId}</span>
-                                                {/* @ts-ignore */}
-                                                <span className="meta-item">{service.interfaces.length} IFs</span>
+                                {vprnServices.map(serviceGroup => {
+                                    const representative = serviceGroup[0];
+
+                                    return (
+                                        <div
+                                            key={representative.serviceId}
+                                            className={`service-item ${selectedServiceIds.includes(representative.serviceId) ? 'selected' : ''}`}
+                                            onClick={() => onToggleService(representative.serviceId)}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedServiceIds.includes(representative.serviceId)}
+                                                onChange={() => { }}
+                                                className="service-checkbox"
+                                            />
+                                            <div className="service-info">
+                                                <div className="service-title">
+                                                    VPRN {representative.serviceId}
+                                                </div>
+                                                <div className="service-description">
+                                                    {representative.description}
+                                                </div>
+                                                {serviceGroup.map((service, idx) => {
+                                                    const parentConfig = configs.find(c => c.services.includes(service));
+                                                    const hostname = parentConfig?.hostname || 'Unknown';
+
+                                                    const ifNames = 'interfaces' in service ? service.interfaces.map(intf => intf.interfaceName).join(', ') : '';
+
+                                                    return (
+                                                        <div key={idx}>
+                                                            <div className="service-meta">
+                                                                <span className="meta-item" style={{ fontWeight: 'bold', color: '#0066cc' }}>{hostname}</span>
+                                                            </div>
+                                                            <div className="service-meta">
+                                                                {ifNames && <span className="meta-item">IF: {ifNames}</span>}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

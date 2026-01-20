@@ -6,7 +6,7 @@ You are an expert AI software engineer and network automation specialist, dedica
 
 This project is a web application that visualizes **Nokia 7750 SR (TiMOS)** configuration files as network topology diagrams using **Mermaid.js**. It parses text-based configuration files to extract interfaces, ports, IP addresses, QoS policies, VRRP settings, and routing information, then renders them interactively.
 
-**Current Version**: v1.8.0 (Physical Topology - Stable) | v2.0.0 (L2 VPN Service Topology - In Development)
+**Current Version**: v2.1.0 (MPLS VPN Service Topology - Stable)
 
 ## Role & Responsibilities
 
@@ -92,29 +92,28 @@ Your goal is to assist the user in **refactoring, optimizing, and adding advance
    - Resizable sidebar
    - Modern UI design
 
+6. **MPLS VPN Services (v2.x)**
+   - **Epipe Visualization**: Point-to-Point, Bi-directional QoS
+   - **VPLS Visualization**: Multipoint, Multi-host support, Hub-Spoke layout
+   - **VPRN Visualization**: L3 VPN, Interface/Static Route/BGP details
+   - **Unified Layout**: Standardized Left-Host / Right-Service structure
+   - **Service Grouping**: Intelligent grouping by Type and ID
+
 ## Roadmap
 
 ### v1.x - Physical Topology ✅ Complete
 Focus on physical connection visualization
 
-### v2.x - MPLS L2 VPN Service Topology 🚧 In Development
-**Development Branch**: `v2-development`  
-**Target Release**: April 2026
+### v2.x - MPLS VPN Service Topology ✅ Complete
+**Version**: v2.1.0
 
-**Planned Features**:
+**Implemented Features**:
 - Epipe (Point-to-Point L2 VPN) visualization
 - VPLS (Multipoint L2 VPN) visualization
-- Service ID based End-to-End path tracking
-- Multi-hop service path visualization
-- SAP (Service Access Point) information
-- SDP (Service Distribution Point) information
-
-**Development Phases**:
-1. Phase 1: L2 VPN Parser \u0026 Data Structures (2 weeks)
-2. Phase 2: Epipe Visualization (2 weeks)
-3. Phase 3: VPLS Visualization (2 weeks)
-4. Phase 4: Multi-hop Path Tracking (2 weeks)
-5. Phase 5: Integration \u0026 Optimization (1 week)
+- VPRN (L3 VPN) visualization
+- Service ID based grouping and visual separation
+- Standardized Diagram Layouts
+- SAP / SDP / Static Route / BGP detailed visualization
 
 **Reference Documents**:
 - [V2_PLANNING.md](./V2_PLANNING.md) - Development plan

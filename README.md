@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v2.0.0** (Latest) - Nokia 7750 SR / MPLS L2 VPN Service Visualizer
+> 🚀 **v2.1.0** (Latest) - Nokia 7750 SR / MPLS VPN Service Visualizer
 
 ![Application Screenshot](./docs/screenshot.png)
 
@@ -31,7 +31,17 @@
 - **QoS 정보** 링크 라벨에 표시
 - **확대/축소** 및 **PNG/SVG 다운로드** 지원
 - **Mermaid 코드 보기** 및 복사 기능
+- **Mermaid 코드 보기** 및 복사 기능
 
+### 🌐 VPN 서비스 시각화 (v2.x)
+- **Epipe (P2P)**: 양방향 QoS 정보, Source/Target 통합 다이어그램
+- **VPLS (Multipoint)**: 멀티 장비 통합, Hub-and-Spoke 구조 시각화
+- **VPRN (L3 VPN)**:
+  - 인터페이스 및 Static Route 상세 정보
+  - BGP Neighbor 및 Peering 정보
+  - VRF, RD, AS 정보 표시
+- **서비스 그룹화**: Service ID 및 Type 기반 자동 그룹화
+- **통합 레이아웃**: Host(Left) - Service(Right) 표준화된 구조
 ### 🔎 고급 검색 기능
 - **AND 검색**: ` + ` (공백 포함)로 구분
 - **OR 검색**: 띄어쓰기로 구분
@@ -171,16 +181,14 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 ### v1.x - 물리적 연결 토폴로지 ✅ 완료
 물리적 연결 구조 시각화
 
-### v2.x - MPLS L2 VPN 서비스 토폴로지 ✅ 완료 (v2.0.0 released)
-- ✅ Epipe (Point-to-Point L2 VPN)
-- ✅ VPLS (Multipoint L2 VPN)
-- ✅ VPRN (L3 VPN Integration)
-- ✅ Service ID 기반 End-to-End 경로 추적
-- ✅ Multi-hop 서비스 경로 시각화
-- ✅ SAP (Service Access Point) / SDP 정보 시각화
+### v2.x - MPLS VPN 서비스 토폴로지 ✅ 완료 (v2.1.0 released)
+- ✅ **Epipe**: Point-to-Point L2 VPN, 양방향 QoS, 통합 다이어그램
+- ✅ **VPLS**: Multipoint L2 VPN, 멀티 호스트 지원, 중복 제거
+- ✅ **VPRN**: L3 VPN, Interface/Static Route/BGP 통합 시각화
+- ✅ **표준화된 레이아웃**: 모든 서비스에 대해 Host-Service 구조 통일
+- ✅ **고도화된 파싱**: 복잡한 서비스 설정(Multi-hop, VRF 등) 파싱 지원
 
-**개발 브랜치**: `v2-development`  
-**예상 릴리즈**: 2026년 4월
+**Latest Release**: v2.1.0 (2026-01-20)
 
 자세한 내용은 [V2_PLANNING.md](./V2_PLANNING.md)를 참조하세요.
 

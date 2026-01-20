@@ -10,7 +10,7 @@ import './V2Page.css';
 
 export function V2Page() {
     const [configs, setConfigs] = useState<ParsedL2VPNConfig[]>([]);
-    const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
+    const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     // Auto-load sample config in demo/beta environment
@@ -53,16 +53,16 @@ export function V2Page() {
         }
     };
 
-    const handleToggleService = (serviceId: number) => {
+    const handleToggleService = (serviceKey: string) => {
         setSelectedServiceIds(prev =>
-            prev.includes(serviceId)
-                ? prev.filter(id => id !== serviceId)
-                : [...prev, serviceId]
+            prev.includes(serviceKey)
+                ? prev.filter(key => key !== serviceKey)
+                : [...prev, serviceKey]
         );
     };
 
-    const handleSetSelected = (serviceIds: number[]) => {
-        setSelectedServiceIds(serviceIds);
+    const handleSetSelected = (serviceKeys: string[]) => {
+        setSelectedServiceIds(serviceKeys);
     };
 
     // 모든 Config의 서비스를 하나로 합침 (Hostname 정보 주입 필요시 확장)
@@ -70,7 +70,7 @@ export function V2Page() {
 
     // 선택된 서비스들
     const selectedServices = allServices.filter(s =>
-        selectedServiceIds.includes(s.serviceId)
+        selectedServiceIds.includes(`${s.serviceType}-${s.serviceId}`)
     );
 
     // Build Remote Device Map (System IP -> Hostname)
@@ -81,20 +81,70 @@ export function V2Page() {
         }
     });
 
-    // 다이어그램 생성 (해당 서비스가 속한 Config의 Hostname 찾기)
-    const diagrams = selectedServices.map(service => {
-        // Find which config this service belongs to
-        const parentConfig = configs.find(c => c.services.includes(service));
-        return {
-            service,
-            diagram: generateServiceDiagram(
+    // 서비스를 serviceId와 serviceType별로 그룹화
+    const serviceGroups = selectedServices.reduce((acc, service) => {
+        const key = `${service.serviceType}-${service.serviceId}`;
+        if (!acc[key]) {
+            acc[key] = [];
+        }
+        acc[key].push(service);
+        return acc;
+    }, {} as Record<string, typeof selectedServices>);
+
+    // 다이어그램 생성 (그룹별로 하나의 다이어그램 생성)
+    const diagrams = Object.values(serviceGroups).map(group => {
+        // 각 서비스가 속한 Config와 Hostname 찾기
+        const servicesWithContext = group.map(service => {
+            const parentConfig = configs.find(c => c.services.includes(service));
+            return {
                 service,
-                parentConfig?.hostname || 'Unknown',
-                parentConfig?.sdps || [],
-                remoteDeviceMap
-            ),
-            hostname: parentConfig?.hostname || 'Unknown'
-        };
+                hostname: parentConfig?.hostname || 'Unknown',
+                sdps: parentConfig?.sdps || []
+            };
+        });
+
+        // 첫 번째 서비스를 대표로 사용
+        const representativeService = servicesWithContext[0].service;
+
+        // 단일 서비스인 경우와 다중 서비스인 경우 처리
+        if (servicesWithContext.length === 1) {
+            return {
+                service: representativeService,
+                diagram: generateServiceDiagram(
+                    representativeService,
+                    servicesWithContext[0].hostname,
+                    servicesWithContext[0].sdps,
+                    remoteDeviceMap
+                ),
+                hostname: servicesWithContext[0].hostname
+            };
+        } else {
+            // Epipe의 경우 통합 다이어그램 생성
+            if (representativeService.serviceType === 'epipe') {
+                return {
+                    service: representativeService,
+                    diagram: generateServiceDiagram(
+                        servicesWithContext.map(s => s.service),
+                        servicesWithContext.map(s => s.hostname),
+                        servicesWithContext[0].sdps, // SDPs는 첫 번째 것 사용 (필요시 병합 가능)
+                        remoteDeviceMap
+                    ),
+                    hostname: servicesWithContext.map(s => s.hostname).join(' + ')
+                };
+            } else {
+                // VPLS, VPRN도 통합 다이어그램 생성
+                return {
+                    service: representativeService,
+                    diagram: generateServiceDiagram(
+                        servicesWithContext.map(s => s.service),
+                        servicesWithContext.map(s => s.hostname),
+                        servicesWithContext[0].sdps,
+                        remoteDeviceMap
+                    ),
+                    hostname: servicesWithContext.map(s => s.hostname).join(' + ')
+                };
+            }
+        }
     });
 
     return (
@@ -130,6 +180,7 @@ export function V2Page() {
                         <aside className={`v2-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
                             <ServiceList
                                 services={allServices}
+                                configs={configs}
                                 selectedServiceIds={selectedServiceIds}
                                 onToggleService={handleToggleService}
                                 onSetSelected={handleSetSelected}
@@ -142,30 +193,34 @@ export function V2Page() {
                                 <div className="diagrams-container">
                                     {Object.entries(
                                         diagrams.reduce((acc, item) => {
-                                            const id = item.service.serviceId;
-                                            if (!acc[id]) acc[id] = [];
-                                            acc[id].push(item);
+                                            // Group by Type + ID to separate VPRN 2001 and Epipe 2001
+                                            const key = `${item.service.serviceType}_${item.service.serviceId}`;
+                                            if (!acc[key]) acc[key] = [];
+                                            acc[key].push(item);
                                             return acc;
-                                        }, {} as Record<number, typeof diagrams>)
-                                    ).map(([serviceId, group]) => (
-                                        <div key={serviceId} className={`service-group ${group.length > 1 ? 'redundant-group' : ''}`}>
-                                            {group.length > 1 && (
-                                                <div className="group-header">
-                                                    <h3>🔗 Service Group (ID: {serviceId})</h3>
+                                        }, {} as Record<string, typeof diagrams>)
+                                    ).map(([groupKey, group]) => {
+                                        const firstService = group[0].service;
+                                        return (
+                                            <div key={groupKey} className={`service-group ${group.length > 1 ? 'redundant-group' : ''}`}>
+                                                {group.length > 1 && (
+                                                    <div className="group-header">
+                                                        <h3>🔗 Service Group (ID: {firstService.serviceId})</h3>
+                                                    </div>
+                                                )}
+                                                <div className="group-items">
+                                                    {group.map(({ service, diagram, hostname }) => (
+                                                        <ServiceDiagram
+                                                            key={`${hostname}-${service.serviceId}`}
+                                                            service={service}
+                                                            diagram={diagram}
+                                                            hostname={hostname}
+                                                        />
+                                                    ))}
                                                 </div>
-                                            )}
-                                            <div className="group-items">
-                                                {group.map(({ service, diagram, hostname }) => (
-                                                    <ServiceDiagram
-                                                        key={`${hostname}-${service.serviceId}`}
-                                                        service={service}
-                                                        diagram={diagram}
-                                                        hostname={hostname}
-                                                    />
-                                                ))}
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <div className="empty-state">

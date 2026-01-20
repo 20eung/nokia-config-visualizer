@@ -5,6 +5,7 @@ import type {
     VPLSService,
     VPRNService,
     L3Interface,
+    StaticRoute,
     SAP,
     SDP,
     SpokeSDP,
@@ -325,6 +326,7 @@ export function parseVPRN(
     // AS & RD 추출
     const asMatch = content.match(/autonomous-system\s+(\d+)/i);
     const rdMatch = content.match(/route-distinguisher\s+([\d:.]+)/i);
+    const vrfMatch = content.match(/vrf-target\s+(?:target:)?([\d:.]+)/i) || content.match(/vrf-target\s+([^\s]+)/i);
 
     // Admin state
     const adminState: AdminState = content.includes('shutdown') && !content.includes('no shutdown') ? 'down' : 'up';
@@ -339,15 +341,23 @@ export function parseVPRN(
 
         const ipMatch = ifContent.match(/address\s+([\d.\/]+)/i);
         const portMatch = ifContent.match(/sap\s+([\w\/-]+:\d+)/i) || ifContent.match(/port\s+([\w\/-]+)/i);
+        const descMatch = ifContent.match(/description\s+"([^"]+)"/i);
+        const mtuMatch = ifContent.match(/mtu\s+(\d+)/i);
+        const vplsMatch = ifContent.match(/vpls\s+"([^"]+)"/i); // Routed VPLS binding
+        const spokeSdpMatch = ifContent.match(/spoke-sdp\s+(\d+:\d+)/i);
+
         const vrrpMatch = ifContent.match(/vrrp\s+(\d+)/i);
         const vrrpBackupMatch = ifContent.match(/backup\s+([\d.]+)/i);
         const vrrpPriorityMatch = ifContent.match(/priority\s+(\d+)/i);
 
         interfaces.push({
             interfaceName: ifName,
-            description: '', // Interface specific description if needed
+            description: descMatch ? descMatch[1] : undefined,
             ipAddress: ipMatch ? ipMatch[1] : undefined,
             portId: portMatch ? portMatch[1] : undefined,
+            mtu: mtuMatch ? parseInt(mtuMatch[1]) : undefined,
+            vplsName: vplsMatch ? vplsMatch[1] : undefined,
+            spokeSdpId: spokeSdpMatch ? spokeSdpMatch[1] : undefined,
             vrrpGroupId: vrrpMatch ? parseInt(vrrpMatch[1]) : undefined,
             vrrpBackupIp: vrrpBackupMatch ? vrrpBackupMatch[1] : undefined,
             vrrpPriority: vrrpPriorityMatch ? parseInt(vrrpPriorityMatch[1]) : undefined,
@@ -355,24 +365,73 @@ export function parseVPRN(
         });
     }
 
-    // BGP Neighbor 파싱
-    const bgpNeighbors: string[] = [];
-    const bgpMatch = content.match(/bgp([\s\S]*?)exit/i); // First exit usually closes bgp (simplified)
+    // BGP Neighbor 파싱 (Enhanced)
+    const bgpNeighbors: { neighborIp: string; autonomousSystem?: number }[] = [];
+    let bgpRouterId: string | undefined;
+
+    const bgpMatch = content.match(/bgp([\s\S]*?)exit/i); // First exit usually closes bgp
     if (bgpMatch) {
-        const neighborRegex = /neighbor\s+([\d.]+)/g;
-        const neighborMatches = bgpMatch[1].matchAll(neighborRegex);
-        for (const nm of neighborMatches) {
-            bgpNeighbors.push(nm[1]);
+        const bgpContent = bgpMatch[1];
+
+        // Router ID
+        const routerIdMatch = bgpContent.match(/router-id\s+([\d.]+)/i);
+        if (routerIdMatch) bgpRouterId = routerIdMatch[1];
+
+        // Neighbors
+        const neighborBlockRegex = /neighbor\s+([\d.]+)([\s\S]*?)exit/g;
+        for (const nm of bgpContent.matchAll(neighborBlockRegex)) {
+            const nip = nm[1];
+            const nbody = nm[2];
+            const asMatch = nbody.match(/peer-as\s+(\d+)/i);
+            bgpNeighbors.push({
+                neighborIp: nip,
+                autonomousSystem: asMatch ? parseInt(asMatch[1]) : undefined
+            });
         }
     }
 
-    // Static Route 파싱
-    const staticRoutes: string[] = [];
-    // Handle both old 'static-route' and new 'static-route-entry'
-    const routeRegex = /(?:static-route|static-route-entry)\s+([\d.\/]+)/g;
-    const routeMatches = content.matchAll(routeRegex);
-    for (const rm of routeMatches) {
-        staticRoutes.push(rm[1]);
+    // Static Route 파싱 (Enhanced)
+    const staticRoutes: StaticRoute[] = [];
+
+    // 1. One-line format: static-route <prefix> next-hop <ip>
+    const oneLineRegex = /static-route\s+([\d.\/]+)\s+next-hop\s+([\d.]+)/g;
+    for (const m of content.matchAll(oneLineRegex)) {
+        staticRoutes.push({ prefix: m[1], nextHop: m[2] });
+    }
+
+    // 2. Block format: static-route-entry <prefix> ... next-hop <ip> ... exit
+    // Iterate lines to handle nested 'next-hop ... exit' blocks correctly
+    const lines = content.split('\n');
+    let currentPrefix: string | null = null;
+    let entryIndent = -1;
+
+    for (const line of lines) {
+        // static-route-entry start
+        const entryMatch = line.match(/static-route-entry\s+([\d.\/]+)/);
+        if (entryMatch) {
+            currentPrefix = entryMatch[1];
+            entryIndent = line.search(/\S/); // Count leading spaces
+            continue;
+        }
+
+        if (currentPrefix) {
+            // Check if block ended (exit at same indent)
+            const trimLine = line.trim();
+            const currentIndent = line.search(/\S/);
+
+            // Note: Sometimes indentation might vary or empty lines.
+            // If we see 'exit' at exact indent, we close.
+            if (trimLine === 'exit' && currentIndent === entryIndent) {
+                currentPrefix = null;
+                continue;
+            }
+
+            // Look for next-hop
+            const nhMatch = trimLine.match(/next-hop\s+([\d.]+)/);
+            if (nhMatch) {
+                staticRoutes.push({ prefix: currentPrefix, nextHop: nhMatch[1] });
+            }
+        }
     }
 
     return {
@@ -383,7 +442,9 @@ export function parseVPRN(
         description,
         adminState,
         autonomousSystem: asMatch ? parseInt(asMatch[1]) : undefined,
+        bgpRouterId,
         routeDistinguisher: rdMatch ? rdMatch[1] : undefined,
+        vrfTarget: vrfMatch ? vrfMatch[1] : undefined,
         interfaces,
         bgpNeighbors,
         staticRoutes

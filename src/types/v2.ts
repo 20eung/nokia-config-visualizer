@@ -136,27 +136,39 @@ export interface VPLSService extends BaseService {
 /**
  * L3 Interface (for VPRN)
  */
+export interface StaticRoute {
+    prefix: string;
+    nextHop: string;
+}
+
 export interface L3Interface {
     interfaceName: string;
-    description: string;
-    ipAddress?: string;         // IP/Prefix
-    portId?: string;            // Physical Port or SAP
+    description?: string;
+    ipAddress?: string;
+    portId?: string;
+    vlanId?: number; // if sap 1/1/1:100
+    mtu?: number;
+    vplsName?: string; // routed-vpls 연동 시
+    sapId?: string;
+    spokeSdpId?: string;
+
+    // VRRP
     vrrpGroupId?: number;
     vrrpBackupIp?: string;
     vrrpPriority?: number;
+
     adminState: AdminState;
 }
 
-/**
- * VPRN Service (L3 VPN)
- */
 export interface VPRNService extends BaseService {
     serviceType: 'vprn';
     autonomousSystem?: number;
+    bgpRouterId?: string; // BGP Router ID
     routeDistinguisher?: string;
+    vrfTarget?: string;
     interfaces: L3Interface[];
-    bgpNeighbors: string[];     // Neighbor IPs
-    staticRoutes: string[];     // Prefix/NextHop summaries
+    bgpNeighbors: { neighborIp: string; autonomousSystem?: number }[];     // Neighbor IPs with AS
+    staticRoutes: StaticRoute[];
 }
 
 /**

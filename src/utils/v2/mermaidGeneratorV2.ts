@@ -20,6 +20,27 @@ const noWrap = (text: string): string => {
         .replace(/-/g, '\u2011');
 };
 
+// Helper: IP Logic
+function ipToLong(ip: string): number {
+    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+}
+
+function isIpInSubnet(ip: string, cidr: string): boolean {
+    if (!ip || !cidr || !cidr.includes('/')) return false;
+    try {
+        const [rangeIp, prefixStr] = cidr.split('/');
+        const prefix = parseInt(prefixStr, 10);
+        const mask = prefix === 0 ? 0 : (~((1 << (32 - prefix)) - 1)) >>> 0; // Fix standard bitwise issue
+        // However JS bitwise operations are 32-bit signed. 
+        // Using >>> 0 ensures unsigned.
+        const ipLong = ipToLong(ip);
+        const rangeIpLong = ipToLong(rangeIp);
+        return (ipLong & mask) === (rangeIpLong & mask);
+    } catch (e) {
+        return false;
+    }
+}
+
 // Helper: Format descriptions (from V1)
 const fmtDesc = (desc?: string): string => {
     if (!desc) return '';
@@ -28,128 +49,123 @@ const fmtDesc = (desc?: string): string => {
 
 
 /**
- * Epipe 서비스 다이어그램 생성
+ * Epipe 서비스 다이어그램 생성 (단일 또는 다중 서비스 지원)
  */
 export function generateEpipeDiagram(
-    epipe: EpipeService,
-    hostname: string,
+    epipes: EpipeService | EpipeService[],
+    hostname: string | string[],
     sdps: SDP[] = [],
     remoteDeviceMap?: Map<string, string>
 ): string {
+    // 배열로 정규화
+    const epipeArray = Array.isArray(epipes) ? epipes : [epipes];
+    const hostnameArray = Array.isArray(hostname) ? hostname : [hostname];
+
     const lines: string[] = [];
 
     lines.push('graph LR');
 
-    // Define clean styles (V1 style)
+    // Define clean styles
     lines.push('classDef default fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left;');
-    lines.push('classDef remote fill:#e6f3ff,stroke:#0066cc,stroke-width:2px,color:#000;');
+    lines.push('classDef service fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000;');
 
     lines.push('');
 
-    // Hostname Subgraph
-    const safeHost = sanitizeNodeId(hostname);
-    const hostId = `HOST_${safeHost}`;
-    lines.push(`subgraph ${hostId} ["<b>${noWrap(hostname)}</b>"]`);
-    lines.push('direction LR');
+    // 왼쪽: 각 호스트별 서브그래프
+    const firstEpipe = epipeArray[0];
+    const serviceNodeId = `SERVICE_${firstEpipe.serviceId}`;
 
-    // Build Single Detailed Node for Local Side (V1 Style)
-    const localNodes: string[] = [];
+    epipeArray.forEach((epipe, idx) => {
+        const host = hostnameArray[idx] || hostnameArray[0];
+        const safeHost = sanitizeNodeId(host);
+        const hostId = `HOST_${safeHost}_${idx}`;
 
-    epipe.saps.forEach((sap, idx) => {
-        // Unique Node ID per diagram (Host + Service + Index)
-        const sapNodeId = `LOC_${safeHost}_${epipe.serviceId}_${idx}`;
-        localNodes.push(sapNodeId);
+        // Host Subgraph
+        lines.push(`subgraph ${hostId} ["\u003cb\u003e${noWrap(host)}\u003c/b\u003e"]`);
+        lines.push('direction TB'); // 세로 배치
 
-        let label = `<div style="text-align: left">`;
-        label += `<b>Service:</b> EPIPE ${epipe.serviceId}${fmtDesc(epipe.description)}<br/>`;
-        if (epipe.serviceName) {
-            label += `<b>Name:</b> ${noWrap(epipe.serviceName)}<br/>`;
-        }
-        label += `<br/>`;
+        epipe.saps.forEach((sap, sapIdx) => {
+            const sapNodeId = `SAP_${safeHost}_${idx}_${sapIdx}`;
 
-        // Port Description
-        // Using SAP description if Port description is not distinct, but now we have portDescription.
+            let label = `\u003cdiv style=\"text-align: left\"\u003e`;
+            label += `\u003cb\u003eSAP:\u003c/b\u003e ${sap.sapId}<br/>`;
+            label += `\u003cb\u003ePort:\u003c/b\u003e ${sap.portId}${fmtDesc(sap.portDescription)}<br/>`;
+            label += `\u003cb\u003eVLAN:\u003c/b\u003e ${sap.vlanId}<br/>`;
 
-        label += `<b>Port:</b> ${sap.portId}${fmtDesc(sap.portDescription)}`;
-        label += `<br/>`;
+            // SDP 정보 (SAP 박스 안에 포함)
+            if (epipe.spokeSdps && epipe.spokeSdps.length > 0) {
+                // Epipe는 보통 1개의 Active SDP를 가짐, 모두 표시
+                epipe.spokeSdps.forEach(sdp => {
+                    label += `\u003cb\u003eSDP:\u003c/b\u003e ${sdp.sdpId}:${sdp.vcId}<br/>`;
+                });
+            }
 
-        label += `<b>VLAN:</b> ${sap.vlanId}<br/>`;
+            label += `\u003c/div\u003e`;
+            lines.push(`${sapNodeId}[\"${label}\"]`);
+        });
 
-        label += `<b>SAP:</b> ${sap.sapId}${fmtDesc(sap.description)}<br/>`;
-        label += `</div>`;
-
-        lines.push(`${sapNodeId}["${label}"]`);
+        lines.push('end'); // End Host Subgraph
     });
 
-    lines.push('end'); // End Host Subgraph
+    // 오른쪽: 서비스 정보 노드
+    lines.push('');
+    let serviceLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
+    serviceLabel += `\u003cb\u003eService:\u003c/b\u003e EPIPE ${firstEpipe.serviceId}<br/>`;
 
-    // Remote / SDP Connection
-    if (epipe.spokeSdps) {
-        epipe.spokeSdps.forEach((sdp, idx) => {
-            const sdpId = `REM_${safeHost}_${idx}`; // Using distinct ID
+    // 괄호 안에 Service Name 표시 (사용자 샘플 참조: (SKENS_Pangyo_DDC_1G_1))
+    // 샘플에는 Service Name이 괄호 안에 있고, 그 아래에 EPIPE Name: ... 이 있음. 중복될 수 있음.
+    // 기존 VPLS 로직: Service: ID <br> Name: ... <br> Description: ...
+    // 사용자 샘플: Service: EPIPE 7 <br> (Name) <br> EPIPE Name: Name <br> Description: ...
+    // VPLS와 통일성을 위해:
+    // Service: EPIPE <ID>
+    // EPIPE Name: <Name>
+    // EPIPE Description: <Description>
 
-            // Resolve Remote Hostname
-            let farEnd: string | undefined;
-            if (sdps && sdps.length > 0) {
-                const sdpDef = sdps.find(s => s.sdpId === sdp.sdpId);
-                if (sdpDef) farEnd = sdpDef.farEnd;
+    if (firstEpipe.serviceName) {
+        serviceLabel += `\u003cb\u003eEPIPE Name:\u003c/b\u003e ${noWrap(firstEpipe.serviceName)}<br/>`;
+    }
+    if (firstEpipe.description) {
+        serviceLabel += `\u003cb\u003eEPIPE Description:\u003c/b\u003e ${firstEpipe.description}<br/>`;
+    }
+    serviceLabel += `\u003c/div\u003e`;
+
+    lines.push(`${serviceNodeId}[\"${serviceLabel}\"]`);
+    lines.push(`class ${serviceNodeId} service;`);
+
+    // 연결선: SAP -> Service (QoS 포함)
+    epipeArray.forEach((epipe, idx) => {
+        const host = hostnameArray[idx] || hostnameArray[0];
+        const safeHost = sanitizeNodeId(host);
+
+        epipe.saps.forEach((sap, sapIdx) => {
+            const sapNodeId = `SAP_${safeHost}_${idx}_${sapIdx}`;
+
+            let qosLabel = '';
+            // Ingress QoS
+            if (sap.ingressQos?.policyId) {
+                qosLabel += `In-QoS: ${sap.ingressQos.policyId}`;
+            }
+            // Egress QoS (Merged Diagram에서는 usually bidirectional implicaiton, but here link is SAP->Service)
+            // 사용자 요청: "QoS 정보는 연결선에 넣기" (Epipe 샘플 이미지에는 In-QoS만 보임)
+            // VPLS에서는 In-QoS만 표시했음.
+            // Epipe 연결선은 양방향을 의미하므로 In/Out 둘 다 표시하는 게 좋을 수 있음.
+            // 하지만 공간 제약 상 In-QoS 우선 표시, 필요시 Out-QoS 추가.
+            // 사용자 샘플 텍스트에는 명시 안됨. 이미지에는 In-QoS: 400 등.
+
+            if (sap.egressQos?.policyId) {
+                if (qosLabel) qosLabel += '<br/>';
+                qosLabel += `Out-QoS: ${sap.egressQos.policyId}`; // Out-QoS도 표시
             }
 
-            // Remote / SDP Connection logic
-            // Simplified: Use a single Node for the Remote End instead of a Subgraph to prevent layout overlapping issues.
-            let remoteTitle = 'Remote Device';
-            if (remoteDeviceMap && farEnd && remoteDeviceMap.has(farEnd)) {
-                remoteTitle = remoteDeviceMap.get(farEnd)!;
-            } else if (farEnd) {
-                remoteTitle = farEnd;
+            if (qosLabel) {
+                lines.push(`${sapNodeId} ---|\"${qosLabel}\"| ${serviceNodeId}`);
             } else {
-                remoteTitle = 'Unknown Remote';
+                lines.push(`${sapNodeId} --- ${serviceNodeId}`);
             }
-
-            let remoteLabel = `<div style="text-align: left">`;
-            remoteLabel += `<b>${noWrap(remoteTitle)}</b><hr/>`; // Title inside the node
-            remoteLabel += `<b>SDP:</b> ${sdp.sdpId}:${sdp.vcId}<br/>`;
-
-            if (farEnd) {
-                remoteLabel += `<b>Target IP:</b> ${farEnd}<br/>`;
-            }
-            remoteLabel += `</div>`;
-
-            // Just the Node, no wrapping Subgraph
-            lines.push(`${sdpId}["${remoteLabel}"]`);
-            lines.push(`class ${sdpId} remote;`);
-
-            // Connect Local SAPs to this SDP
-            localNodes.forEach((loc, locIdx) => {
-                // Determine QoS label from corresponding SAP
-                // localNodes maps 1:1 to epipe.saps if we created one node per SAP.
-                // epipe.saps[locIdx] should be the one.
-                const sap = epipe.saps[locIdx];
-                let linkLabel = "";
-
-                // User requested "Ingress QoS: 10" format on the link.
-                // Check if we have ingress or egress qos
-                if (sap.ingressQos?.policyId) {
-                    linkLabel += `In-QoS: ${sap.ingressQos.policyId}`;
-                }
-                if (sap.egressQos?.policyId) {
-                    if (linkLabel) linkLabel += '<br/>';
-                    linkLabel += `Out-QoS: ${sap.egressQos.policyId}`;
-                }
-
-                if (linkLabel) {
-                    lines.push(`${loc} -->|"${linkLabel}"| ${sdpId}`);
-                } else {
-                    lines.push(`${loc} --> ${sdpId}`);
-                }
-            });
         });
-    }
+    });
 
-    // SAP-to-SAP direct (if no SDPs)
-    if ((!epipe.spokeSdps || epipe.spokeSdps.length === 0) && localNodes.length === 2) {
-        lines.push(`${localNodes[0]} --- ${localNodes[1]}`);
-    }
+    return lines.join('\n');
 
     return lines.join('\n');
 }
@@ -158,119 +174,104 @@ export function generateEpipeDiagram(
  * VPLS 서비스 다이어그램 생성
  */
 export function generateVPLSDiagram(
-    vpls: VPLSService,
-    hostname: string,
+    vpls: VPLSService | VPLSService[],
+    hostname: string | string[],
     sdps: SDP[] = [],
     remoteDeviceMap?: Map<string, string>
 ): string {
+    // 배열로 정규화
+    const vplsArray = Array.isArray(vpls) ? vpls : [vpls];
+    const hostnameArray = Array.isArray(hostname) ? hostname : [hostname];
+
     const lines: string[] = [];
 
-    lines.push('graph LR'); // Changed to LR for better V1 look
+    lines.push('graph LR');
 
-    // Define clean styles (V1 style)
+    // Define clean styles
     lines.push('classDef default fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left;');
-    lines.push('classDef remote fill:#e6f3ff,stroke:#0066cc,stroke-width:2px,color:#000;');
+    lines.push('classDef vpls fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000;');
 
     lines.push('');
 
-    // Hostname Subgraph
-    const safeHost = sanitizeNodeId(hostname);
-    const hostId = `HOST_${safeHost}`;
-    lines.push(`subgraph ${hostId} ["<b>${noWrap(hostname)}</b>"]`);
-    lines.push('direction LR');
+    // 왼쪽: 각 호스트별 서브그래프 (각 SAP를 개별 박스로 표시)
+    const firstVpls = vplsArray[0];
+    const vplsNodeId = `VPLS_${firstVpls.serviceId}`;
 
-    // Main VPLS Node
-    const vplsNodeId = `VPLS_${safeHost}_${vpls.serviceId}`;
-    let vplsLabel = `<div style="text-align: left">`;
-    vplsLabel += `<b>Service:</b> VPLS ${vpls.serviceId}${fmtDesc(vpls.description)}<br/>`;
-    if (vpls.serviceName) {
-        vplsLabel += `<b>Name:</b> ${noWrap(vpls.serviceName)}<br/>`;
-    }
-    vplsLabel += `<b>Customer:</b> ${vpls.customerId}<br/>`;
-    if (vpls.fdbSize) vplsLabel += `<b>FDB Size:</b> ${vpls.fdbSize}<br/>`;
-    vplsLabel += `</div>`;
+    vplsArray.forEach((currentVpls, vplsIdx) => {
+        const currentHostname = hostnameArray[vplsIdx] || hostnameArray[0];
+        const safeHost = sanitizeNodeId(currentHostname);
+        const hostId = `HOST_${safeHost}_${vplsIdx}`;
 
-    // Create VPLS Central Node
-    lines.push(`${vplsNodeId}["${vplsLabel}"]`);
+        // 호스트 서브그래프 시작
+        lines.push(`subgraph ${hostId}["<b>${noWrap(currentHostname)}</b>"]`);
+        lines.push('direction TB');  // 세로 방향
 
-    // SAPs attached to VPLS node
-    vpls.saps.forEach((sap) => {
-        const sapId = `SAP_${safeHost}_${sanitizeNodeId(sap.sapId)}`;
-        let sapLabel = `<div style="text-align: left">`;
-        sapLabel += `<b>SAP:</b> ${sap.sapId}${fmtDesc(sap.description)}<br/>`;
+        // 각 SAP를 개별 노드로 생성
+        currentVpls.saps.forEach((sap, sapIdx) => {
+            const sapNodeId = `SAP_${safeHost}_${vplsIdx}_${sapIdx}`;
 
-        // Port Description Check
-        // Currently SAP object has 'description', but we don't have separate portDescription.
-        // We will just put Port and VLAN.
-        sapLabel += `<b>Port:</b> ${sap.portId}${fmtDesc(sap.portDescription)}<br/>`;
-        sapLabel += `<b>VLAN:</b> ${sap.vlanId}<br/>`;
-        sapLabel += `</div>`;
+            let sapLabel = `<div style="text-align: left">`;
+            sapLabel += `<b>SAP:</b> ${sap.sapId}<br/>`;
+            sapLabel += `<b>Port:</b> ${sap.portId}${fmtDesc(sap.portDescription)}<br/>`;
+            sapLabel += `<b>VLAN:</b> ${sap.vlanId}<br/>`;
 
-        lines.push(`${sapId}["${sapLabel}"]`);
-        lines.push(`${sapId} --- ${vplsNodeId}`);
+            // 해당 SAP의 SDP 정보 (첫 번째 SAP에만 표시)
+            if (sapIdx === 0) {
+                if (currentVpls.spokeSdps && currentVpls.spokeSdps.length > 0) {
+                    currentVpls.spokeSdps.forEach(sdp => {
+                        sapLabel += `<b>Spoke SDP:</b> ${sdp.sdpId}:${sdp.vcId}<br/>`;
+                    });
+                }
+                if (currentVpls.meshSdps && currentVpls.meshSdps.length > 0) {
+                    currentVpls.meshSdps.forEach(sdp => {
+                        sapLabel += `<b>Mesh SDP:</b> ${sdp.sdpId}:${sdp.vcId}<br/>`;
+                    });
+                }
+            }
+
+            sapLabel += `</div>`;
+
+            lines.push(`${sapNodeId}["${sapLabel}"]`);
+        });
+
+        lines.push('end');  // 서브그래프 종료
     });
 
-    lines.push('end'); // End Host
+    // 오른쪽: 공통 VPLS 서비스 정보 (호스트 이후에 선언)
+    lines.push('');
+    let vplsLabel = `<div style="text-align: left">`;
+    vplsLabel += `<b>Service:</b> VPLS ${firstVpls.serviceId}<br/>`;
+    if (firstVpls.serviceName) {
+        vplsLabel += `<b>VPLS Name:</b> ${noWrap(firstVpls.serviceName)}<br/>`;
+    }
+    if (firstVpls.description) {
+        vplsLabel += `<b>VPLS Description:</b> ${firstVpls.description}<br/>`;
+    }
+    vplsLabel += `</div>`;
 
-    // SDPs (Spoke/Mesh)
-    const allSdps = [
-        ...(vpls.spokeSdps || []).map(s => ({ ...s, type: 'Spoke' })),
-        ...(vpls.meshSdps || []).map(s => ({ ...s, type: 'Mesh' }))
-    ];
+    lines.push(`${vplsNodeId}["${vplsLabel}"]`);
+    lines.push(`class ${vplsNodeId} vpls;`);
 
-    allSdps.forEach((sdp, idx) => {
-        const sdpNodeId = `SDP_REM_${safeHost}_${idx}`;
+    // 연결선: 각 SAP에서 VPLS로 (QoS 정보 포함)
+    vplsArray.forEach((currentVpls, vplsIdx) => {
+        const currentHostname = hostnameArray[vplsIdx] || hostnameArray[0];
+        const safeHost = sanitizeNodeId(currentHostname);
 
-        // Resolve Far-End
-        let farEnd: string | undefined;
-        if (sdps && sdps.length > 0) {
-            const sdpDef = sdps.find(s => s.sdpId === sdp.sdpId);
-            if (sdpDef) farEnd = sdpDef.farEnd;
-        }
+        currentVpls.saps.forEach((sap, sapIdx) => {
+            const sapNodeId = `SAP_${safeHost}_${vplsIdx}_${sapIdx}`;
 
-        let remoteTitle = 'Remote Device';
-        if (remoteDeviceMap && farEnd && remoteDeviceMap.has(farEnd)) {
-            remoteTitle = remoteDeviceMap.get(farEnd)!;
-        } else if (farEnd) {
-            remoteTitle = farEnd;
-        } else {
-            remoteTitle = 'Unknown Remote';
-        }
+            // QoS 라벨 생성
+            let linkLabel = '';
+            if (sap.ingressQos?.policyId) {
+                linkLabel = `In-QoS: ${sap.ingressQos.policyId}`;
+            }
 
-        let remoteLabel = `<div style="text-align: left">`;
-        remoteLabel += `<b>${noWrap(remoteTitle)}</b><hr/>`;
-        remoteLabel += `<b>${sdp.type} SDP:</b> ${sdp.sdpId}:${sdp.vcId}<br/>`;
-
-        if (farEnd) {
-            remoteLabel += `<b>Target IP:</b> ${farEnd}<br/>`;
-        }
-        remoteLabel += `</div>`;
-
-        lines.push(`${sdpNodeId}["${remoteLabel}"]`);
-        lines.push(`class ${sdpNodeId} remote;`);
-
-        // VPLS Link Label with QoS
-        // For VPLS, the link is from the Central VPLS Node to the Remote SDP.
-        // Which SAP's QoS determines this? 
-        // In VPLS, traffic to a Spoke SDP might not be tied to a SINGLE SAP's QoS policy directly in the same way (it's a switch).
-        // However, if the user wants to see QoS, usually it's the QoS applied to the SDP itself or the SAPs.
-        // The image showed a Point-to-Point Epipe where SAP maps to SDP.
-        // For VPLS, SAPs connect to the VPLS Cloud, and SDPs connect to the VPLS Cloud.
-        // The QoS on the link from VPLS Node to SDP Node... strictly speaking, SDPs can have their own QoS policies too (network-ingress/egress), but currently our type only has QoS on SAP.
-        // If the user wants SAP QoS, it is already on the SAP->VPLS link (lines.push(`${sapId} -->|"${sap.portId}:${sap.vlanId}${qos}"| ${vplsId}`); inside generateVPLSDiagram line 124 in previous view).
-        // Let's check generateVPLSDiagram again.
-
-        // In previous `generateVPLSDiagram` code (around line 120-138):
-        /*
-        lines.push(`${sapId} -->|"${sap.portId}:${sap.vlanId}${qos}"| ${vplsId}`);
-        */
-        // So SAP-side QoS is already handled in VPLS?
-        // Let's verify if I need to add anything to the SDP link. 
-        // SDPs in V2 types DO NOT have qos fields currently. 
-        // So I can't add QoS to the SDP link for VPLS unless I map it from a SAP (which is semantically incorrect for Multipoint).
-        // I will leave VPLS SDP links as is, unless I find QoS on SDP.
-
-        lines.push(`${vplsNodeId} -.-> ${sdpNodeId}`);
+            if (linkLabel) {
+                lines.push(`${sapNodeId} ---|"${linkLabel}"| ${vplsNodeId}`);
+            } else {
+                lines.push(`${sapNodeId} --- ${vplsNodeId}`);
+            }
+        });
     });
 
     return lines.join('\n');
@@ -280,91 +281,237 @@ export function generateVPLSDiagram(
  * VPRN 서비스 다이어그램 생성
  */
 export function generateVPRNDiagram(
-    vprn: VPRNService,
-    hostname: string
+    vprn: VPRNService | VPRNService[],
+    hostname: string | string[]
 ): string {
+    // 배열로 정규화  
+    const vprnArray = Array.isArray(vprn) ? vprn : [vprn];
+    const hostnameArray = Array.isArray(hostname) ? hostname : [hostname];
+
     const lines: string[] = [];
-    const safeHost = sanitizeNodeId(hostname);
 
     lines.push('graph LR');
+
+    // Define clean styles
+    lines.push('classDef default fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left;');
+    lines.push('classDef service fill:#e8eaf6,stroke:#1a237e,stroke-width:2px,color:#000;');
+    lines.push('classDef iface fill:#fff3e0,stroke:#e65100,stroke-width:1px;');
+    lines.push('classDef bgp fill:#e1f5fe,stroke:#0277bd,stroke-width:1px;');
+    lines.push('classDef route fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px;');
+
     lines.push('');
 
-    // Hostname Subgraph
-    const hostId = `HOST_${safeHost}`;
-    // Increase font size for hostname visibility
-    lines.push(`subgraph ${hostId} ["<b><span style='font-size:16px; white-space: nowrap'>🖥️ ${noWrap(hostname)}</span></b>"]`);
-    lines.push('direction LR');
+    // 오른쪽: 공통 VPRN 서비스 노드
+    const firstVprn = vprnArray[0];
+    const serviceNodeId = `VPRN_SERVICE_${firstVprn.serviceId}`;
 
-    // VPRN 인스턴스 중심 노드
-    const vprnId = `VPRN_${safeHost}_${vprn.serviceId}`;
     let vprnLabel = `<div style="text-align: left">`;
-    vprnLabel += `<b>Service:</b> VPRN ${vprn.serviceId}${fmtDesc(vprn.description)}<br/>`;
-    if (vprn.serviceName) {
-        vprnLabel += `<b>Name:</b> ${noWrap(vprn.serviceName)}<br/>`;
+    vprnLabel += `<b>Service:</b> VPRN ${firstVprn.serviceId}<br/>`;
+
+    // Service Name & Description
+    if (firstVprn.serviceName) {
+        vprnLabel += `<b>VPRN Service Name:</b> ${noWrap(firstVprn.serviceName)}<br/>`;
     }
-    vprnLabel += `<b>Customer:</b> ${vprn.customerId}<br/>`;
-    vprnLabel += `<b>AS:</b> ${vprn.autonomousSystem || 'N/A'}`;
+    if (firstVprn.description) {
+        // 사용자 요청: VPRN Desc: ...
+        vprnLabel += `<b>VPRN Desc:</b> ${firstVprn.description}<br/>`;
+    }
+
+    if (firstVprn.autonomousSystem) {
+        vprnLabel += `<b>AS:</b> ${firstVprn.autonomousSystem}<br/>`;
+    }
+    if (firstVprn.routeDistinguisher) {
+        vprnLabel += `<b>RD:</b> ${firstVprn.routeDistinguisher}<br/>`;
+    }
+    if (firstVprn.vrfTarget) {
+        vprnLabel += `<b>VRF:</b> ${firstVprn.vrfTarget}<br/>`;
+    }
+
+    vprnLabel += `<b>Customer:</b> ${firstVprn.customerId}`;
     vprnLabel += `</div>`;
 
-    lines.push(`${vprnId}["${vprnLabel}"]`);
+    // 서브그래프들 먼저 그리기 (왼쪽)
+    vprnArray.forEach((currentVprn, idx) => {
+        const host = hostnameArray[idx] || hostnameArray[0];
+        const safeHost = sanitizeNodeId(host);
 
-    // 인터페이스 연결
-    vprn.interfaces.forEach((iface, index) => {
-        const ifId = `IF_${safeHost}_${vprn.serviceId}_${index}`;
-        // Sanitize interface name for display
-        const ifName = iface.interfaceName;
-        // Interface details
-        let details = '';
-        if (iface.ipAddress) details += `<br/>IP: ${iface.ipAddress}`;
-        if (iface.portId) details += `<br/>Port: ${iface.portId}`;
-        if (iface.vrrpGroupId) details += `<br/>VRRP: ${iface.vrrpGroupId} (Pri: ${iface.vrrpPriority})`;
+        const hostId = `HOST_${safeHost}_${idx}`;
 
-        lines.push(`${ifId}["🔌 ${ifName}${details}"]`);
-        lines.push(`${vprnId} --> ${ifId}`);
-        lines.push(`style ${ifId} fill:#fff3e0,stroke:#e65100,stroke-width:1px`);
+        lines.push(`subgraph ${hostId} ["<b>${noWrap(host)}</b>"]`);
+        lines.push('direction TB');
+
+        // Pre-process Static Routes
+        const routesMap = new Map<string, string[]>();
+        if (currentVprn.staticRoutes) {
+            currentVprn.staticRoutes.forEach(r => {
+                const nh = r.nextHop || 'Unknown';
+                if (!routesMap.has(nh)) routesMap.set(nh, []);
+                routesMap.get(nh)!.push(r.prefix);
+            });
+        }
+
+        // 1. Interfaces
+        if (currentVprn.interfaces) {
+            currentVprn.interfaces.forEach((iface, ifIdx) => {
+                const ifId = `IF_${safeHost}_${idx}_${ifIdx}`;
+                const ifName = iface.interfaceName;
+
+                let details = `<div style="text-align: left">`;
+                details += `<b>Interface:</b> ${ifName}<br/>`;
+                if (iface.description) details += `Desc: ${iface.description}<br/>`;
+
+                let staticRoutesHtml = '';
+
+                if (iface.ipAddress) {
+                    details += `IP: ${iface.ipAddress}`;
+                    // VRRP Info: Group ID hidden per user request
+                    details += `<br/>`;
+
+                    // MERGE CHECK: Static Routes
+                    // Prepare HTML but append LATER
+                    const matchedNextHops: string[] = [];
+                    routesMap.forEach((_, nextHop) => {
+                        if (isIpInSubnet(nextHop, iface.ipAddress!)) {
+                            matchedNextHops.push(nextHop);
+                        }
+                    });
+
+                    if (matchedNextHops.length > 0) {
+                        staticRoutesHtml += `<hr/>`; // Separator
+                        matchedNextHops.forEach(nh => {
+                            const prefixes = routesMap.get(nh)!;
+                            staticRoutesHtml += `<b>Static Route:</b> ${nh}<br/>`;
+                            staticRoutesHtml += `Customer Network: ${prefixes.length}<br/>`;
+                            prefixes.forEach(p => staticRoutesHtml += `${p}<br/>`);
+                            // staticRoutesHtml += `<br/>`; 
+                            routesMap.delete(nh); // Mark as handled
+                        });
+                    }
+                }
+
+                if (iface.vrrpBackupIp) details += `(VIP: ${iface.vrrpBackupIp})<br/>`;
+                if (iface.portId) details += `SAP: ${iface.portId}<br/>`;
+                if (iface.vplsName) details += `VPLS: ${iface.vplsName}<br/>`;
+                if (iface.spokeSdpId) details += `SPOKE-SDP: ${iface.spokeSdpId}<br/>`;
+                if (iface.mtu) details += `MTU: ${iface.mtu}`;
+
+                // Append Static Routes LAST
+                if (staticRoutesHtml) {
+                    details += staticRoutesHtml;
+                }
+
+                details += `</div>`;
+
+                lines.push(`${ifId}["${details}"]`);
+                lines.push(`class ${ifId} iface;`);
+            });
+        }
+
+        // 2. BGP Neighbors
+        if (currentVprn.bgpNeighbors && currentVprn.bgpNeighbors.length > 0) {
+            const bgpId = `BGP_${safeHost}_${idx}`;
+
+            let bgpLabel = `<div style="text-align: left"><b>BGP</b><br/>`;
+            if (currentVprn.bgpRouterId) bgpLabel += `Router-ID: ${currentVprn.bgpRouterId}<br/>`;
+
+            currentVprn.bgpNeighbors.forEach(nbr => {
+                bgpLabel += `Neighbor: ${nbr.neighborIp}<br/>`;
+                if (nbr.autonomousSystem) bgpLabel += `- AS: ${nbr.autonomousSystem}<br/>`;
+            });
+            bgpLabel += `</div>`;
+
+            lines.push(`${bgpId}["${bgpLabel}"]`);
+            lines.push(`class ${bgpId} bgp;`);
+        }
+
+        // 3. Remaining Static Routes (Orphans)
+        const orphanRoutes: string[] = [];
+        if (routesMap.size > 0) {
+            let routeIdx = 0;
+            routesMap.forEach((prefixes, nextHop) => {
+                const routeId = `ROUTES_${safeHost}_${idx}_${routeIdx++}`;
+                let routeLabel = `<div style="text-align: left">`;
+                routeLabel += `<b>Static Route:</b> ${nextHop}<br/>`;
+                routeLabel += `Customer Network: ${prefixes.length}<br/>`;
+
+                prefixes.forEach(p => {
+                    routeLabel += `${p}<br/>`;
+                });
+                routeLabel += `</div>`;
+
+                lines.push(`${routeId}["${routeLabel}"]`);
+                lines.push(`class ${routeId} route;`);
+
+                // Collect ID for linking outside subgraph
+                orphanRoutes.push(routeId);
+            });
+        }
+
+        lines.push('end'); // End Host
+
+        // Orphan Static Route Connections (Outside Subgraph)
+        orphanRoutes.forEach(rId => {
+            lines.push(`${rId} -.- ${serviceNodeId}`);
+        });
+
+        // 연결선 추가 (서브그래프 밖에서 처리)
+        // Interfaces
+        if (currentVprn.interfaces) {
+            currentVprn.interfaces.forEach((_, ifIdx) => {
+                const ifId = `IF_${safeHost}_${idx}_${ifIdx}`;
+                lines.push(`${ifId} --> ${serviceNodeId}`);
+            });
+        }
+        // BGP (Invisible or Dotted link to ensure layout if no interfaces)
+        if (currentVprn.bgpNeighbors && currentVprn.bgpNeighbors.length > 0) {
+            const bgpId = `BGP_${safeHost}_${idx}`;
+            lines.push(`${bgpId} -.- ${serviceNodeId}`);
+        }
     });
 
-    // BGP Neighbors
-    if (vprn.bgpNeighbors && vprn.bgpNeighbors.length > 0) {
-        const bgpId = `BGP_${safeHost}_${vprn.serviceId}`;
-        const neighborsList = vprn.bgpNeighbors.join('<br/>');
-        lines.push(`${bgpId}["🤝 BGP Neighbors<br/>${neighborsList}"]`);
-        lines.push(`${vprnId} -.-> ${bgpId}`);
-        lines.push(`style ${bgpId} fill:#e1f5fe,stroke:#0277bd,stroke-width:1px`);
-    }
-
-    // Static Routes
-    if (vprn.staticRoutes && vprn.staticRoutes.length > 0) {
-        // Show summary or limit
-        const routeCount = vprn.staticRoutes.length;
-        const routeId = `ROUTES_${safeHost}_${vprn.serviceId}`;
-        lines.push(`${routeId}["🛣️ Static Routes: ${routeCount}"]`);
-        lines.push(`${vprnId} -.-> ${routeId}`);
-        lines.push(`style ${routeId} fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px`);
-    }
-
-    lines.push('end'); // End Host
-
-    // 스타일
+    // 서비스 노드 추가 (오른쪽)
     lines.push('');
-    lines.push(`style ${vprnId} fill:#e8eaf6,stroke:#1a237e,stroke-width:2px`);
-    lines.push(`style ${hostId} fill:#f5f5f5,stroke:#999,stroke-width:2px,stroke-dasharray: 5 5`);
+    lines.push(`${serviceNodeId}["${vprnLabel}"]`);
+    lines.push(`class ${serviceNodeId} service;`);
+
+
 
     return lines.join('\n');
 }
 
+
 export function generateServiceDiagram(
-    service: L2VPNService,
-    hostname: string,
+    service: L2VPNService | L2VPNService[],
+    hostname: string | string[],
     sdps: SDP[] = [], // Parent Config's SDPs
     remoteDeviceMap?: Map<string, string> // System IP -> Hostname map
 ): string {
-    if (service.serviceType === 'epipe') {
-        return generateEpipeDiagram(service as EpipeService, hostname, sdps, remoteDeviceMap);
-    } else if (service.serviceType === 'vpls') {
-        return generateVPLSDiagram(service as VPLSService, hostname, sdps, remoteDeviceMap);
-    } else if (service.serviceType === 'vprn') {
-        return generateVPRNDiagram(service as VPRNService, hostname);
+    // 배열로 정규화
+    const serviceArray = Array.isArray(service) ? service : [service];
+    const firstService = serviceArray[0];
+
+    if (firstService.serviceType === 'epipe') {
+        const epipes = serviceArray.filter(s => s.serviceType === 'epipe') as EpipeService[];
+        return generateEpipeDiagram(
+            epipes.length === 1 ? epipes[0] : epipes,
+            hostname,
+            sdps,
+            remoteDeviceMap
+        );
+    } else if (firstService.serviceType === 'vpls') {
+        const vplsServices = serviceArray.filter(s => s.serviceType === 'vpls') as VPLSService[];
+        return generateVPLSDiagram(
+            vplsServices.length === 1 ? vplsServices[0] : vplsServices,
+            hostname,
+            sdps,
+            remoteDeviceMap
+        );
+    } else if (firstService.serviceType === 'vprn') {
+        const vprnServices = serviceArray.filter(s => s.serviceType === 'vprn') as VPRNService[];
+        return generateVPRNDiagram(
+            vprnServices.length === 1 ? vprnServices[0] : vprnServices,
+            hostname
+        );
     }
 
     return '';
