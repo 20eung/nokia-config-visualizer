@@ -349,6 +349,8 @@ export function generateEpipeDiagram(
                     const qosText = qosParts.join('<br/>');
                     lines.push(`${qosNodeId}["${qosText}"]`);
                     lines.push(`class ${qosNodeId} qos;`);
+                    // Apply compact styling to reduce box size
+                    lines.push(`style ${qosNodeId} height:40px,min-height:40px,padding:2px 8px;`);
 
                     // Connect: SAP -> QoS -> Service
                     lines.push(`${sapNodeId} --- ${qosNodeId}`);
@@ -480,6 +482,8 @@ export function generateVPLSDiagram(
                 const qosText = qosParts.join('<br/>');
                 lines.push(`${qosNodeId}["${qosText}"]`);
                 lines.push(`class ${qosNodeId} qos;`);
+                // Apply compact styling to reduce box size
+                lines.push(`style ${qosNodeId} height:40px,min-height:40px,padding:2px 8px;`);
 
                 // Connect: SAP -> QoS -> Service
                 lines.push(`${sapNodeId} --- ${qosNodeId}`);
