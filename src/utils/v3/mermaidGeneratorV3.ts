@@ -292,43 +292,43 @@ export function generateEpipeDiagram(
             const safeHost = sanitizeNodeId(host);
             const hostId = `HOST_${safeHost}_G${groupCounter}_${idx}`;
 
-            lines.push(`subgraph ${hostId} ["\\u003cb\\u003e${noWrap(host)}\\u003c/b\\u003e"]`);
+            lines.push(`subgraph ${hostId} ["\u003cb\u003e${noWrap(host)}\u003c/b\u003e"]`);
             lines.push('direction TB');
 
             epipe.saps.forEach((sap, sapIdx) => {
                 const sapNodeId = `SAP_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
-                let label = `\\u003cdiv style=\\"text-align: left\\"\\u003e`;
-                label += `\\u003cb\\u003eSAP:\\u003c/b\\u003e ${sap.sapId}<br/>`;
-                label += `\\u003cb\\u003ePort:\\u003c/b\\u003e ${sap.portId}<br/>`;
+                let label = `\u003cdiv style=\"text-align: left\"\u003e`;
+                label += `\u003cb\u003eSAP:\u003c/b\u003e ${sap.sapId}<br/>`;
+                label += `\u003cb\u003ePort:\u003c/b\u003e ${sap.portId}<br/>`;
                 if (sap.portDescription) {
-                    label += `\\u003cb\\u003ePort Desc:\\u003c/b\\u003e ${noWrap(sap.portDescription)}<br/>`;
+                    label += `\u003cb\u003ePort Desc:\u003c/b\u003e ${noWrap(sap.portDescription)}<br/>`;
                 }
-                label += `\\u003cb\\u003eVLAN:\\u003c/b\\u003e ${sap.vlanId}<br/>`;
+                label += `\u003cb\u003eVLAN:\u003c/b\u003e ${sap.vlanId}<br/>`;
                 // SDP removed per request
-                label += `\\u003c/div\\u003e`;
-                lines.push(`${sapNodeId}[\\"${label}\\"]`);
+                label += `\u003c/div\u003e`;
+                lines.push(`${sapNodeId}[\"${label}\"]`);
             });
             lines.push('end');
         });
 
         // Render Service Node
-        let svcLabel = `\\u003cdiv style=\\"text-align: left\\"\\u003e`;
-        svcLabel += `\\u003cb\\u003eService:\\u003c/b\\u003e EPIPE ${first.serviceId}<br/>`;
+        let svcLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
+        svcLabel += `\u003cb\u003eService:\u003c/b\u003e EPIPE ${first.serviceId}<br/>`;
 
         if (first.serviceName) {
-            svcLabel += `\\u003cb\\u003eEPIPE Name:\\u003c/b\\u003e ${noWrap(first.serviceName)}<br/>`;
+            svcLabel += `\u003cb\u003eEPIPE Name:\u003c/b\u003e ${noWrap(first.serviceName)}<br/>`;
         }
         if (first.description) {
-            svcLabel += `\\u003cb\\u003eEPIPE Desc:\\u003c/b\\u003e ${first.description}<br/>`;
+            svcLabel += `\u003cb\u003eEPIPE Desc:\u003c/b\u003e ${first.description}<br/>`;
         }
         // Add SDP Info
         if (first.spokeSdps && first.spokeSdps.length > 0) {
             const sdp = first.spokeSdps[0];
-            svcLabel += `\\u003cb\\u003eSDP ${sdp.sdpId}:${sdp.vcId}\\u003c/b\\u003e<br/>`;
+            svcLabel += `\u003cb\u003eSDP ${sdp.sdpId}:${sdp.vcId}\u003c/b\u003e<br/>`;
         }
-        svcLabel += `\\u003c/div\\u003e`;
+        svcLabel += `\u003c/div\u003e`;
 
-        lines.push(`${svcNodeId}[\\"${svcLabel}\\"]`);
+        lines.push(`${svcNodeId}[\"${svcLabel}\"]`);
         lines.push(`class ${svcNodeId} service;`);
 
         // Links with QoS as intermediate nodes
@@ -352,7 +352,7 @@ export function generateEpipeDiagram(
                     // Create QoS as intermediate node for better visibility
                     const qosNodeId = `QOS_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
                     const qosText = qosParts.join('<br/>');
-                    lines.push(`${qosNodeId}[\\"${qosText}\\"]`);
+                    lines.push(`${qosNodeId}[\"${qosText}\"]`);
                     lines.push(`class ${qosNodeId} qos;`);
 
                     // Connect: SAP -> QoS -> Service
@@ -378,7 +378,7 @@ export function generateEpipeDiagram(
         renderSubset(noSdpGroup.epipes, noSdpGroup.hostnames, 'No SDP');
     }
 
-    return lines.join('\\n');
+    return lines.join('\n');
 }
 
 /**
