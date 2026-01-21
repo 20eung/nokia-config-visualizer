@@ -405,9 +405,10 @@ export function generateVPLSDiagram(
 
     lines.push('graph LR');
 
-    // Define clean styles
+    // Define clean styles (matching EPIPE)
     lines.push('classDef default fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left;');
     lines.push('classDef vpls fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000;');
+    lines.push('classDef qos fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff,padding:10px,border-radius:5px;');
 
     lines.push('');
 
@@ -430,23 +431,14 @@ export function generateVPLSDiagram(
 
             let sapLabel = `<div style="text-align: left">`;
             sapLabel += `<b>SAP:</b> ${sap.sapId}<br/>`;
-            sapLabel += `<b>Port:</b> ${sap.portId}${fmtDesc(sap.portDescription)}<br/>`;
-            sapLabel += `<b>VLAN:</b> ${sap.vlanId}<br/>`;
-
-            // 해당 SAP의 SDP 정보 (첫 번째 SAP에만 표시)
-            if (sapIdx === 0) {
-                if (currentVpls.spokeSdps && currentVpls.spokeSdps.length > 0) {
-                    currentVpls.spokeSdps.forEach(sdp => {
-                        sapLabel += `<b>Spoke SDP:</b> ${sdp.sdpId}:${sdp.vcId}<br/>`;
-                    });
-                }
-                if (currentVpls.meshSdps && currentVpls.meshSdps.length > 0) {
-                    currentVpls.meshSdps.forEach(sdp => {
-                        sapLabel += `<b>Mesh SDP:</b> ${sdp.sdpId}:${sdp.vcId}<br/>`;
-                    });
-                }
+            if (sap.description) {
+                sapLabel += `<b>SAP Desc:</b> ${noWrap(sap.description)}<br/>`;
             }
-
+            sapLabel += `<b>Port:</b> ${sap.portId}<br/>`;
+            if (sap.portDescription) {
+                sapLabel += `<b>Port Desc:</b> ${noWrap(sap.portDescription)}<br/>`;
+            }
+            sapLabel += `<b>VLAN:</b> ${sap.vlanId}<br/>`;
             sapLabel += `</div>`;
 
             lines.push(`${sapNodeId}["${sapLabel}"]`);
@@ -463,7 +455,7 @@ export function generateVPLSDiagram(
         vplsLabel += `<b>VPLS Name:</b> ${noWrap(firstVpls.serviceName)}<br/>`;
     }
     if (firstVpls.description) {
-        vplsLabel += `<b>VPLS Description:</b> ${firstVpls.description}<br/>`;
+        vplsLabel += `<b>VPLS Desc:</b> ${noWrap(firstVpls.description)}<br/>`;
     }
     vplsLabel += `</div>`;
 
@@ -478,16 +470,34 @@ export function generateVPLSDiagram(
         currentVpls.saps.forEach((sap, sapIdx) => {
             const sapNodeId = `SAP_${safeHost}_${vplsIdx}_${sapIdx}`;
 
-            // QoS 라벨 생성
-            let linkLabel = '';
+            // QoS 정보 수집
+            const qosParts: string[] = [];
             if (sap.ingressQos?.policyId) {
-                linkLabel = `In-QoS: ${sap.ingressQos.policyId}`;
+                qosParts.push(`In-QoS: ${sap.ingressQos.policyId}`);
+            }
+            if (sap.egressQos?.policyId) {
+                qosParts.push(`Out-QoS: ${sap.egressQos.policyId}`);
             }
 
-            if (linkLabel) {
-                lines.push(`${sapNodeId} ---|"${linkLabel}"| ${vplsNodeId}`);
+            if (qosParts.length > 0) {
+                // Create QoS as intermediate node (matching EPIPE style)
+                const qosNodeId = `QOS_${safeHost}_${vplsIdx}_${sapIdx}`;
+                const qosText = qosParts.join('<br/>');
+                lines.push(`${qosNodeId}["${qosText}"]`);
+                lines.push(`class ${qosNodeId} qos;`);
+
+                // Connect: SAP -> QoS -> Service
+                lines.push(`${sapNodeId} --- ${qosNodeId}`);
+                lines.push(`${qosNodeId} --- ${vplsNodeId}`);
             } else {
-                lines.push(`${sapNodeId} --- ${vplsNodeId}`);
+                // No QoS: Create empty placeholder box (matching EPIPE style)
+                const placeholderNodeId = `NOQOS_${safeHost}_${vplsIdx}_${sapIdx}`;
+                lines.push(`${placeholderNodeId}[" "]`);
+                lines.push(`style ${placeholderNodeId} fill:#ffffff,stroke:#cccccc,stroke-width:2px;`);
+
+                // Connect: SAP -> Empty Box -> Service
+                lines.push(`${sapNodeId} --- ${placeholderNodeId}`);
+                lines.push(`${placeholderNodeId} --- ${vplsNodeId}`);
             }
         });
     });
