@@ -20,20 +20,11 @@ export function ServiceListV3({
 }: ServiceListProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'epipe' | 'vpls' | 'vprn' | 'ies'>('all');
-    const [filterCustomer, setFilterCustomer] = useState<number | 'all'>('all');
-
-    // 고유한 Customer ID 목록
-    const customerIds = Array.from(new Set(services.map(s => s.customerId))).sort((a, b) => a - b);
 
     // 필터링된 서비스
     const filteredServices = services.filter(service => {
         // 타입 필터 (IES 포함)
         if (filterType !== 'all' && service.serviceType !== filterType) {
-            return false;
-        }
-
-        // Customer 필터
-        if (filterCustomer !== 'all' && service.customerId !== filterCustomer) {
             return false;
         }
 
@@ -160,23 +151,6 @@ export function ServiceListV3({
                         </button>
                     </div>
                 </div>
-
-                {/* Customer 필터: 사용자가 2명 이상일 때만 표시 */}
-                {customerIds.length > 1 && (
-                    <div className="filter-group">
-                        <label>Customer:</label>
-                        <select
-                            value={filterCustomer}
-                            onChange={(e) => setFilterCustomer(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-                            className="filter-select"
-                        >
-                            <option value="all">All</option>
-                            {customerIds.map(id => (
-                                <option key={id} value={id}>Customer {id}</option>
-                            ))}
-                        </select>
-                    </div>
-                )}
             </div>
 
             {/* 선택 버튼 */}
