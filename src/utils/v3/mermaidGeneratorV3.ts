@@ -271,7 +271,7 @@ export function generateEpipeDiagram(
     const lines: string[] = ['graph LR'];
     lines.push('classDef default fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left;');
     lines.push('classDef service fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000;');
-    lines.push('classDef qos fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff,text-align:center;');
+    lines.push('classDef qos fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff,text-align:center,padding:5px;');
     lines.push('');
 
     let groupCounter = 0;
@@ -403,7 +403,7 @@ export function generateVPLSDiagram(
     // Define clean styles (matching EPIPE)
     lines.push('classDef default fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left;');
     lines.push('classDef vpls fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000;');
-    lines.push('classDef qos fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff,padding:10px,border-radius:5px;');
+    lines.push('classDef qos fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff,padding:5px,border-radius:5px;');
 
     lines.push('');
 
