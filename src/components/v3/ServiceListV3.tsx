@@ -205,9 +205,8 @@ export function ServiceListV3({
                                                     {representative.description}
                                                 </div>
                                                 {serviceGroup.map((service, idx) => {
-                                                    // 해당 서비스가 속한 Config 찾기
-                                                    const parentConfig = configs.find(c => c.services.includes(service));
-                                                    const hostname = parentConfig?.hostname || 'Unknown';
+                                                    // Use _hostname property that was injected in V3Page
+                                                    const hostname = (service as any)._hostname || 'Unknown';
 
                                                     // SAP IDs 추출
                                                     const sapIds = 'saps' in service
@@ -282,8 +281,7 @@ export function ServiceListV3({
                                                     {representative.description}
                                                 </div>
                                                 {serviceGroup.map((service, idx) => {
-                                                    const parentConfig = configs.find(c => c.services.includes(service));
-                                                    const hostname = parentConfig?.hostname || 'Unknown';
+                                                    const hostname = (service as any)._hostname || 'Unknown';
 
                                                     const sapIds = 'saps' in service ? service.saps.map(sap => sap.sapId).join(', ') : '';
                                                     const spokeSdpIds = 'spokeSdps' in service && service.spokeSdps ? service.spokeSdps.map(sdp => `${sdp.sdpId}:${sdp.vcId}`).join(', ') : '';
@@ -349,8 +347,7 @@ export function ServiceListV3({
                                                     {representative.description}
                                                 </div>
                                                 {serviceGroup.map((service, idx) => {
-                                                    const parentConfig = configs.find(c => c.services.includes(service));
-                                                    const hostname = parentConfig?.hostname || 'Unknown';
+                                                    const hostname = (service as any)._hostname || 'Unknown';
 
                                                     const ifNames = 'interfaces' in service ? service.interfaces.map(intf => intf.interfaceName).join(', ') : '';
 
