@@ -359,14 +359,8 @@ export function generateEpipeDiagram(
                     lines.push(`${sapNodeId} --- ${qosNodeId}`);
                     lines.push(`${qosNodeId} --- ${svcNodeId}`);
                 } else {
-                    // No QoS: Create transparent dummy node for consistent layout
-                    const dummyNodeId = `DUMMY_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
-                    lines.push(`${dummyNodeId}[" "]`);
-                    lines.push(`style ${dummyNodeId} fill:transparent,stroke:transparent,color:transparent;`);
-
-                    // Connect: SAP -> Dummy -> Service
-                    lines.push(`${sapNodeId} --- ${dummyNodeId}`);
-                    lines.push(`${dummyNodeId} --- ${svcNodeId}`);
+                    // No QoS: direct connection
+                    lines.push(`${sapNodeId} --- ${svcNodeId}`);
                 }
             });
         });
