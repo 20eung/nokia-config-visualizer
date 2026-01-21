@@ -344,27 +344,13 @@ export function generateEpipeDiagram(
                 }
 
                 if (qosParts.length > 0) {
-                    // Create QoS as intermediate node for better visibility
-                    const qosNodeId = `QOS_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
-                    const qosText = qosParts.join('<br/>');
-                    lines.push(`${qosNodeId}["${qosText}"]`);
-                    lines.push(`class ${qosNodeId} qos;`);
-                    // Apply compact styling to reduce box size
-                    lines.push(`style ${qosNodeId} height:40px,min-height:40px,padding:2px 8px;`);
-
-                    // Connect: SAP -> QoS -> Service
-                    lines.push(`${sapNodeId} --- ${qosNodeId}`);
-                    lines.push(`${qosNodeId} --- ${svcNodeId}`);
+                if (qosParts.length > 0) {
+                    // V1 Style: QoS as link label (more compact)
+                    const qosLabel = qosParts.join('<br/>');
+                    lines.push(`${sapNodeId} -->|"${qosLabel}"| ${svcNodeId}`);
                 } else {
-                    // No QoS: Create empty placeholder box to indicate missing configuration
-                    const placeholderNodeId = `NOQOS_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
-                    lines.push(`${placeholderNodeId}[" "]`);
-                    // Empty box with border but no background color
-                    lines.push(`style ${placeholderNodeId} fill:#ffffff,stroke:#cccccc,stroke-width:2px;`);
-
-                    // Connect: SAP -> Empty Box -> Service
-                    lines.push(`${sapNodeId} --- ${placeholderNodeId}`);
-                    lines.push(`${placeholderNodeId} --- ${svcNodeId}`);
+                    // No QoS: direct connection
+                    lines.push(`${sapNodeId} --- ${svcNodeId}`);
                 }
             });
         });
@@ -477,29 +463,14 @@ export function generateVPLSDiagram(
             }
 
             if (qosParts.length > 0) {
-                // Create QoS as intermediate node (matching EPIPE style)
-                const qosNodeId = `QOS_${safeHost}_${vplsIdx}_${sapIdx}`;
-                const qosText = qosParts.join('<br/>');
-                lines.push(`${qosNodeId}["${qosText}"]`);
-                lines.push(`class ${qosNodeId} qos;`);
-                // Apply compact styling to reduce box size
-                lines.push(`style ${qosNodeId} height:40px,min-height:40px,padding:2px 8px;`);
-
-                // Connect: SAP -> QoS -> Service
-                lines.push(`${sapNodeId} --- ${qosNodeId}`);
-                lines.push(`${qosNodeId} --- ${vplsNodeId}`);
+            if (qosParts.length > 0) {
+                // V1 Style: QoS as link label (more compact)
+                const qosLabel = qosParts.join('<br/>');
+                lines.push(`${sapNodeId} -->|"${qosLabel}"| ${vplsNodeId}`);
             } else {
-                // No QoS: Create empty placeholder box (matching EPIPE style)
-                const placeholderNodeId = `NOQOS_${safeHost}_${vplsIdx}_${sapIdx}`;
-                lines.push(`${placeholderNodeId}[" "]`);
-                lines.push(`style ${placeholderNodeId} fill:#ffffff,stroke:#cccccc,stroke-width:2px;`);
-
-                // Connect: SAP -> Empty Box -> Service
-                lines.push(`${sapNodeId} --- ${placeholderNodeId}`);
-                lines.push(`${placeholderNodeId} --- ${vplsNodeId}`);
+                // No QoS: direct connection
+                lines.push(`${sapNodeId} --- ${vplsNodeId}`);
             }
-        });
-    });
 
     return lines.join('\n');
 }
