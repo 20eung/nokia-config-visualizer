@@ -731,78 +731,98 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
     const baseInterfaces: L3Interface[] = [];
     const lines = configText.split('\n');
 
-    // Reuse VPRN Logic for Interface Parsing, but apply to Base context
-    // Base interfaces are defined at root level: interface "Active_To_Suwon_Primary"
+    // Pass 1: Identify Service Block Ranges to exclude (Epipe, VPLS, VPRN)
+    // We do NOT exclude 'ies' here because standard L2VPN parser doesn't handle them,
+    // so we want them merged into Base Router (IES 0) or we need to update L2VPN parser.
+    // For now, let's treat explicit IES services as part of Base Router.
+    const serviceRanges: { start: number; end: number }[] = [];
+    const serviceStartRegex = /^\s*(epipe|vpls|vprn)\s+\d+(?:\s+name\s+"[^"]+")?\s+customer\s+\d+.*create/i;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (serviceStartRegex.test(line)) {
+            const startIndent = line.length - line.trimStart().length;
+            // Find end
+            let j = i + 1;
+            while (j < lines.length) {
+                const inner = lines[j];
+                // Check for exit
+                const innerTrimmed = inner.trim();
+                const innerIndent = inner.length - inner.trimStart().length;
+
+                if (innerTrimmed === 'exit' && innerIndent === startIndent) {
+                    break;
+                }
+
+                // Safety: if indent drops below start and line is not empty, we likely exited
+                if (innerIndent < startIndent && innerTrimmed !== '') {
+                    j--; // The current line belongs to outer block
+                    break;
+                }
+                j++;
+            }
+            serviceRanges.push({ start: i, end: j });
+            i = j; // Skip content
+        }
+    }
+
+    // Pass 2: Find Interfaces NOT in Service Ranges
     const interfacePattern = /^\s*interface\s+"([^"]+)"(?:\s+create)?/;
 
-    // Helper to find block end indent
-    // This logic is similar to extractSection but we need to scan file for root service blocks
-    // We already have nokiaParser.ts (v1) logic. Let's port refined version here.
-
-    let i = 0;
-    while (i < lines.length) {
+    for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const match = line.match(interfacePattern);
 
-        // Ensure it's NOT inside a service block (indent 0 or inside router Base)
-        // For simplicity, we assume root interfaces or 'router Base' context interfaces start with minimal indent
-        // or we check if we are inside a 'service' block.
-        // Actually, easiest way is to re-scan file for top-level interfaces.
-
-        // Refined Strategy:
-        // Use regex for all 'interface "..."' and check content.
-        // Only consider those NOT captured by IES/VPRN parsers?
-        // Actually, service interfaces are indented usually 8 or 12 spaces.
-        // Base interfaces are indent 0 or 4 (inside 'router').
-
-        // Let's iterate and check indentation.
-        // Standard Base Interface:
-        // interface "system" 
-        //     address 1.1.1.1/32
-        // exit
-
         if (match) {
-            const ifName = match[1];
-            const currentIndent = line.length - line.trimStart().length;
+            // Check if inside any service range
+            const isInsideService = serviceRanges.some(range => i > range.start && i < range.end);
 
-            // Typically Base interfaces are at root or indent 4. Service interfaces are deeper.
-            // Heuristic: Indent <= 4 is Base.
-            if (currentIndent <= 4) {
+            if (!isInsideService) {
+                const ifName = match[1];
+                const startIndent = line.length - line.trimStart().length;
+
                 // Parse Block
                 const blockStart = i;
                 let blockEnd = i;
                 // Find exit
                 for (let j = i + 1; j < lines.length; j++) {
                     const sub = lines[j];
+                    const subTrimmed = sub.trim();
                     const subIndent = sub.length - sub.trimStart().length;
-                    if (sub.trim() === 'exit' && subIndent === currentIndent) {
+
+                    if (subTrimmed === 'exit' && subIndent === startIndent) {
                         blockEnd = j;
                         break;
                     }
+                    // Implicit exit safety
+                    if (subIndent < startIndent && subTrimmed !== '') {
+                        blockEnd = j - 1;
+                        break;
+                    }
+                    blockEnd = j; // extend block
                 }
 
                 const ifContent = lines.slice(blockStart, blockEnd + 1).join('\n');
 
-                // Reuse parsing regex from extractVPRN... or nokiaParser
+                // Parsing Regex
                 const ipMatch = ifContent.match(/address\s+([\d.\/]+)/i);
-                const portMatch = ifContent.match(/port\s+([\w\/-]+)/i) || ifContent.match(/sap\s+([\w\/-]+:?\d*)/i); // Base supports port or SAP? usually port.
+                const portMatch = ifContent.match(/port\s+([\w\/-]+)/i) || ifContent.match(/sap\s+([\w\/-]+:?\d*)/i);
                 const descMatch = ifContent.match(/description\s+"?([^"\n]+)"?/);
 
-                // Only add if it has IP or is critical
+                // Valid interface check (must have IP or Port to be useful)
                 if (ipMatch || portMatch) {
                     baseInterfaces.push({
                         interfaceName: ifName,
                         ipAddress: ipMatch?.[1],
                         portId: portMatch?.[1],
                         description: descMatch ? descMatch[1] : undefined,
-                        adminState: 'up' // Default
+                        adminState: 'up'
                     });
                 }
 
                 i = blockEnd; // Skip block
             }
         }
-        i++;
     }
 
     // Static Routes (Global)
