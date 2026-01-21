@@ -220,7 +220,7 @@ function isIpInSubnet(ip: string, cidr: string): boolean {
 }
 
 // Helper: Format descriptions (from V1)
-const fmtDesc = (desc?: string): string => {
+const _fmtDesc = (desc?: string): string => {
     if (!desc) return '';
     return `<br/>(${noWrap(desc)})`;
 };
