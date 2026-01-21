@@ -344,7 +344,6 @@ export function generateEpipeDiagram(
                 }
 
                 if (qosParts.length > 0) {
-                if (qosParts.length > 0) {
                     // V1 Style: QoS as link label (more compact)
                     const qosLabel = qosParts.join('<br/>');
                     lines.push(`${sapNodeId} -->|"${qosLabel}"| ${svcNodeId}`);
@@ -463,7 +462,6 @@ export function generateVPLSDiagram(
             }
 
             if (qosParts.length > 0) {
-            if (qosParts.length > 0) {
                 // V1 Style: QoS as link label (more compact)
                 const qosLabel = qosParts.join('<br/>');
                 lines.push(`${sapNodeId} -->|"${qosLabel}"| ${vplsNodeId}`);
@@ -471,6 +469,8 @@ export function generateVPLSDiagram(
                 // No QoS: direct connection
                 lines.push(`${sapNodeId} --- ${vplsNodeId}`);
             }
+        });
+    });
 
     return lines.join('\n');
 }
