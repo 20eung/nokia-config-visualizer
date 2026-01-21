@@ -733,7 +733,7 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
 
     // Reuse VPRN Logic for Interface Parsing, but apply to Base context
     // Base interfaces are defined at root level: interface "Active_To_Suwon_Primary"
-    const interfacePattern = /^interface\s+"([^"]+)"(?:\s+create)?/;
+    const interfacePattern = /^\s*interface\s+"([^"]+)"(?:\s+create)?/;
 
     // Helper to find block end indent
     // This logic is similar to extractSection but we need to scan file for root service blocks
