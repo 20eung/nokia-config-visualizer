@@ -239,96 +239,146 @@ export function generateEpipeDiagram(
     const epipeArray = Array.isArray(epipes) ? epipes : [epipes];
     const hostnameArray = Array.isArray(hostname) ? hostname : [hostname];
 
-    const lines: string[] = [];
+    // SDP 기반 그룹화 로직 (User Request: Verify SDP)
+    // 1. SDP Target(ID:VC)별로 서비스를 분류
+    // 2. 만약 하나라도 동일 SDP Target을 공유하는 서비스가 2개 이상 있다면 (Hub/Spoke 구조 등),
+    //    이질적인 SDP를 가진 놈들을 분리해서 그리기 위해 'Split Mode' 진입
+    // 3. 그렇지 않다면 (모두 1:1이거나 SDP 없음) 기존처럼 'Merge Mode' (하나의 Service Box)
 
-    lines.push('graph LR');
+    const sdpGroups = new Map<string, { epipes: EpipeService[], hostnames: string[] }>();
+    const noSdpGroup: { epipes: EpipeService[], hostnames: string[] } = { epipes: [], hostnames: [] };
 
-    // Define clean styles
+    epipeArray.forEach((epipe, idx) => {
+        const host = hostnameArray[idx] || hostnameArray[0];
+
+        if (epipe.spokeSdps && epipe.spokeSdps.length > 0) {
+            // Use first SDP for grouping (Primary path)
+            const primarySdp = epipe.spokeSdps[0];
+            const sdpKey = `${primarySdp.sdpId}:${primarySdp.vcId}`;
+
+            if (!sdpGroups.has(sdpKey)) {
+                sdpGroups.set(sdpKey, { epipes: [], hostnames: [] });
+            }
+            sdpGroups.get(sdpKey)!.epipes.push(epipe);
+            sdpGroups.get(sdpKey)!.hostnames.push(host);
+        } else {
+            noSdpGroup.epipes.push(epipe);
+            noSdpGroup.hostnames.push(host);
+        }
+    });
+
+    // Check Trigger Condition: Always group by SDP for consistency
+    // User Request: "Host=1 should look like Host>=2 format"
+    // We remove the fallback 'Merge Mode' and always use the 'Split/Group Mode' 
+    // which generates consistent Service Labels and separates discongruent SDPs.
+
+    // SPLIT MODE: Generate separate diagrams for each SDP Group + NoSDP Group
+    const lines: string[] = ['graph LR'];
     lines.push('classDef default fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left;');
     lines.push('classDef service fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000;');
-
+    lines.push('classDef qos fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff,text-align:center;');
     lines.push('');
 
-    // 왼쪽: 각 호스트별 서브그래프
-    const firstEpipe = epipeArray[0];
-    const serviceNodeId = `SERVICE_${firstEpipe.serviceId}`;
+    let groupCounter = 0;
 
-    epipeArray.forEach((epipe, idx) => {
-        const host = hostnameArray[idx] || hostnameArray[0];
-        const safeHost = sanitizeNodeId(host);
-        const hostId = `HOST_${safeHost}_${idx}`;
+    // Helper to render a subset
+    const renderSubset = (subsetEpipes: EpipeService[], subsetHosts: string[], _groupLabel: string) => {
+        const first = subsetEpipes[0];
+        const svcNodeId = `SERVICE_${first.serviceId}_G${groupCounter}`;
 
-        // Host Subgraph
-        lines.push(`subgraph ${hostId} ["\u003cb\u003e${noWrap(host)}\u003c/b\u003e"]`);
-        lines.push('direction TB'); // 세로 배치
+        // Render Hosts
+        subsetEpipes.forEach((epipe, idx) => {
+            const host = subsetHosts[idx];
+            const safeHost = sanitizeNodeId(host);
+            const hostId = `HOST_${safeHost}_G${groupCounter}_${idx}`;
 
-        epipe.saps.forEach((sap, sapIdx) => {
-            const sapNodeId = `SAP_${safeHost}_${idx}_${sapIdx}`;
+            lines.push(`subgraph ${hostId} ["\\u003cb\\u003e${noWrap(host)}\\u003c/b\\u003e"]`);
+            lines.push('direction TB');
 
-            let label = `\u003cdiv style=\"text-align: left\"\u003e`;
-            label += `\u003cb\u003eSAP:\u003c/b\u003e ${sap.sapId}<br/>`;
-            label += `\u003cb\u003ePort:\u003c/b\u003e ${sap.portId}${fmtDesc(sap.portDescription)}<br/>`;
-            label += `\u003cb\u003eVLAN:\u003c/b\u003e ${sap.vlanId}<br/>`;
-
-            // SDP 정보 (SAP 박스 안에 포함)
-            if (epipe.spokeSdps && epipe.spokeSdps.length > 0) {
-                // Epipe는 보통 1개의 Active SDP를 가짐, 모두 표시
-                epipe.spokeSdps.forEach(sdp => {
-                    label += `\u003cb\u003eSDP:\u003c/b\u003e ${sdp.sdpId}:${sdp.vcId}<br/>`;
-                });
-            }
-
-            label += `\u003c/div\u003e`;
-            lines.push(`${sapNodeId}[\"${label}\"]`);
+            epipe.saps.forEach((sap, sapIdx) => {
+                const sapNodeId = `SAP_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
+                let label = `\\u003cdiv style=\\"text-align: left\\"\\u003e`;
+                label += `\\u003cb\\u003eSAP:\\u003c/b\\u003e ${sap.sapId}<br/>`;
+                label += `\\u003cb\\u003ePort:\\u003c/b\\u003e ${sap.portId}<br/>`;
+                if (sap.portDescription) {
+                    label += `\\u003cb\\u003ePort Desc:\\u003c/b\\u003e ${noWrap(sap.portDescription)}<br/>`;
+                }
+                label += `\\u003cb\\u003eVLAN:\\u003c/b\\u003e ${sap.vlanId}<br/>`;
+                // SDP removed per request
+                label += `\\u003c/div\\u003e`;
+                lines.push(`${sapNodeId}[\\"${label}\\"]`);
+            });
+            lines.push('end');
         });
 
-        lines.push('end'); // End Host Subgraph
-    });
+        // Render Service Node
+        let svcLabel = `\\u003cdiv style=\\"text-align: left\\"\\u003e`;
+        svcLabel += `\\u003cb\\u003eService:\\u003c/b\\u003e EPIPE ${first.serviceId}<br/>`;
 
-    // 오른쪽: 서비스 정보 노드
-    lines.push('');
-    let serviceLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
-    serviceLabel += `\u003cb\u003eService:\u003c/b\u003e EPIPE ${firstEpipe.serviceId}<br/>`;
+        if (first.serviceName) {
+            svcLabel += `\\u003cb\\u003eEPIPE Name:\\u003c/b\\u003e ${noWrap(first.serviceName)}<br/>`;
+        }
+        if (first.description) {
+            svcLabel += `\\u003cb\\u003eEPIPE Desc:\\u003c/b\\u003e ${first.description}<br/>`;
+        }
+        // Add SDP Info
+        if (first.spokeSdps && first.spokeSdps.length > 0) {
+            const sdp = first.spokeSdps[0];
+            svcLabel += `\\u003cb\\u003eSDP ${sdp.sdpId}:${sdp.vcId}\\u003c/b\\u003e<br/>`;
+        }
+        svcLabel += `\\u003c/div\\u003e`;
 
-    if (firstEpipe.serviceName) {
-        serviceLabel += `\u003cb\u003eEPIPE Name:\u003c/b\u003e ${noWrap(firstEpipe.serviceName)}<br/>`;
-    }
-    if (firstEpipe.description) {
-        serviceLabel += `\u003cb\u003eEPIPE Description:\u003c/b\u003e ${firstEpipe.description}<br/>`;
-    }
-    serviceLabel += `\u003c/div\u003e`;
+        lines.push(`${svcNodeId}[\\"${svcLabel}\\"]`);
+        lines.push(`class ${svcNodeId} service;`);
 
-    lines.push(`${serviceNodeId}[\"${serviceLabel}\"]`);
-    lines.push(`class ${serviceNodeId} service;`);
+        // Links with QoS as intermediate nodes
+        subsetEpipes.forEach((epipe, idx) => {
+            const host = subsetHosts[idx];
+            const safeHost = sanitizeNodeId(host);
+            epipe.saps.forEach((sap, sapIdx) => {
+                const sapNodeId = `SAP_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
 
-    // 연결선: SAP -> Service (QoS 포함)
-    epipeArray.forEach((epipe, idx) => {
-        const host = hostnameArray[idx] || hostnameArray[0];
-        const safeHost = sanitizeNodeId(host);
+                // QoS logic - Create intermediate node for visibility
+                // User Request: Format "In-QoS: 20", Background Color Green (Match Main Branch)
+                const qosParts: string[] = [];
+                if (sap.ingressQos?.policyId) {
+                    qosParts.push(`In-QoS: ${sap.ingressQos.policyId}`);
+                }
+                if (sap.egressQos?.policyId) {
+                    qosParts.push(`Out-QoS: ${sap.egressQos.policyId}`);
+                }
 
-        epipe.saps.forEach((sap, sapIdx) => {
-            const sapNodeId = `SAP_${safeHost}_${idx}_${sapIdx}`;
+                if (qosParts.length > 0) {
+                    // Create QoS as intermediate node for better visibility
+                    const qosNodeId = `QOS_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
+                    const qosText = qosParts.join('<br/>');
+                    lines.push(`${qosNodeId}[\\"${qosText}\\"]`);
+                    lines.push(`class ${qosNodeId} qos;`);
 
-            let qosLabel = '';
-            // Ingress QoS
-            if (sap.ingressQos?.policyId) {
-                qosLabel += `In-QoS: ${sap.ingressQos.policyId}`;
-            }
-
-            if (sap.egressQos?.policyId) {
-                if (qosLabel) qosLabel += '<br/>';
-                qosLabel += `Out-QoS: ${sap.egressQos.policyId}`; // Out-QoS도 표시
-            }
-
-            if (qosLabel) {
-                lines.push(`${sapNodeId} ---|\"${qosLabel}\"| ${serviceNodeId}`);
-            } else {
-                lines.push(`${sapNodeId} --- ${serviceNodeId}`);
-            }
+                    // Connect: SAP -> QoS -> Service
+                    lines.push(`${sapNodeId} --- ${qosNodeId}`);
+                    lines.push(`${qosNodeId} --- ${svcNodeId}`);
+                } else {
+                    // No QoS: direct connection
+                    lines.push(`${sapNodeId} --- ${svcNodeId}`);
+                }
+            });
         });
+
+        groupCounter++;
+    };
+
+    // Render each SDP Group
+    sdpGroups.forEach((val, key) => {
+        renderSubset(val.epipes, val.hostnames, `Link: ${key}`);
     });
 
-    return lines.join('\n');
+    // Render No SDP Group
+    if (noSdpGroup.epipes.length > 0) {
+        renderSubset(noSdpGroup.epipes, noSdpGroup.hostnames, 'No SDP');
+    }
+
+    return lines.join('\\n');
 }
 
 /**
