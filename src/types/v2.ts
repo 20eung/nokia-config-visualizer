@@ -160,6 +160,20 @@ export interface L3Interface {
     adminState: AdminState;
 }
 
+export interface OSPFInterface {
+    interfaceName: string;
+    interfaceType?: string; // e.g., "point-to-point"
+    adminState: AdminState;
+}
+
+export interface OSPF {
+    areas: Array<{
+        areaId: string;
+        interfaces: OSPFInterface[];
+    }>;
+    adminState: AdminState;
+}
+
 export interface VPRNService extends BaseService {
     serviceType: 'vprn';
     autonomousSystem?: number;
@@ -169,6 +183,7 @@ export interface VPRNService extends BaseService {
     interfaces: L3Interface[];
     bgpNeighbors: { neighborIp: string; autonomousSystem?: number }[];     // Neighbor IPs with AS
     staticRoutes: StaticRoute[];
+    ospf?: OSPF;
 }
 
 /**

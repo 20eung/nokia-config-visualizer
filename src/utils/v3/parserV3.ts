@@ -12,6 +12,8 @@ import type {
     QosPolicy,
     AdminState,
     DeliveryType,
+    OSPF,
+    OSPFInterface
 } from '../../types/v2';
 
 // Force IES Type Definition for v3 (Temporary until types/v2 is updated or v3 types created)
@@ -451,466 +453,537 @@ export function parseVPRN(
                 autonomousSystem: asMatch ? parseInt(asMatch[1]) : undefined
             });
         }
-    }
 
-    // Static Route 파싱 (Enhanced)
-    const staticRoutes: StaticRoute[] = [];
+        // OSPF Parsing
+        let ospf: OSPF | undefined;
+        // Proper block extraction for OSPF
+        const ospfBlock = extractSection(content, 'ospf');
+        if (ospfBlock) {
+            const areas: { areaId: string; interfaces: OSPFInterface[] }[] = [];
 
-    // 1. One-line format: static-route <prefix> next-hop <ip>
-    const oneLineRegex = /static-route\s+([\d.\/]+)\s+next-hop\s+([\d.]+)/g;
-    for (const m of content.matchAll(oneLineRegex)) {
-        staticRoutes.push({ prefix: m[1], nextHop: m[2] });
-    }
+            // Iterate manually to handle nested blocks safely using indentation-based approach
+            const ospfLines = ospfBlock.split('\n');
+            let currentAreaId: string | null = null;
+            let currentAreaInterfaces: OSPFInterface[] = [];
 
-    // 2. Block format: static-route-entry <prefix> ... next-hop <ip> ... exit
-    // Iterate lines to handle nested 'next-hop ... exit' blocks correctly
-    const lines = content.split('\n');
-    let currentPrefix: string | null = null;
-    let entryIndent = -1;
+            for (let i = 0; i < ospfLines.length; i++) {
+                const line = ospfLines[i];
+                const trimmed = line.trim();
 
-    for (const line of lines) {
-        // static-route-entry start
-        const entryMatch = line.match(/static-route-entry\s+([\d.\/]+)/);
-        if (entryMatch) {
-            currentPrefix = entryMatch[1];
-            entryIndent = line.search(/\S/); // Count leading spaces
-            continue;
-        }
-
-        if (currentPrefix) {
-            // Check if block ended (exit at same indent)
-            const trimLine = line.trim();
-            const currentIndent = line.search(/\S/);
-
-            // Note: Sometimes indentation might vary or empty lines.
-            // If we see 'exit' at exact indent, we close.
-            if (trimLine === 'exit' && currentIndent === entryIndent) {
-                currentPrefix = null;
-                continue;
-            }
-
-            // Look for next-hop
-            const nhMatch = trimLine.match(/next-hop\s+([\d.]+)/);
-            if (nhMatch) {
-                staticRoutes.push({ prefix: currentPrefix, nextHop: nhMatch[1] });
-            }
-        }
-    }
-
-    return {
-        serviceType: 'vprn',
-        serviceId,
-        serviceName: finalServiceName,
-        customerId,
-        description,
-        adminState,
-        autonomousSystem: asMatch ? parseInt(asMatch[1]) : undefined,
-        bgpRouterId,
-        routeDistinguisher: rdMatch ? rdMatch[1] : undefined,
-        vrfTarget: vrfMatch ? vrfMatch[1] : undefined,
-        interfaces,
-        bgpNeighbors,
-        staticRoutes
-    };
-}
-
-/**
- * L2/L3 VPN 서비스 파싱
- */
-export function parseL2VPNServices(configText: string): NokiaServiceV3[] {
-    const services: NokiaService[] = [];
-    const serviceSection = extractSection(configText, 'service');
-
-    if (!serviceSection) return services;
-
-    const lines = serviceSection.split('\n');
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const trimmed = line.trim();
-
-        // Identify service start
-        // 7750 SR: epipe 1026 name "..." customer 1 create
-        // 7210 SAS: epipe 1543 customer 1 svc-sap-type any create
-        const match = trimmed.match(/^(epipe|vpls|vprn)\s+(\d+)(?:\s+name\s+"([^"]+)")?\s+customer\s+(\d+).*\s+create/i);
-        if (match) {
-            const type = match[1].toLowerCase();
-            const serviceId = parseInt(match[2]);
-            const name = match[3] || ''; // Might be undefined
-            const customerId = parseInt(match[4]);
-
-            // Extract block by indentation
-            const startIndent = line.length - line.trimStart().length;
-            const blockLines: string[] = [line];
-
-            let j = i + 1;
-            while (j < lines.length) {
-                const innerLine = lines[j];
-                const innerTrimmed = innerLine.trim();
-
-                // Allow empty lines inside block
-                if (!innerTrimmed) {
-                    blockLines.push(innerLine);
-                    j++;
+                const areaMatch = trimmed.match(/^area\s+([\d.]+)/);
+                if (areaMatch) {
+                    // Save previous area if any
+                    if (currentAreaId) {
+                        areas.push({ areaId: currentAreaId, interfaces: currentAreaInterfaces });
+                    }
+                    currentAreaId = areaMatch[1];
+                    currentAreaInterfaces = [];
                     continue;
                 }
 
-                const innerIndent = innerLine.length - innerLine.trimStart().length;
+                // Interface inside area
+                // interface "p3/2/23"
+                const intMatch = trimmed.match(/^interface\s+"([^"]+)"/);
+                if (currentAreaId && intMatch) {
+                    const intName = intMatch[1];
+                    let intType = undefined;
+                    let intAdmin = 'up'; // default
 
-                // End of block: 'exit' at same indentation
-                if (innerTrimmed === 'exit' && innerIndent === startIndent) {
-                    blockLines.push(innerLine); // Include exit
-                    j++; // Consume exit
-                    break;
-                }
-
-                // Safety: if indentation drops below start, we lost the block
-                // This handles cases where exit might be missing (rare) or malformed
-                if (innerIndent < startIndent) {
-                    // Do NOT consume this line, it belongs to outer block
-                    break;
-                }
-
-                blockLines.push(innerLine);
-                j++;
-            }
-
-            // Advance main loop (j points to next line to process)
-            i = j - 1;
-
-            const fullBlock = blockLines.join('\n');
-            const content = fullBlock; // Use full block as content
-
-            // Note: Parser functions below might extract Description again from content. 
-            // We pass 'name' logic if needed, but currently parseEpipe etc don't take it.
-            // We'll rely on parseEpipe extracting description from the body.
-
-            if (type === 'epipe') {
-                const newService = parseEpipe(serviceId, customerId, content, name);
-                const existingIndex = services.findIndex(s => s.serviceId === serviceId && s.serviceType === 'epipe');
-                if (existingIndex !== -1) {
-                    // Merge
-                    const existing = services[existingIndex] as EpipeService;
-                    services[existingIndex] = {
-                        ...existing,
-                        ...newService,
-                        serviceName: existing.serviceName || newService.serviceName, // Prefer existing unless empty
-                        saps: [...existing.saps, ...newService.saps], // Simple concat for SAPs (could be smarter)
-                        spokeSdps: [...(existing.spokeSdps || []), ...(newService.spokeSdps || [])],
-                        description: existing.description || newService.description // Prefer existing unless empty
-                    };
-                } else {
-                    services.push(newService);
-                }
-            } else if (type === 'vpls') {
-                const newService = parseVPLS(serviceId, customerId, content, name);
-                const existingIndex = services.findIndex(s => s.serviceId === serviceId && s.serviceType === 'vpls');
-                if (existingIndex !== -1) {
-                    const existing = services[existingIndex] as VPLSService;
-                    services[existingIndex] = {
-                        ...existing,
-                        ...newService,
-                        serviceName: existing.serviceName || newService.serviceName,
-                        saps: [...existing.saps, ...newService.saps],
-                        meshSdps: [...(existing.meshSdps || []), ...(newService.meshSdps || [])],
-                        spokeSdps: [...(existing.spokeSdps || []), ...(newService.spokeSdps || [])],
-                        description: existing.description || newService.description
-                    };
-                } else {
-                    services.push(newService);
-                }
-            } else if (type === 'vprn') {
-                const newService = parseVPRN(serviceId, customerId, content, name);
-                const existingIndex = services.findIndex(s => s.serviceId === serviceId && s.serviceType === 'vprn');
-                if (existingIndex !== -1) {
-                    const existing = services[existingIndex] as VPRNService;
-                    // Merge interfaces by name
-                    const mergedInterfaces = [...existing.interfaces];
-                    newService.interfaces.forEach(newIf => {
-                        const idx = mergedInterfaces.findIndex(iface => iface.interfaceName === newIf.interfaceName);
-                        if (idx !== -1) {
-                            // Merge interface details (prefer non-empty)
-                            mergedInterfaces[idx] = {
-                                ...mergedInterfaces[idx],
-                                ...newIf,
-                                ipAddress: mergedInterfaces[idx].ipAddress || newIf.ipAddress,
-                                portId: mergedInterfaces[idx].portId || newIf.portId,
-                                vrrpGroupId: mergedInterfaces[idx].vrrpGroupId || newIf.vrrpGroupId
-                            };
-                        } else {
-                            mergedInterfaces.push(newIf);
+                    // Look ahead for properties until 'exit' or next interface
+                    let j = i + 1;
+                    while (j < ospfLines.length) {
+                        const inner = ospfLines[j].trim();
+                        if (inner.startsWith('interface') || inner.startsWith('area') || (inner === 'exit' && ospfLines[j].search(/\S/) <= line.search(/\S/))) {
+                            break;
                         }
+
+                        const typeMatch = inner.match(/interface-type\s+([\w-]+)/);
+                        if (typeMatch) intType = typeMatch[1];
+
+                        if (inner === 'shutdown') intAdmin = 'down';
+                        if (inner === 'no shutdown') intAdmin = 'up';
+
+                        j++;
+                    }
+
+                    currentAreaInterfaces.push({
+                        interfaceName: intName,
+                        interfaceType: intType,
+                        adminState: intAdmin as 'up' | 'down'
                     });
+                }
+            }
 
-                    services[existingIndex] = {
-                        ...existing,
-                        ...newService,
-                        serviceName: existing.serviceName || newService.serviceName,
-                        description: existing.description || newService.description,
-                        autonomousSystem: existing.autonomousSystem || newService.autonomousSystem,
-                        routeDistinguisher: existing.routeDistinguisher || newService.routeDistinguisher,
-                        interfaces: mergedInterfaces,
-                        bgpNeighbors: [...new Set([...existing.bgpNeighbors, ...newService.bgpNeighbors])],
-                        staticRoutes: [...new Set([...existing.staticRoutes, ...newService.staticRoutes])]
-                    };
-                } else {
-                    services.push(newService);
+            // Push last area
+            if (currentAreaId) {
+                areas.push({ areaId: currentAreaId, interfaces: currentAreaInterfaces });
+            }
+
+            ospf = {
+                areas,
+                adminState: ospfBlock.includes('shutdown') && !ospfBlock.includes('no shutdown') ? 'down' : 'up'
+            };
+        }
+
+        // Static Route 파싱 (Enhanced)
+        const staticRoutes: StaticRoute[] = [];
+
+        // 1. One-line format: static-route <prefix> next-hop <ip>
+        const oneLineRegex = /static-route\s+([\d.\/]+)\s+next-hop\s+([\d.]+)/g;
+        for (const m of content.matchAll(oneLineRegex)) {
+            staticRoutes.push({ prefix: m[1], nextHop: m[2] });
+        }
+
+        // 2. Block format: static-route-entry <prefix> ... next-hop <ip> ... exit
+        // Iterate lines to handle nested 'next-hop ... exit' blocks correctly
+        const lines = content.split('\n');
+        let currentPrefix: string | null = null;
+        let entryIndent = -1;
+
+        for (const line of lines) {
+            // static-route-entry start
+            const entryMatch = line.match(/static-route-entry\s+([\d.\/]+)/);
+            if (entryMatch) {
+                currentPrefix = entryMatch[1];
+                entryIndent = line.search(/\S/); // Count leading spaces
+                continue;
+            }
+
+            if (currentPrefix) {
+                // Check if block ended (exit at same indent)
+                const trimLine = line.trim();
+                const currentIndent = line.search(/\S/);
+
+                // Note: Sometimes indentation might vary or empty lines.
+                // If we see 'exit' at exact indent, we close.
+                if (trimLine === 'exit' && currentIndent === entryIndent) {
+                    currentPrefix = null;
+                    continue;
+                }
+
+                // Look for next-hop
+                const nhMatch = trimLine.match(/next-hop\s+([\d.]+)/);
+                if (nhMatch) {
+                    staticRoutes.push({ prefix: currentPrefix, nextHop: nhMatch[1] });
                 }
             }
         }
-    }
 
-    // Filter out shutdown services (adminState === 'down')
-    const activeServices = services.filter(s => s.adminState !== 'down');
-
-    return activeServices as NokiaServiceV3[];
-}
-
-/**
- * Port Description 추출 (Global)
- */
-export function extractPortDescriptions(configText: string): Map<string, string> {
-    const portMap = new Map<string, string>();
-    // const portSection = extractSection(configText, 'port'); // Not used, removed to fix build error
-
-    // Config often has top-level "port 1/1/1"
-    // or inside a card/mda context? No, usually top level or just "port X".
-    // Let's iterate lines or regex.
-    // Regex: port <id> ... description "..." ... exit
-
-    // We can use a simpler approach: finding "port <id>" blocks and looking for description inside.
-    // Or scan specific lines:
-    // port 1/1/1
-    //     description "..."
-
-    const lines = configText.split('\n');
-    let currentPort = '';
-
-    for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('port ')) {
-            const match = trimmed.match(/^port\s+([\w\/-]+)/);
-            if (match) {
-                currentPort = match[1];
-            }
-        } else if (trimmed === 'exit') {
-            currentPort = ''; // Simple validation, though nested exits might exist, port blocks are usually flat in this view
-        } else if (currentPort && trimmed.startsWith('description ')) {
-            const descMatch = trimmed.match(/^description\s+"([^"]+)"/);
-            if (descMatch) {
-                portMap.set(currentPort, descMatch[1]);
-            }
-        }
-    }
-
-    return portMap;
-}
-
-/**
- * SDP 파싱
- */
-export function parseSDPs(configText: string): SDP[] {
-    const sdps: SDP[] = [];
-
-    const serviceSection = extractSection(configText, 'service');
-
-    // sdp <id> <type> create ... exit
-    const sdpRegex = /sdp\s+(\d+)\s+(mpls|gre)\s+create([\s\S]*?)(?=\n\s*(?:sdp|epipe|vpls|customer|qos|exit\s*$))/gi;
-    const matches = serviceSection.matchAll(sdpRegex);
-
-    for (const match of matches) {
-        const [, sdpIdStr, deliveryType, content] = match;
-
-        // Far-End IP 추출
-        const farEndMatch = content.match(/far-end\s+([\d.]+)/i);
-        const farEnd = farEndMatch ? farEndMatch[1] : '';
-
-        // LSP 이름 추출
-        const lspMatch = content.match(/lsp\s+"([^"]+)"/i);
-        const lspName = lspMatch ? lspMatch[1] : undefined;
-
-        // Description 추출
-        const descMatch = content.match(/description\s+"([^"]+)"/i);
-        const description = descMatch ? descMatch[1] : '';
-
-        // Admin state
-        const adminState: AdminState = content.includes('shutdown') && !content.includes('no shutdown') ? 'down' : 'up';
-
-        sdps.push({
-            sdpId: parseInt(sdpIdStr),
+        return {
+            serviceType: 'vprn',
+            serviceId,
+            serviceName: finalServiceName,
+            customerId,
             description,
-            farEnd,
-            lspName,
-            deliveryType: deliveryType as DeliveryType,
             adminState,
-        });
+            autonomousSystem: asMatch ? parseInt(asMatch[1]) : undefined,
+            bgpRouterId,
+            routeDistinguisher: rdMatch ? rdMatch[1] : undefined,
+            vrfTarget: vrfMatch ? vrfMatch[1] : undefined,
+            interfaces,
+            bgpNeighbors,
+            staticRoutes,
+            ospf
+        };
     }
 
-    return sdps;
-}
+    /**
+     * L2/L3 VPN 서비스 파싱
+     */
+    export function parseL2VPNServices(configText: string): NokiaServiceV3[] {
+        const services: NokiaService[] = [];
+        const serviceSection = extractSection(configText, 'service');
 
-/**
- * L2 VPN 설정 파싱 (메인 함수)
- */
-export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
-    const hostname = extractHostname(configText);
-    const systemIp = extractSystemIp(configText);
-    const services = parseL2VPNServices(configText);
-    const sdps = parseSDPs(configText);
+        if (!serviceSection) return services;
 
-    // Enrich SAPs with Port Descriptions
-    const portDescriptions = extractPortDescriptions(configText);
+        const lines = serviceSection.split('\n');
 
-    services.forEach(service => {
-        if ('saps' in service) {
-            service.saps.forEach(sap => {
-                if (portDescriptions.has(sap.portId)) {
-                    sap.portDescription = portDescriptions.get(sap.portId);
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const trimmed = line.trim();
+
+            // Identify service start
+            // 7750 SR: epipe 1026 name "..." customer 1 create
+            // 7210 SAS: epipe 1543 customer 1 svc-sap-type any create
+            const match = trimmed.match(/^(epipe|vpls|vprn)\s+(\d+)(?:\s+name\s+"([^"]+)")?\s+customer\s+(\d+).*\s+create/i);
+            if (match) {
+                const type = match[1].toLowerCase();
+                const serviceId = parseInt(match[2]);
+                const name = match[3] || ''; // Might be undefined
+                const customerId = parseInt(match[4]);
+
+                // Extract block by indentation
+                const startIndent = line.length - line.trimStart().length;
+                const blockLines: string[] = [line];
+
+                let j = i + 1;
+                while (j < lines.length) {
+                    const innerLine = lines[j];
+                    const innerTrimmed = innerLine.trim();
+
+                    // Allow empty lines inside block
+                    if (!innerTrimmed) {
+                        blockLines.push(innerLine);
+                        j++;
+                        continue;
+                    }
+
+                    const innerIndent = innerLine.length - innerLine.trimStart().length;
+
+                    // End of block: 'exit' at same indentation
+                    if (innerTrimmed === 'exit' && innerIndent === startIndent) {
+                        blockLines.push(innerLine); // Include exit
+                        j++; // Consume exit
+                        break;
+                    }
+
+                    // Safety: if indentation drops below start, we lost the block
+                    // This handles cases where exit might be missing (rare) or malformed
+                    if (innerIndent < startIndent) {
+                        // Do NOT consume this line, it belongs to outer block
+                        break;
+                    }
+
+                    blockLines.push(innerLine);
+                    j++;
                 }
+
+                // Advance main loop (j points to next line to process)
+                i = j - 1;
+
+                const fullBlock = blockLines.join('\n');
+                const content = fullBlock; // Use full block as content
+
+                // Note: Parser functions below might extract Description again from content. 
+                // We pass 'name' logic if needed, but currently parseEpipe etc don't take it.
+                // We'll rely on parseEpipe extracting description from the body.
+
+                if (type === 'epipe') {
+                    const newService = parseEpipe(serviceId, customerId, content, name);
+                    const existingIndex = services.findIndex(s => s.serviceId === serviceId && s.serviceType === 'epipe');
+                    if (existingIndex !== -1) {
+                        // Merge
+                        const existing = services[existingIndex] as EpipeService;
+                        services[existingIndex] = {
+                            ...existing,
+                            ...newService,
+                            serviceName: existing.serviceName || newService.serviceName, // Prefer existing unless empty
+                            saps: [...existing.saps, ...newService.saps], // Simple concat for SAPs (could be smarter)
+                            spokeSdps: [...(existing.spokeSdps || []), ...(newService.spokeSdps || [])],
+                            description: existing.description || newService.description // Prefer existing unless empty
+                        };
+                    } else {
+                        services.push(newService);
+                    }
+                } else if (type === 'vpls') {
+                    const newService = parseVPLS(serviceId, customerId, content, name);
+                    const existingIndex = services.findIndex(s => s.serviceId === serviceId && s.serviceType === 'vpls');
+                    if (existingIndex !== -1) {
+                        const existing = services[existingIndex] as VPLSService;
+                        services[existingIndex] = {
+                            ...existing,
+                            ...newService,
+                            serviceName: existing.serviceName || newService.serviceName,
+                            saps: [...existing.saps, ...newService.saps],
+                            meshSdps: [...(existing.meshSdps || []), ...(newService.meshSdps || [])],
+                            spokeSdps: [...(existing.spokeSdps || []), ...(newService.spokeSdps || [])],
+                            description: existing.description || newService.description
+                        };
+                    } else {
+                        services.push(newService);
+                    }
+                } else if (type === 'vprn') {
+                    const newService = parseVPRN(serviceId, customerId, content, name);
+                    const existingIndex = services.findIndex(s => s.serviceId === serviceId && s.serviceType === 'vprn');
+                    if (existingIndex !== -1) {
+                        const existing = services[existingIndex] as VPRNService;
+                        // Merge interfaces by name
+                        const mergedInterfaces = [...existing.interfaces];
+                        newService.interfaces.forEach(newIf => {
+                            const idx = mergedInterfaces.findIndex(iface => iface.interfaceName === newIf.interfaceName);
+                            if (idx !== -1) {
+                                // Merge interface details (prefer non-empty)
+                                mergedInterfaces[idx] = {
+                                    ...mergedInterfaces[idx],
+                                    ...newIf,
+                                    ipAddress: mergedInterfaces[idx].ipAddress || newIf.ipAddress,
+                                    portId: mergedInterfaces[idx].portId || newIf.portId,
+                                    vrrpGroupId: mergedInterfaces[idx].vrrpGroupId || newIf.vrrpGroupId
+                                };
+                            } else {
+                                mergedInterfaces.push(newIf);
+                            }
+                        });
+
+                        services[existingIndex] = {
+                            ...existing,
+                            ...newService,
+                            serviceName: existing.serviceName || newService.serviceName,
+                            description: existing.description || newService.description,
+                            autonomousSystem: existing.autonomousSystem || newService.autonomousSystem,
+                            routeDistinguisher: existing.routeDistinguisher || newService.routeDistinguisher,
+                            interfaces: mergedInterfaces,
+                            bgpNeighbors: [...new Set([...existing.bgpNeighbors, ...newService.bgpNeighbors])],
+                            staticRoutes: [...new Set([...existing.staticRoutes, ...newService.staticRoutes])]
+                        };
+                    } else {
+                        services.push(newService);
+                    }
+                }
+            }
+        }
+
+        // Filter out shutdown services (adminState === 'down')
+        const activeServices = services.filter(s => s.adminState !== 'down');
+
+        return activeServices as NokiaServiceV3[];
+    }
+
+    /**
+     * Port Description 추출 (Global)
+     */
+    export function extractPortDescriptions(configText: string): Map<string, string> {
+        const portMap = new Map<string, string>();
+        // const portSection = extractSection(configText, 'port'); // Not used, removed to fix build error
+
+        // Config often has top-level "port 1/1/1"
+        // or inside a card/mda context? No, usually top level or just "port X".
+        // Let's iterate lines or regex.
+        // Regex: port <id> ... description "..." ... exit
+
+        // We can use a simpler approach: finding "port <id>" blocks and looking for description inside.
+        // Or scan specific lines:
+        // port 1/1/1
+        //     description "..."
+
+        const lines = configText.split('\n');
+        let currentPort = '';
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('port ')) {
+                const match = trimmed.match(/^port\s+([\w\/-]+)/);
+                if (match) {
+                    currentPort = match[1];
+                }
+            } else if (trimmed === 'exit') {
+                currentPort = ''; // Simple validation, though nested exits might exist, port blocks are usually flat in this view
+            } else if (currentPort && trimmed.startsWith('description ')) {
+                const descMatch = trimmed.match(/^description\s+"([^"]+)"/);
+                if (descMatch) {
+                    portMap.set(currentPort, descMatch[1]);
+                }
+            }
+        }
+
+        return portMap;
+    }
+
+    /**
+     * SDP 파싱
+     */
+    export function parseSDPs(configText: string): SDP[] {
+        const sdps: SDP[] = [];
+
+        const serviceSection = extractSection(configText, 'service');
+
+        // sdp <id> <type> create ... exit
+        const sdpRegex = /sdp\s+(\d+)\s+(mpls|gre)\s+create([\s\S]*?)(?=\n\s*(?:sdp|epipe|vpls|customer|qos|exit\s*$))/gi;
+        const matches = serviceSection.matchAll(sdpRegex);
+
+        for (const match of matches) {
+            const [, sdpIdStr, deliveryType, content] = match;
+
+            // Far-End IP 추출
+            const farEndMatch = content.match(/far-end\s+([\d.]+)/i);
+            const farEnd = farEndMatch ? farEndMatch[1] : '';
+
+            // LSP 이름 추출
+            const lspMatch = content.match(/lsp\s+"([^"]+)"/i);
+            const lspName = lspMatch ? lspMatch[1] : undefined;
+
+            // Description 추출
+            const descMatch = content.match(/description\s+"([^"]+)"/i);
+            const description = descMatch ? descMatch[1] : '';
+
+            // Admin state
+            const adminState: AdminState = content.includes('shutdown') && !content.includes('no shutdown') ? 'down' : 'up';
+
+            sdps.push({
+                sdpId: parseInt(sdpIdStr),
+                description,
+                farEnd,
+                lspName,
+                deliveryType: deliveryType as DeliveryType,
+                adminState,
             });
         }
 
-        // VPRN Interfaces also map to Ports?
-        if (service.serviceType === 'vprn') {
-            // Logic for VPRN if needed
-        }
-    });
-
-    // ---------------------------------------------------------
-    // v3 Integration: Extract Base Router as IES Service (ID: 0)
-    // ---------------------------------------------------------
-    const baseInterfaces: L3Interface[] = [];
-    const lines = configText.split('\n');
-
-    // Pass 1: Identify Service Block Ranges to exclude (Epipe, VPLS, VPRN)
-    // We do NOT exclude 'ies' here because standard L2VPN parser doesn't handle them,
-    // so we want them merged into Base Router (IES 0) or we need to update L2VPN parser.
-    // For now, let's treat explicit IES services as part of Base Router.
-    const serviceRanges: { start: number; end: number }[] = [];
-    const serviceStartRegex = /^\s*(epipe|vpls|vprn)\s+\d+(?:\s+name\s+"[^"]+")?\s+customer\s+\d+.*create/i;
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (serviceStartRegex.test(line)) {
-            const startIndent = line.length - line.trimStart().length;
-            // Find end
-            let j = i + 1;
-            while (j < lines.length) {
-                const inner = lines[j];
-                // Check for exit
-                const innerTrimmed = inner.trim();
-                const innerIndent = inner.length - inner.trimStart().length;
-
-                if (innerTrimmed === 'exit' && innerIndent === startIndent) {
-                    break;
-                }
-
-                // Safety: if indent drops below start and line is not empty, we likely exited
-                if (innerIndent < startIndent && innerTrimmed !== '') {
-                    j--; // The current line belongs to outer block
-                    break;
-                }
-                j++;
-            }
-            serviceRanges.push({ start: i, end: j });
-            i = j; // Skip content
-        }
+        return sdps;
     }
 
-    // Pass 2: Find Interfaces NOT in Service Ranges
-    const interfacePattern = /^\s*interface\s+"([^"]+)"(?:\s+create)?/;
+    /**
+     * L2 VPN 설정 파싱 (메인 함수)
+     */
+    export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
+        const hostname = extractHostname(configText);
+        const systemIp = extractSystemIp(configText);
+        const services = parseL2VPNServices(configText);
+        const sdps = parseSDPs(configText);
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const match = line.match(interfacePattern);
+        // Enrich SAPs with Port Descriptions
+        const portDescriptions = extractPortDescriptions(configText);
 
-        if (match) {
-            // Check if inside any service range
-            const isInsideService = serviceRanges.some(range => i > range.start && i < range.end);
+        services.forEach(service => {
+            if ('saps' in service) {
+                service.saps.forEach(sap => {
+                    if (portDescriptions.has(sap.portId)) {
+                        sap.portDescription = portDescriptions.get(sap.portId);
+                    }
+                });
+            }
 
-            if (!isInsideService) {
-                const ifName = match[1];
+            // VPRN Interfaces also map to Ports?
+            if (service.serviceType === 'vprn') {
+                // Logic for VPRN if needed
+            }
+        });
+
+        // ---------------------------------------------------------
+        // v3 Integration: Extract Base Router as IES Service (ID: 0)
+        // ---------------------------------------------------------
+        const baseInterfaces: L3Interface[] = [];
+        const lines = configText.split('\n');
+
+        // Pass 1: Identify Service Block Ranges to exclude (Epipe, VPLS, VPRN)
+        // We do NOT exclude 'ies' here because standard L2VPN parser doesn't handle them,
+        // so we want them merged into Base Router (IES 0) or we need to update L2VPN parser.
+        // For now, let's treat explicit IES services as part of Base Router.
+        const serviceRanges: { start: number; end: number }[] = [];
+        const serviceStartRegex = /^\s*(epipe|vpls|vprn)\s+\d+(?:\s+name\s+"[^"]+")?\s+customer\s+\d+.*create/i;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (serviceStartRegex.test(line)) {
                 const startIndent = line.length - line.trimStart().length;
+                // Find end
+                let j = i + 1;
+                while (j < lines.length) {
+                    const inner = lines[j];
+                    // Check for exit
+                    const innerTrimmed = inner.trim();
+                    const innerIndent = inner.length - inner.trimStart().length;
 
-                // Parse Block
-                const blockStart = i;
-                let blockEnd = i;
-                // Find exit
-                for (let j = i + 1; j < lines.length; j++) {
-                    const sub = lines[j];
-                    const subTrimmed = sub.trim();
-                    const subIndent = sub.length - sub.trimStart().length;
-
-                    if (subTrimmed === 'exit' && subIndent === startIndent) {
-                        blockEnd = j;
+                    if (innerTrimmed === 'exit' && innerIndent === startIndent) {
                         break;
                     }
-                    // Implicit exit safety
-                    if (subIndent < startIndent && subTrimmed !== '') {
-                        blockEnd = j - 1;
+
+                    // Safety: if indent drops below start and line is not empty, we likely exited
+                    if (innerIndent < startIndent && innerTrimmed !== '') {
+                        j--; // The current line belongs to outer block
                         break;
                     }
-                    blockEnd = j; // extend block
+                    j++;
                 }
-
-                const ifContent = lines.slice(blockStart, blockEnd + 1).join('\n');
-
-                // Parsing Regex
-                const ipMatch = ifContent.match(/address\s+([\d.\/]+)/i);
-                const portMatch = ifContent.match(/port\s+([\w\/-]+)/i) || ifContent.match(/sap\s+([\w\/-]+:?\d*)/i);
-                const descMatch = ifContent.match(/description\s+"?([^"\n]+)"?/);
-
-                // Valid interface check (must have IP or Port to be useful)
-                if (ipMatch || portMatch) {
-                    baseInterfaces.push({
-                        interfaceName: ifName,
-                        ipAddress: ipMatch?.[1],
-                        portId: portMatch?.[1],
-                        description: descMatch ? descMatch[1] : undefined,
-                        adminState: 'up'
-                    });
-                }
-
-                i = blockEnd; // Skip block
+                serviceRanges.push({ start: i, end: j });
+                i = j; // Skip content
             }
         }
-    }
 
-    // Static Routes (Global)
-    const staticRoutes: StaticRoute[] = [];
-    const srRegex = /^\s*static-route\s+([\d.\/]+)\s+next-hop\s+([\d.]+)/gm;
-    let srMatch;
-    while ((srMatch = srRegex.exec(configText)) !== null) {
-        staticRoutes.push({ prefix: srMatch[1], nextHop: srMatch[2] });
-    }
+        // Pass 2: Find Interfaces NOT in Service Ranges
+        const interfacePattern = /^\s*interface\s+"([^"]+)"(?:\s+create)?/;
 
-    // static-route-entry block support (Global)
-    // Reuse parseVPRN logic or extract global blocks
-    // For now, simpler regex support for v1 parity.
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const match = line.match(interfacePattern);
 
-    if (baseInterfaces.length > 0 || staticRoutes.length > 0) {
-        const iesService: IESService = {
-            serviceType: 'ies',
-            serviceId: 0,
-            serviceName: 'Base Router',
-            customerId: 0,
-            description: 'Global Base Routing Table',
-            adminState: 'up',
-            interfaces: baseInterfaces,
-            staticRoutes: staticRoutes,
-            bgpNeighbors: [] // TODO: Extract Global BGP if needed
+            if (match) {
+                // Check if inside any service range
+                const isInsideService = serviceRanges.some(range => i > range.start && i < range.end);
+
+                if (!isInsideService) {
+                    const ifName = match[1];
+                    const startIndent = line.length - line.trimStart().length;
+
+                    // Parse Block
+                    const blockStart = i;
+                    let blockEnd = i;
+                    // Find exit
+                    for (let j = i + 1; j < lines.length; j++) {
+                        const sub = lines[j];
+                        const subTrimmed = sub.trim();
+                        const subIndent = sub.length - sub.trimStart().length;
+
+                        if (subTrimmed === 'exit' && subIndent === startIndent) {
+                            blockEnd = j;
+                            break;
+                        }
+                        // Implicit exit safety
+                        if (subIndent < startIndent && subTrimmed !== '') {
+                            blockEnd = j - 1;
+                            break;
+                        }
+                        blockEnd = j; // extend block
+                    }
+
+                    const ifContent = lines.slice(blockStart, blockEnd + 1).join('\n');
+
+                    // Parsing Regex
+                    const ipMatch = ifContent.match(/address\s+([\d.\/]+)/i);
+                    const portMatch = ifContent.match(/port\s+([\w\/-]+)/i) || ifContent.match(/sap\s+([\w\/-]+:?\d*)/i);
+                    const descMatch = ifContent.match(/description\s+"?([^"\n]+)"?/);
+
+                    // Valid interface check (must have IP or Port to be useful)
+                    if (ipMatch || portMatch) {
+                        baseInterfaces.push({
+                            interfaceName: ifName,
+                            ipAddress: ipMatch?.[1],
+                            portId: portMatch?.[1],
+                            description: descMatch ? descMatch[1] : undefined,
+                            adminState: 'up'
+                        });
+                    }
+
+                    i = blockEnd; // Skip block
+                }
+            }
+        }
+
+        // Static Routes (Global)
+        const staticRoutes: StaticRoute[] = [];
+        const srRegex = /^\s*static-route\s+([\d.\/]+)\s+next-hop\s+([\d.]+)/gm;
+        let srMatch;
+        while ((srMatch = srRegex.exec(configText)) !== null) {
+            staticRoutes.push({ prefix: srMatch[1], nextHop: srMatch[2] });
+        }
+
+        // static-route-entry block support (Global)
+        // Reuse parseVPRN logic or extract global blocks
+        // For now, simpler regex support for v1 parity.
+
+        if (baseInterfaces.length > 0 || staticRoutes.length > 0) {
+            const iesService: IESService = {
+                serviceType: 'ies',
+                serviceId: 0,
+                serviceName: 'Base Router',
+                customerId: 0,
+                description: 'Global Base Routing Table',
+                adminState: 'up',
+                interfaces: baseInterfaces,
+                staticRoutes: staticRoutes,
+                bgpNeighbors: [] // TODO: Extract Global BGP if needed
+            };
+            // Add to services list
+            // Casting to any to allow IES injection if types conflict temporarily
+            (services as any[]).push(iesService);
+        }
+
+
+        return {
+            hostname,
+            systemIp,
+            services,
+            sdps,
+            connections: [], // 나중에 구현
         };
-        // Add to services list
-        // Casting to any to allow IES injection if types conflict temporarily
-        (services as any[]).push(iesService);
     }
-
-
-    return {
-        hostname,
-        systemIp,
-        services,
-        sdps,
-        connections: [], // 나중에 구현
-    };
-}

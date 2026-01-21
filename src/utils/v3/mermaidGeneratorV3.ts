@@ -498,6 +498,7 @@ export function generateVPRNDiagram(
     lines.push('classDef iface fill:#fff3e0,stroke:#e65100,stroke-width:1px;');
     lines.push('classDef bgp fill:#e1f5fe,stroke:#0277bd,stroke-width:1px;');
     lines.push('classDef route fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px;');
+    lines.push('classDef redBox fill:#ffffff,stroke:#ff0000,stroke-width:2px,color:#ff0000;');
 
     lines.push('');
 
@@ -621,7 +622,30 @@ export function generateVPRNDiagram(
             bgpLabel += `</div>`;
 
             lines.push(`${bgpId}["${bgpLabel}"]`);
-            lines.push(`class ${bgpId} bgp;`);
+            lines.push(`class ${bgpId} redBox;`);
+        }
+
+        // 3. OSPF
+        if (currentVprn.ospf && currentVprn.ospf.areas.length > 0) {
+            const ospfId = `OSPF_${safeHost}_${idx}`;
+            let ospfLabel = `<div style="text-align: left"><b>OSPF:</b><br/>`;
+
+            currentVprn.ospf.areas.forEach(area => {
+                ospfLabel += `Area ${area.areaId}<br/>`;
+                area.interfaces.forEach(int => {
+                    ospfLabel += `- int: ${int.interfaceName}`;
+                    if (int.interfaceType) ospfLabel += `(${int.interfaceType === 'point-to-point' ? 'P-to-P' : int.interfaceType})`;
+                    ospfLabel += `<br/>`;
+                });
+            });
+            ospfLabel += `</div>`;
+
+            lines.push(`${ospfId}["${ospfLabel}"]`);
+            lines.push(`class ${ospfId} redBox;`);
+
+            // Link to Service Node (Invisible or dotted, to keep structure)
+            // Or better: Link from Interface to OSPF? No, OSPF is protocol.
+            // Let's link OSPF node to Service Node to keep it on the right side of host, similar to BGP
         }
 
         // 3. Remaining Static Routes (Orphans)
@@ -663,20 +687,23 @@ export function generateVPRNDiagram(
             });
         }
         // BGP (Invisible or Dotted link to ensure layout if no interfaces)
-        if (currentVprn.bgpNeighbors && currentVprn.bgpNeighbors.length > 0) {
-            const bgpId = `BGP_${safeHost}_${idx}`;
-            lines.push(`${bgpId} -.- ${serviceNodeId}`);
-        }
-    });
+        const bgpId = `BGP_${safeHost}_${idx}`;
+        lines.push(`${bgpId} -.- ${serviceNodeId}`);
+    }
+        if (currentVprn.ospf && currentVprn.ospf.areas.length > 0) {
+        const ospfId = `OSPF_${safeHost}_${idx}`;
+        lines.push(`${ospfId} -.- ${serviceNodeId}`);
+    }
+});
 
-    // 서비스 노드 추가 (오른쪽)
-    lines.push('');
-    lines.push(`${serviceNodeId}["${vprnLabel}"]`);
-    lines.push(`class ${serviceNodeId} service;`);
+// 서비스 노드 추가 (오른쪽)
+lines.push('');
+lines.push(`${serviceNodeId}["${vprnLabel}"]`);
+lines.push(`class ${serviceNodeId} service;`);
 
 
 
-    return lines.join('\n');
+return lines.join('\n');
 }
 
 
