@@ -465,7 +465,7 @@ export function generateVPLSDiagram(
             if (qosParts.length > 0) {
                 // V1 Style: QoS as link label (more compact)
                 const qosLabelContent = qosParts.join('<br/>');
-                const qosLabel = `<div style='background-color:#4caf50;color:#fff;padding:4px 8px;border-radius:4px;display:inline-block;'>${qosLabelContent}</div>`;
+                const qosLabel = `<div class='qos-label'>${qosLabelContent}</div>`;
                 lines.push(`${sapNodeId} -->|"${qosLabel}"| ${vplsNodeId}`);
             } else {
                 // No QoS: direct connection
