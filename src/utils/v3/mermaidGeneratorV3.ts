@@ -359,8 +359,15 @@ export function generateEpipeDiagram(
                     lines.push(`${sapNodeId} --- ${qosNodeId}`);
                     lines.push(`${qosNodeId} --- ${svcNodeId}`);
                 } else {
-                    // No QoS: direct connection
-                    lines.push(`${sapNodeId} --- ${svcNodeId}`);
+                    // No QoS: Create empty placeholder box to indicate missing configuration
+                    const placeholderNodeId = `NOQOS_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
+                    lines.push(`${placeholderNodeId}[" "]`);
+                    // Empty box with border but no background color
+                    lines.push(`style ${placeholderNodeId} fill:#ffffff,stroke:#cccccc,stroke-width:2px;`);
+
+                    // Connect: SAP -> Empty Box -> Service
+                    lines.push(`${sapNodeId} --- ${placeholderNodeId}`);
+                    lines.push(`${placeholderNodeId} --- ${svcNodeId}`);
                 }
             });
         });
