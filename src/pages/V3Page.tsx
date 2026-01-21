@@ -99,10 +99,12 @@ export function V3Page() {
     const diagrams = Object.values(serviceGroups).map(group => {
         // 각 서비스가 속한 Config와 Hostname 찾기
         const servicesWithContext = group.map(service => {
-            const parentConfig = configs.find(c => c.services.includes(service));
+            // Use _hostname property that was injected in line 69
+            const hostname = (service as any)._hostname || 'Unknown';
+            const parentConfig = configs.find(c => c.hostname === hostname);
             return {
                 service,
-                hostname: parentConfig?.hostname || 'Unknown',
+                hostname: hostname,
                 sdps: parentConfig?.sdps || []
             };
         });
