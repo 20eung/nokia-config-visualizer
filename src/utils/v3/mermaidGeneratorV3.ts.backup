@@ -344,13 +344,27 @@ export function generateEpipeDiagram(
                 }
 
                 if (qosParts.length > 0) {
-                    // V1 Style: QoS as link label (more compact)
-                    const qosLabelContent = qosParts.join('<br/>');
-                    const qosLabel = `<div class='qos-label'>${qosLabelContent}</div>`;
-                    lines.push(`${sapNodeId} -->|"${qosLabel}"| ${svcNodeId}`);
+                    // Create QoS as intermediate node for better visibility
+                    const qosNodeId = `QOS_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
+                    const qosText = qosParts.join('<br/>');
+                    lines.push(`${qosNodeId}["${qosText}"]`);
+                    lines.push(`class ${qosNodeId} qos;`);
+                    // Apply compact styling to reduce box size
+                    lines.push(`style ${qosNodeId} height:40px,min-height:40px,padding:2px 8px;`);
+
+                    // Connect: SAP -> QoS -> Service
+                    lines.push(`${sapNodeId} --- ${qosNodeId}`);
+                    lines.push(`${qosNodeId} --- ${svcNodeId}`);
                 } else {
-                    // No QoS: direct connection
-                    lines.push(`${sapNodeId} --- ${svcNodeId}`);
+                    // No QoS: Create empty placeholder box to indicate missing configuration
+                    const placeholderNodeId = `NOQOS_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
+                    lines.push(`${placeholderNodeId}[" "]`);
+                    // Empty box with border but no background color
+                    lines.push(`style ${placeholderNodeId} fill:#ffffff,stroke:#cccccc,stroke-width:2px;`);
+
+                    // Connect: SAP -> Empty Box -> Service
+                    lines.push(`${sapNodeId} --- ${placeholderNodeId}`);
+                    lines.push(`${placeholderNodeId} --- ${svcNodeId}`);
                 }
             });
         });
@@ -463,13 +477,26 @@ export function generateVPLSDiagram(
             }
 
             if (qosParts.length > 0) {
-                // V1 Style: QoS as link label (more compact)
-                const qosLabelContent = qosParts.join('<br/>');
-                const qosLabel = `<div class='qos-label'>${qosLabelContent}</div>`;
-                lines.push(`${sapNodeId} -->|"${qosLabel}"| ${vplsNodeId}`);
+                // Create QoS as intermediate node (matching EPIPE style)
+                const qosNodeId = `QOS_${safeHost}_${vplsIdx}_${sapIdx}`;
+                const qosText = qosParts.join('<br/>');
+                lines.push(`${qosNodeId}["${qosText}"]`);
+                lines.push(`class ${qosNodeId} qos;`);
+                // Apply compact styling to reduce box size
+                lines.push(`style ${qosNodeId} height:40px,min-height:40px,padding:2px 8px;`);
+
+                // Connect: SAP -> QoS -> Service
+                lines.push(`${sapNodeId} --- ${qosNodeId}`);
+                lines.push(`${qosNodeId} --- ${vplsNodeId}`);
             } else {
-                // No QoS: direct connection
-                lines.push(`${sapNodeId} --- ${vplsNodeId}`);
+                // No QoS: Create empty placeholder box (matching EPIPE style)
+                const placeholderNodeId = `NOQOS_${safeHost}_${vplsIdx}_${sapIdx}`;
+                lines.push(`${placeholderNodeId}[" "]`);
+                lines.push(`style ${placeholderNodeId} fill:#ffffff,stroke:#cccccc,stroke-width:2px;`);
+
+                // Connect: SAP -> Empty Box -> Service
+                lines.push(`${sapNodeId} --- ${placeholderNodeId}`);
+                lines.push(`${placeholderNodeId} --- ${vplsNodeId}`);
             }
         });
     });
@@ -498,7 +525,6 @@ export function generateVPRNDiagram(
     lines.push('classDef iface fill:#fff3e0,stroke:#e65100,stroke-width:1px;');
     lines.push('classDef bgp fill:#e1f5fe,stroke:#0277bd,stroke-width:1px;');
     lines.push('classDef route fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px;');
-    lines.push('classDef redBox fill:#ffffff,stroke:#ff0000,stroke-width:2px,color:#ff0000;');
 
     lines.push('');
 
@@ -518,7 +544,12 @@ export function generateVPRNDiagram(
         vprnLabel += `<b>VPRN Desc:</b> ${firstVprn.description}<br/>`;
     }
 
-
+    if (firstVprn.autonomousSystem) {
+        vprnLabel += `<b>AS:</b> ${firstVprn.autonomousSystem}<br/>`;
+    }
+    if (firstVprn.routeDistinguisher) {
+        vprnLabel += `<b>RD:</b> ${firstVprn.routeDistinguisher}<br/>`;
+    }
     if (firstVprn.vrfTarget) {
         vprnLabel += `<b>VRF:</b> ${firstVprn.vrfTarget}<br/>`;
     }
@@ -604,7 +635,21 @@ export function generateVPRNDiagram(
         }
 
         // 2. BGP Neighbors
+        if (currentVprn.bgpNeighbors && currentVprn.bgpNeighbors.length > 0) {
+            const bgpId = `BGP_${safeHost}_${idx}`;
 
+            let bgpLabel = `<div style="text-align: left"><b>BGP</b><br/>`;
+            if (currentVprn.bgpRouterId) bgpLabel += `Router-ID: ${currentVprn.bgpRouterId}<br/>`;
+
+            currentVprn.bgpNeighbors.forEach(nbr => {
+                bgpLabel += `Neighbor: ${nbr.neighborIp}<br/>`;
+                if (nbr.autonomousSystem) bgpLabel += `- AS: ${nbr.autonomousSystem}<br/>`;
+            });
+            bgpLabel += `</div>`;
+
+            lines.push(`${bgpId}["${bgpLabel}"]`);
+            lines.push(`class ${bgpId} bgp;`);
+        }
 
         // 3. Remaining Static Routes (Orphans)
         const orphanRoutes: string[] = [];
@@ -645,80 +690,11 @@ export function generateVPRNDiagram(
             });
         }
         // BGP (Invisible or Dotted link to ensure layout if no interfaces)
-    });
-
-    // Aggregate BGP and OSPF info for the Service Node
-    // We'll take unique BGP router-ids and neighbors, and OSPF areas.
-    // For simplicity, considering visualization focus, we iterate all and append if not empty?
-    // User request implies one block for BGP, one for OSPF.
-    // If multiple hosts have diff configs, we might need multiple blocks or merged list.
-    // Let's assume single view or append all found configurations.
-
-    const allBgpNeighbors: { neighborIp: string; autonomousSystem?: number }[] = [];
-    const allOspfAreas: { areaId: string; interfaces: any[] }[] = []; // Reuse logic
-    let bgpRouterId = '';
-
-    vprnArray.forEach(v => {
-        if (v.bgpRouterId && !bgpRouterId) bgpRouterId = v.bgpRouterId; // Take first for now
-        if (v.bgpNeighbors) allBgpNeighbors.push(...v.bgpNeighbors);
-        if (v.ospf && v.ospf.areas) {
-            v.ospf.areas.forEach(a => {
-                // Check if area already exists? OSPF structure is complex to merge visually.
-                // Let's just push for now, duplicate areas visually might be ok if different hosts
-                // But better to merge by Area ID?
-                const existing = allOspfAreas.find(ea => ea.areaId === a.areaId);
-                if (existing) {
-                    existing.interfaces.push(...a.interfaces);
-                } else {
-                    // Clone to avoid mutation issues if deep copy needed?
-                    allOspfAreas.push({ areaId: a.areaId, interfaces: [...a.interfaces] });
-                }
-            });
+        if (currentVprn.bgpNeighbors && currentVprn.bgpNeighbors.length > 0) {
+            const bgpId = `BGP_${safeHost}_${idx}`;
+            lines.push(`${bgpId} -.- ${serviceNodeId}`);
         }
     });
-
-    let bpgHtml = '';
-
-    // User requested AS/RD only in BGP section. Show BGP box if any BGP info exists (AS, RD, RouterID, Neighbors)
-    if (firstVprn.autonomousSystem || firstVprn.routeDistinguisher || bgpRouterId || allBgpNeighbors.length > 0) {
-
-        bpgHtml += `<div style="border: 2px solid #ff0000; padding: 5px; margin-top: 5px; text-align: left;">`;
-        bpgHtml += `<b>BGP:</b><br/>`;
-        if (firstVprn.autonomousSystem) bpgHtml += `AS: ${firstVprn.autonomousSystem}<br/>`;
-        if (firstVprn.routeDistinguisher) bpgHtml += `RD: ${firstVprn.routeDistinguisher}<br/>`;
-        if (bgpRouterId) bpgHtml += `Router-id: ${bgpRouterId}<br/>`;
-        if (allBgpNeighbors.length > 0) {
-            bpgHtml += `Neighbor<br/>`;
-            allBgpNeighbors.forEach(n => {
-                bpgHtml += `- ${n.neighborIp}`;
-                if (n.autonomousSystem) bpgHtml += `(AS ${n.autonomousSystem})`;
-                bpgHtml += `<br/>`;
-            });
-        }
-        bpgHtml += `</div>`;
-    }
-
-    let ospfHtml = '';
-    if (allOspfAreas.length > 0) {
-        ospfHtml += `<div style="border: 2px solid #ff0000; padding: 5px; margin-top: 5px; text-align: left;">`;
-        ospfHtml += `<b>OSPF:</b><br/>`;
-        allOspfAreas.forEach(a => {
-            ospfHtml += `Area ${a.areaId}<br/>`;
-            a.interfaces.forEach(i => {
-                ospfHtml += `- int: ${i.interfaceName}`;
-                // Simplified type display as per user request example? "- int: ..."
-                // User example: "- int: p3/2/23"
-                // If types exist, maybe useful? User example didn't show type explicitly, just "- int: ..."
-                // Let's keep it simple or match user? User provided "- int: p3/2/23". 
-                // My previous code added type. I'll include type if present but maybe less verbose.
-                // User example: "- int: TO-..."
-                ospfHtml += `<br/>`;
-            });
-        });
-        ospfHtml += `</div>`;
-    }
-
-    vprnLabel += bpgHtml + ospfHtml;
 
     // 서비스 노드 추가 (오른쪽)
     lines.push('');

@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  nokia-visualizer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nokia-visualizer
+    hostname: nokia-visualizer
+    restart: unless-stopped
+    ports:
+      - "3300:80"
+    environment:
+      - NODE_ENV=production
+      - TZ=Asia/Seoul
+    networks:
+      - npm-network
+
+networks:
+  npm-network:
+    external: true

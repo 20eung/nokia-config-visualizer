@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v3.0.0** (Latest) - Nokia 7750 SR / Unified Network & Service Visualizer
+> 🚀 **v3.1.0** (Latest) - Nokia 7750 SR / Unified Network & Service Visualizer
 
 ![Application Screenshot](./docs/screenshot.png)
 
@@ -203,11 +203,20 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 - ✅ **통합 UI**: 모든 서비스(Epipe, VPLS, VPRN, IES)를 하나의 인터페이스에서 관리
 - ✅ **HA 토폴로지**: IES 서비스에 대한 Local -> Peer -> Network 위상 자동 생성
 
-**Latest Release**: v3.0.0 (2026-01-21)
+**Latest Release**: v3.1.0 (2026-01-21)
 
 자세한 내용은 [V2_PLANNING.md](./V2_PLANNING.md)를 참조하세요.
 
 ## 📊 버전 히스토리
+
+- **v3.1.0** (2026-01-21) - BGP/OSPF 시각화 고도화 및 UI 개선
+  - VPRN BGP 정보 (Router ID, Neighbor, AS, RD) 시각화 강화
+  - OSPF 영역(Area) 및 인터페이스 정보 시각화 추가
+  - Service 라벨 가독성 개선 및 정보 중복 제거
+  - 초기 화면 UI 문구 개선 ("L2 VPN" 제거)
+- **v3.0.0** (2026-01-21) - Unified Visualizer 런칭
+  - Base Router / IES 통합 시각화
+  - Host 기반 그룹핑 및 통합 UI 적용
 
 - **v1.8.0** (2025-12-17) - VRRP 기반 HA 탐지
 - **v1.7.0** (2025-12-15) - VRRP VIP 및 Master 표시

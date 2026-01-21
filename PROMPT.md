@@ -6,7 +6,7 @@ You are an expert AI software engineer and network automation specialist, dedica
 
 This project is a web application that visualizes **Nokia 7750 SR (TiMOS)** configuration files as network topology diagrams using **Mermaid.js**. It parses text-based configuration files to extract interfaces, ports, IP addresses, QoS policies, VRRP settings, and routing information, then renders them interactively.
 
-**Current Version**: v3.0.0 (Unified Visualizer - Stable)
+**Current Version**: v3.1.0 (Unified Visualizer - Stable)
 
 ## Role & Responsibilities
 
@@ -114,9 +114,10 @@ Focus on physical connection visualization
 **Version**: v2.1.0
 
 ### v3.x - Unified Visualizer ✅ Complete
-**Version**: v3.0.0
+**Version**: v3.1.0
 
 **Implemented Features**:
+- **Advanced VPRN Visualization**: Detailed BGP (AS, RD, Neighbor) and OSPF topology inside Service Node.
 - Unified `parserV3` and `mermaidGeneratorV3`
 - Base Router (IES) Visualization
 - Host-based IES Grouping
@@ -158,7 +159,8 @@ Focus on physical connection visualization
 - **v1.3.0** (2025-12-15) - Advanced search (AND/OR)
 - **v1.2.0** (2025-12-14) - HA diagram display improvements
 - **v1.1.0** (2025-12-14) - HA diagram generation
-- **v1.0.0** (2025-12-14) - Initial release
+- **v3.1.0** (2026-01-21) - Advanced BGP/OSPF Visualization & UI Polish
+- **v3.0.0** (2026-01-21) - Unified Visualizer (Base/IES Integration)
 
 ---
 

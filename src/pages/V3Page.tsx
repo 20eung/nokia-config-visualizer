@@ -249,7 +249,7 @@ export function V3Page() {
                 ) : (
                     <div className="empty-state">
                         <h3>No Configuration Loaded</h3>
-                        <p>Please upload a Nokia L2 VPN configuration file to start.</p>
+                        <p>Please upload a Nokia configuration file to start.</p>
                         <div className="upload-hint">
                             <FileUpload onConfigLoaded={handleConfigLoaded} variant="default" />
                         </div>
