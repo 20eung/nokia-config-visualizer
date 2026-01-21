@@ -95,8 +95,10 @@ export function extractSection(configText: string, sectionName: string): string 
  * 호스트명 추출
  */
 export function extractHostname(configText: string): string {
-    const match = configText.match(/^\s*name\s+"([^"]+)"/im);
-    return match ? match[1] : 'Unknown';
+    // Robust regex from v2 (nokiaParser.ts) parsing logic
+    // Handles 'system ... name "HOST"' context and optional quotes
+    const match = configText.match(/system[\s\S]*?name\s+"?([^"\n]+)"?/i);
+    return match ? match[1].trim() : 'Unknown';
 }
 
 /**
