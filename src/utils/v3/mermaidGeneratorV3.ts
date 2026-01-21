@@ -352,15 +352,21 @@ export function generateEpipeDiagram(
                     // Create QoS as intermediate node for better visibility
                     const qosNodeId = `QOS_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
                     const qosText = qosParts.join('<br/>');
-                    lines.push(`${qosNodeId}[\"${qosText}\"]`);
+                    lines.push(`${qosNodeId}["${qosText}"]`);
                     lines.push(`class ${qosNodeId} qos;`);
 
                     // Connect: SAP -> QoS -> Service
                     lines.push(`${sapNodeId} --- ${qosNodeId}`);
                     lines.push(`${qosNodeId} --- ${svcNodeId}`);
                 } else {
-                    // No QoS: direct connection
-                    lines.push(`${sapNodeId} --- ${svcNodeId}`);
+                    // No QoS: Create transparent dummy node for consistent layout
+                    const dummyNodeId = `DUMMY_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
+                    lines.push(`${dummyNodeId}[" "]`);
+                    lines.push(`style ${dummyNodeId} fill:transparent,stroke:transparent,color:transparent;`);
+
+                    // Connect: SAP -> Dummy -> Service
+                    lines.push(`${sapNodeId} --- ${dummyNodeId}`);
+                    lines.push(`${dummyNodeId} --- ${svcNodeId}`);
                 }
             });
         });
