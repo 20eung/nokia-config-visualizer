@@ -13,7 +13,7 @@ interface ServiceListProps {
 
 export function ServiceListV3({
     services,
-    configs,
+    configs: _configs,
     selectedServiceIds,
     onToggleService,
     onSetSelected,
