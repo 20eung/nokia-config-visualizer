@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v2.1.0** (Latest) - Nokia 7750 SR / MPLS VPN Service Visualizer
+> 🚀 **v3.0.0** (Latest) - Nokia 7750 SR / Unified Network & Service Visualizer
 
 ![Application Screenshot](./docs/screenshot.png)
 
@@ -42,6 +42,15 @@
   - VRF, RD, AS 정보 표시
 - **서비스 그룹화**: Service ID 및 Type 기반 자동 그룹화
 - **통합 레이아웃**: Host(Left) - Service(Right) 표준화된 구조
+
+### 🌍 통합 비주얼라이저 (v3.x)
+- **Base Router / IES 통합**:
+  - Global Routing Table 인터페이스 및 Static Route 시각화
+  - "IES 0" 가상 서비스를 통한 관리
+- **Host 기반 그룹핑**: 
+  - IES 서비스를 장비(Hostname) 별로 그룹화하여 표시
+  - 다중 선택 시 고가용성(HA) 다이어그램 자동 생성
+- **v1/v2 통합**: 물리 토폴로지와 논리 서비스를 단일 플랫폼에서 지원
 ### 🔎 고급 검색 기능
 - **AND 검색**: ` + ` (공백 포함)로 구분
 - **OR 검색**: 띄어쓰기로 구분
@@ -188,7 +197,13 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 - ✅ **표준화된 레이아웃**: 모든 서비스에 대해 Host-Service 구조 통일
 - ✅ **고도화된 파싱**: 복잡한 서비스 설정(Multi-hop, VRF 등) 파싱 지원
 
-**Latest Release**: v2.1.0 (2026-01-20)
+### v3.x - Unified Visualizer ✅ 완료 (v3.0.0 released)
+- ✅ **Base Router 통합**: 물리적 연결(v1)과 서비스(v2) 뷰 통합
+- ✅ **IES 서비스 지원**: Base Router 인터페이스 및 Global Routing Table 시각화
+- ✅ **통합 UI**: 모든 서비스(Epipe, VPLS, VPRN, IES)를 하나의 인터페이스에서 관리
+- ✅ **HA 토폴로지**: IES 서비스에 대한 Local -> Peer -> Network 위상 자동 생성
+
+**Latest Release**: v3.0.0 (2026-01-21)
 
 자세한 내용은 [V2_PLANNING.md](./V2_PLANNING.md)를 참조하세요.
 
