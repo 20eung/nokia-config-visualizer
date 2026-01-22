@@ -9,7 +9,7 @@ services:
     hostname: nokia-visualizer
     restart: unless-stopped
     ports:
-      - "3300:80"
+      - "3301:80"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Seoul
@@ -18,4 +18,4 @@ services:
 
 networks:
   npm-network:
-    external: true
+    driver: bridge

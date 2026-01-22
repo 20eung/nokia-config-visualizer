@@ -28,15 +28,116 @@ export function ServiceListV3({
             return false;
         }
 
-        // 검색 필터
+        // 검색 필터 (Enhanced with Hostname, Interfaces, IPs, BGP/OSPF, SAP/SDP)
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
-            return (
+
+            // 기본 서비스 정보
+            const basicMatch = (
                 service.serviceId.toString().includes(query) ||
                 service.description.toLowerCase().includes(query) ||
                 (service.serviceName && service.serviceName.toLowerCase().includes(query)) ||
                 service.customerId.toString().includes(query)
             );
+
+            if (basicMatch) return true;
+
+            // Hostname 검색
+            const hostname = (service as any)._hostname;
+            if (hostname && hostname.toLowerCase().includes(query)) return true;
+
+            // 서비스 타입별 상세 검색
+            if (service.serviceType === 'epipe') {
+                // SAP IDs
+                if ('saps' in service && service.saps) {
+                    if (service.saps.some(sap => sap.sapId.toLowerCase().includes(query))) return true;
+                }
+                // SDP IDs
+                if ('spokeSdps' in service && service.spokeSdps) {
+                    if (service.spokeSdps.some(sdp =>
+                        sdp.sdpId.toString().includes(query) ||
+                        sdp.vcId.toString().includes(query)
+                    )) return true;
+                }
+            } else if (service.serviceType === 'vpls') {
+                // SAP IDs
+                if ('saps' in service && service.saps) {
+                    if (service.saps.some(sap => sap.sapId.toLowerCase().includes(query))) return true;
+                }
+                // Spoke SDP IDs
+                if ('spokeSdps' in service && service.spokeSdps) {
+                    if (service.spokeSdps.some(sdp =>
+                        sdp.sdpId.toString().includes(query) ||
+                        sdp.vcId.toString().includes(query)
+                    )) return true;
+                }
+                // Mesh SDP IDs
+                if ('meshSdps' in service && service.meshSdps) {
+                    if (service.meshSdps.some(sdp => sdp.sdpId.toString().includes(query))) return true;
+                }
+            } else if (service.serviceType === 'vprn') {
+                // Interfaces
+                if ('interfaces' in service && service.interfaces) {
+                    for (const iface of service.interfaces) {
+                        // Interface Name
+                        if (iface.interfaceName && iface.interfaceName.toLowerCase().includes(query)) return true;
+                        // Interface Description
+                        if (iface.description && iface.description.toLowerCase().includes(query)) return true;
+                        // Port ID
+                        if (iface.portId && iface.portId.toLowerCase().includes(query)) return true;
+                        // IP Address
+                        if (iface.ipAddress && iface.ipAddress.toLowerCase().includes(query)) return true;
+                        // VPLS Name
+                        if (iface.vplsName && iface.vplsName.toLowerCase().includes(query)) return true;
+                        // Spoke SDP
+                        if (iface.spokeSdpId && iface.spokeSdpId.toLowerCase().includes(query)) return true;
+                    }
+                }
+                // BGP Information
+                if ('bgpRouterId' in service && service.bgpRouterId) {
+                    if (service.bgpRouterId.toLowerCase().includes(query)) return true;
+                }
+                if ('bgpNeighbors' in service && service.bgpNeighbors) {
+                    if (service.bgpNeighbors.some(nbr =>
+                        nbr.neighborIp.toLowerCase().includes(query) ||
+                        (nbr.autonomousSystem && nbr.autonomousSystem.toString().includes(query))
+                    )) return true;
+                }
+                // OSPF Information
+                if ('ospf' in service && service.ospf && service.ospf.areas) {
+                    for (const area of service.ospf.areas) {
+                        // Area ID
+                        if (area.areaId.toLowerCase().includes(query)) return true;
+                        // OSPF Interfaces
+                        if (area.interfaces && area.interfaces.some(intf =>
+                            intf.interfaceName.toLowerCase().includes(query)
+                        )) return true;
+                    }
+                }
+                // AS, RD
+                if ('autonomousSystem' in service && service.autonomousSystem) {
+                    if (service.autonomousSystem.toString().includes(query)) return true;
+                }
+                if ('routeDistinguisher' in service && service.routeDistinguisher) {
+                    if (service.routeDistinguisher.toLowerCase().includes(query)) return true;
+                }
+            } else if (service.serviceType === 'ies') {
+                // IES Interfaces
+                if ('interfaces' in service && service.interfaces) {
+                    for (const iface of service.interfaces) {
+                        // Interface Name
+                        if (iface.interfaceName && iface.interfaceName.toLowerCase().includes(query)) return true;
+                        // Interface Description
+                        if (iface.description && iface.description.toLowerCase().includes(query)) return true;
+                        // Port ID
+                        if (iface.portId && iface.portId.toLowerCase().includes(query)) return true;
+                        // IP Address
+                        if (iface.ipAddress && iface.ipAddress.toLowerCase().includes(query)) return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         return true;
@@ -405,10 +506,10 @@ export function ServiceListV3({
                                             />
                                             <div className="service-info">
                                                 <div className="service-title">
-                                                    IES (Base Router)
+                                                    {hostname}
                                                 </div>
                                                 <div className="service-description">
-                                                    Host: {hostname}
+                                                    IES (Base Router) • {serviceGroup.reduce((count, s) => count + ((s as IESService).interfaces?.length || 0), 0)} interface{serviceGroup.reduce((count, s) => count + ((s as IESService).interfaces?.length || 0), 0) !== 1 ? 's' : ''}
                                                 </div>
 
                                                 {/* Device Grouping for IES Interfaces */}
@@ -420,16 +521,31 @@ export function ServiceListV3({
                                                         <div key={idx} className="service-device-group" style={{ marginTop: '8px', paddingLeft: '8px', borderLeft: '2px solid #eee' }}>
                                                             <div className="device-interfaces">
                                                                 {service.interfaces.map((iface, ifIdx) => (
-                                                                    <div key={ifIdx} className="interface-item" style={{ fontSize: '0.85em', marginLeft: '8px', marginTop: '4px', color: '#555', lineHeight: '1.4' }}>
-                                                                        <div>
-                                                                            <span style={{ fontWeight: '600' }}>{iface.interfaceName}</span>
-                                                                            {iface.portId && <span style={{ marginLeft: '6px', color: '#777' }}>({iface.portId})</span>}
+                                                                    <div key={ifIdx} className="interface-item" style={{ fontSize: '0.85em', marginLeft: '8px', marginTop: '8px', color: '#555', lineHeight: '1.6', borderBottom: '1px solid #f0f0f0', paddingBottom: '6px' }}>
+                                                                        {/* Interface Name */}
+                                                                        <div style={{ fontWeight: '600', color: '#333' }}>
+                                                                            Interface: {iface.interfaceName}
                                                                         </div>
+
+                                                                        {/* Interface Description */}
                                                                         {iface.description && (
-                                                                            <div style={{ fontStyle: 'italic', color: '#666' }}>{iface.description}</div>
+                                                                            <div style={{ color: '#666', marginTop: '2px' }}>
+                                                                                Int Desc: {iface.description}
+                                                                            </div>
                                                                         )}
+
+                                                                        {/* Interface IP */}
                                                                         {iface.ipAddress && (
-                                                                            <div style={{ color: '#0066cc' }}>{iface.ipAddress}</div>
+                                                                            <div style={{ color: '#0066cc', marginTop: '2px' }}>
+                                                                                Int IP: {iface.ipAddress}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Port ID */}
+                                                                        {iface.portId && (
+                                                                            <div style={{ color: '#666', marginTop: '2px' }}>
+                                                                                Port: {iface.portId}
+                                                                            </div>
                                                                         )}
                                                                     </div>
                                                                 ))}
