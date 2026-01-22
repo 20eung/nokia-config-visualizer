@@ -138,8 +138,30 @@
     font-weight: 600;
 }
 
-.group-items {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
+display: flex;
+flex-direction: column;
+gap: 24px;
+}
+
+/* Sidebar Resizer */
+.sidebar-resizer {
+    width: 8px;
+    /* Slightly wider for better hit target */
+    height: 100%;
+    cursor: col-resize;
+    background-color: transparent;
+    border-left: 1px solid #e2e8f0;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+    z-index: 50;
+    /* Use negative margin to overlay border if needed, but flex layout places it adjacent */
+    margin-left: -1px;
+    /* Overlap the sidebar border */
+}
+
+.sidebar-resizer:hover,
+.sidebar-resizer:active {
+    background-color: #3b82f6;
+    /* Tailwind blue-500 equivalent */
+    width: 8px;
 }
