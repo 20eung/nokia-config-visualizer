@@ -148,7 +148,20 @@ export function generateIESDiagram(services: NokiaServiceV3[], hostnames: string
         mermaid.push(`    subgraph Local_${groupIdx} ["\u003cb\u003e${group.items[0].hostname}\u003c/b\u003e"]`);
         group.items.forEach((item, i) => {
             const nodeId = `L_${groupIdx}_${i}`;
-            const label = `\u003cb\u003eInterface:\u003c/b\u003e ${item.intf.interfaceName}\u003cbr/\u003e\u003cb\u003eInt IP:\u003c/b\u003e ${item.intf.ipAddress}`;
+            let label = `\u003cb\u003eInterface:\u003c/b\u003e ${item.intf.interfaceName}\u003cbr/\u003e`;
+
+            if (item.intf.description) {
+                label += `\u003cb\u003eInt Desc:\u003c/b\u003e ${item.intf.description}\u003cbr/\u003e`;
+            }
+
+            if (item.intf.ipAddress) {
+                label += `\u003cb\u003eInt IP:\u003c/b\u003e ${item.intf.ipAddress}\u003cbr/\u003e`;
+            }
+
+            if (item.intf.portId) {
+                label += `\u003cb\u003ePort:\u003c/b\u003e ${item.intf.portId}`;
+            }
+
             mermaid.push(`        ${nodeId}["${label}"]`);
 
             // Style
@@ -156,8 +169,8 @@ export function generateIESDiagram(services: NokiaServiceV3[], hostnames: string
         });
         mermaid.push(`    end`);
 
-        // Remote HA Pair (Middle)
-        mermaid.push(`    subgraph Remote_${groupIdx} ["<b>Remote HA Pair</b>"]`);
+        // Remote Device (Middle)
+        mermaid.push(`    subgraph Remote_${groupIdx} ["<b>Remote Device</b>"]`);
         group.items.forEach((item, i) => {
             const peerId = `P_${groupIdx}_${i}`;
             const label = `<b>Peer IP</b><br/>${item.peerIp}`;

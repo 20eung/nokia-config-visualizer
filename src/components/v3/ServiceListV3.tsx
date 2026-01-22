@@ -512,42 +512,21 @@ export function ServiceListV3({
                                                     IES (Base Router) • {serviceGroup.reduce((count, s) => count + ((s as IESService).interfaces?.length || 0), 0)} interface{serviceGroup.reduce((count, s) => count + ((s as IESService).interfaces?.length || 0), 0) !== 1 ? 's' : ''}
                                                 </div>
 
-                                                {/* Device Grouping for IES Interfaces */}
+                                                {/* Simple interface list for sidebar */}
                                                 {serviceGroup.map((item, idx) => {
                                                     const service = item as IESService;
                                                     if (!service.interfaces || service.interfaces.length === 0) return null;
 
                                                     return (
-                                                        <div key={idx} className="service-device-group" style={{ marginTop: '8px', paddingLeft: '8px', borderLeft: '2px solid #eee' }}>
-                                                            <div className="device-interfaces">
-                                                                {service.interfaces.map((iface, ifIdx) => (
-                                                                    <div key={ifIdx} className="interface-item" style={{ fontSize: '0.85em', marginLeft: '8px', marginTop: '8px', color: '#555', lineHeight: '1.6', borderBottom: '1px solid #f0f0f0', paddingBottom: '6px' }}>
-                                                                        {/* Interface Name */}
-                                                                        <div style={{ fontWeight: '600', color: '#333' }}>
-                                                                            Interface: {iface.interfaceName}
-                                                                        </div>
-
-                                                                        {/* Interface Description - Always show label */}
-                                                                        <div style={{ color: '#666', marginTop: '2px' }}>
-                                                                            Int Desc: {iface.description || ''}
-                                                                        </div>
-
-                                                                        {/* Interface IP */}
-                                                                        {iface.ipAddress && (
-                                                                            <div style={{ color: '#0066cc', marginTop: '2px' }}>
-                                                                                Int IP: {iface.ipAddress}
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* Port ID */}
-                                                                        {iface.portId && (
-                                                                            <div style={{ color: '#666', marginTop: '2px' }}>
-                                                                                Port: {iface.portId}
-                                                                            </div>
-                                                                        )}
+                                                        <div key={idx} style={{ marginTop: '4px' }}>
+                                                            {service.interfaces.map((iface, ifIdx) => {
+                                                                const portDisplay = iface.portId ? `(${iface.portId})` : '';
+                                                                return (
+                                                                    <div key={ifIdx} style={{ marginLeft: '16px', color: '#0066cc', fontSize: '0.9em', marginTop: '2px' }}>
+                                                                        {iface.interfaceName}{portDisplay}: {iface.ipAddress}
                                                                     </div>
-                                                                ))}
-                                                            </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     );
                                                 })}
