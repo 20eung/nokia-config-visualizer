@@ -12,11 +12,60 @@ import './V2Page.css';
 export function V3Page() {
     const [configs, setConfigs] = useState<ParsedConfigV3[]>([]);
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-    // 사이드바 너비 상태 (기본값 320px)
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState(320);
     const [isResizing, setIsResizing] = useState(false);
 
-    // 사이드바 리사이징 핸들러
+    useEffect(() => {
+        const isDemoEnvironment = window.location.hostname.includes('demo') || window.location.hostname.includes('beta');
+
+        if (isDemoEnvironment && configs.length === 0) {
+            fetch('/docs/v2/pe-router-1-l2vpn.cfg')
+                .then(r => r.text())
+                .then(text => {
+                    handleConfigLoaded([text]);
+                    console.log('✅ Demo/Beta environment: Auto-loaded pe-router-1-l2vpn.cfg');
+                })
+                .catch(error => {
+                    console.warn('⚠️ Demo/Beta environment: Could not auto-load sample config:', error);
+                });
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleConfigLoaded = (contents: string[]) => {
+        try {
+            const parsedConfigs: ParsedConfigV3[] = [];
+            contents.forEach(content => {
+                const parsed = parseL2VPNConfig(content);
+                if (parsed.hostname || parsed.services.length > 0) {
+                    parsedConfigs.push(parsed);
+                }
+            });
+
+            if (parsedConfigs.length > 0) {
+                setConfigs(parsedConfigs);
+                setSelectedServiceIds([]);
+            } else {
+                alert('No valid configuration found in the uploaded files.');
+            }
+        } catch (error) {
+            console.error('Failed to parse L2 VPN config:', error);
+            alert('Failed to parse L2 VPN configuration file.');
+        }
+    };
+
+    const handleToggleService = (serviceKey: string) => {
+        setSelectedServiceIds(prev =>
+            prev.includes(serviceKey)
+                ? prev.filter(key => key !== serviceKey)
+                : [...prev, serviceKey]
+        );
+    };
+
+    const handleSetSelected = (serviceKeys: string[]) => {
+        setSelectedServiceIds(serviceKeys);
+    };
+
     const startResizing = (mouseDownEvent: React.MouseEvent) => {
         mouseDownEvent.preventDefault();
         setIsResizing(true);
@@ -28,8 +77,8 @@ export function V3Page() {
 
     const resize = (mouseMoveEvent: MouseEvent) => {
         if (isResizing) {
-            const newWidth = mouseMoveEvent.clientX; // 사이드바가 왼쪽에 있으므로 clientX가 곧 너비
-            if (newWidth > 200 && newWidth < 800) { // 최소/최대 너비 제한
+            const newWidth = mouseMoveEvent.clientX;
+            if (newWidth > 200 && newWidth < 800) {
                 setSidebarWidth(newWidth);
             }
         }
@@ -50,9 +99,126 @@ export function V3Page() {
         };
     }, [isResizing]);
 
+    const allServices = configs.flatMap(c => c.services.map(s => ({ ...s, _hostname: c.hostname })));
+
+    const selectedServices = ((allServices as any[]).flatMap(s => {
+        if (s.serviceType === 'ies') {
+            const hostname = (s as any)._hostname;
+
+            if (selectedServiceIds.includes(`ies-${hostname}`)) {
+                return [s];
+            }
+
+            const prefix = `ies___${hostname}___`;
+            const selectedInterfaceKeys = selectedServiceIds.filter(id => id.startsWith(prefix));
+
+            if (selectedInterfaceKeys.length > 0) {
+                const selectedInterfaceNames = new Set(
+                    selectedInterfaceKeys.map(key => key.replace(prefix, ''))
+                );
+
+                const iesService = s as IESService & { _hostname: string };
+                const filteredService = {
+                    ...iesService,
+                    interfaces: iesService.interfaces.filter((intf: any) => selectedInterfaceNames.has(intf.interfaceName))
+                };
+                return [filteredService];
+            }
+            return [];
+        }
+
+        if (selectedServiceIds.includes(`${s.serviceType}-${s.serviceId}`)) {
+            return [s];
+        }
+        return [];
+    })) as (NokiaService & { _hostname: string })[];
+
+    const remoteDeviceMap = new Map<string, string>();
+    configs.forEach(c => {
+        if (c.systemIp && c.hostname) {
+            remoteDeviceMap.set(c.systemIp, c.hostname);
+        }
+    });
+
+    const serviceGroups = selectedServices.reduce((acc, service) => {
+        let key = `${service.serviceType}-${service.serviceId}`;
+
+        if (service.serviceType === 'ies') {
+            const hostname = (service as any)._hostname || 'Unknown';
+            key = `ies-${hostname}`;
+        }
+
+        if (!acc[key]) {
+            acc[key] = [];
+        }
+        acc[key].push(service);
+        return acc;
+    }, {} as Record<string, typeof selectedServices>);
+
+    const diagrams = Object.values(serviceGroups).map(group => {
+        const servicesWithContext = group.map(service => {
+            const hostname = (service as any)._hostname || 'Unknown';
+            const parentConfig = configs.find(c => c.hostname === hostname);
+            return {
+                service,
+                hostname: hostname,
+                sdps: parentConfig?.sdps || []
+            };
+        });
+
+        const representativeService = servicesWithContext[0].service;
+
+        if (representativeService.serviceType === 'ies') {
+            return {
+                service: representativeService,
+                diagram: generateIESDiagram(
+                    servicesWithContext.map(s => s.service),
+                    servicesWithContext.map(s => s.hostname)
+                ),
+                hostname: servicesWithContext[0].hostname
+            };
+        }
+
+        if (servicesWithContext.length === 1) {
+            return {
+                service: representativeService,
+                diagram: generateServiceDiagram(
+                    representativeService,
+                    servicesWithContext[0].hostname,
+                    servicesWithContext[0].sdps,
+                    remoteDeviceMap
+                ),
+                hostname: servicesWithContext[0].hostname
+            };
+        } else {
+            if (representativeService.serviceType === 'epipe') {
+                return {
+                    service: representativeService,
+                    diagram: generateServiceDiagram(
+                        servicesWithContext.map(s => s.service),
+                        servicesWithContext.map(s => s.hostname),
+                        servicesWithContext[0].sdps,
+                        remoteDeviceMap
+                    ),
+                    hostname: servicesWithContext.map(s => s.hostname).join(' + ')
+                };
+            } else {
+                return {
+                    service: representativeService,
+                    diagram: generateServiceDiagram(
+                        servicesWithContext.map(s => s.service),
+                        servicesWithContext.map(s => s.hostname),
+                        servicesWithContext[0].sdps,
+                        remoteDeviceMap
+                    ),
+                    hostname: servicesWithContext.map(s => s.hostname).join(' + ')
+                };
+            }
+        }
+    });
+
     return (
         <div className="v2-page">
-            {/* 헤더 */}
             <header className="v2-header">
                 <div className="header-left">
                     <button
@@ -74,11 +240,9 @@ export function V3Page() {
                 </div>
             </header>
 
-            {/* 메인 컨텐츠 */}
             <main className="v2-main" onMouseUp={stopResizing}>
                 {configs.length > 0 ? (
                     <>
-                        {/* 사이드바 - 서비스 목록 */}
                         <aside
                             className={`v2-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}
                             style={{ width: isSidebarCollapsed ? 0 : sidebarWidth, flexShrink: 0, transition: isResizing ? 'none' : 'width 0.3s ease' }}
@@ -92,7 +256,6 @@ export function V3Page() {
                             />
                         </aside>
 
-                        {/* 리사이저 핸들 (사이드바가 펼쳐져 있을 때만 표시) */}
                         {!isSidebarCollapsed && (
                             <div
                                 className={`sidebar-resizer ${isResizing ? 'resizing' : ''}`}
@@ -100,13 +263,11 @@ export function V3Page() {
                             />
                         )}
 
-                        {/* 컨텐츠 - 다이어그램 */}
                         <section className="v2-content">
                             {diagrams.length > 0 ? (
                                 <div className="diagrams-container">
                                     {Object.entries(
                                         diagrams.reduce((acc, item) => {
-                                            // Group by Type + ID to separate VPRN 2001 and Epipe 2001
                                             const key = `${item.service.serviceType}_${item.service.serviceId}`;
                                             if (!acc[key]) acc[key] = [];
                                             acc[key].push(item);
