@@ -284,7 +284,7 @@ export function ServiceListV3({
                             <h3>Epipe Services ({epipeServices.length})</h3>
                         </div>
                         {expandedGroups['epipe'] && (
-                            <div className="service-items">
+                            <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
                                 {epipeServices.map(serviceGroup => {
                                     // 대표 서비스 (첫 번째)
                                     const representative = serviceGroup[0];
@@ -361,7 +361,7 @@ export function ServiceListV3({
                             <h3>VPLS Services ({vplsServices.length})</h3>
                         </div>
                         {expandedGroups['vpls'] && (
-                            <div className="service-items">
+                            <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
                                 {vplsServices.map(serviceGroup => {
                                     const representative = serviceGroup[0];
 
@@ -427,7 +427,7 @@ export function ServiceListV3({
                             <h3>VPRN Services ({vprnServices.length})</h3>
                         </div>
                         {expandedGroups['vprn'] && (
-                            <div className="service-items">
+                            <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
                                 {vprnServices.map(serviceGroup => {
                                     const representative = serviceGroup[0];
 
