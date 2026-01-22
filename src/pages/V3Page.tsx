@@ -120,7 +120,7 @@ export function V3Page() {
                     servicesWithContext.map(s => s.service),
                     servicesWithContext.map(s => s.hostname)
                 ),
-                hostname: 'Global Routing (IES 0)'
+                hostname: servicesWithContext[0].hostname
             };
         }
 

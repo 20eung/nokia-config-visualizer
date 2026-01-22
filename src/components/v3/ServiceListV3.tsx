@@ -522,8 +522,14 @@ export function ServiceListV3({
                                                             {service.interfaces.map((iface, ifIdx) => {
                                                                 const portDisplay = iface.portId ? `(${iface.portId})` : '';
                                                                 return (
-                                                                    <div key={ifIdx} style={{ marginLeft: '16px', color: '#0066cc', fontSize: '0.9em', marginTop: '2px' }}>
-                                                                        {iface.interfaceName}{portDisplay}: {iface.ipAddress}
+                                                                    <div key={ifIdx} style={{ marginLeft: '16px', fontSize: '0.9em', marginTop: '2px' }}>
+                                                                        <span style={{ fontWeight: '600', color: '#000' }}>
+                                                                            {iface.interfaceName}{portDisplay}:
+                                                                        </span>
+                                                                        {' '}
+                                                                        <span style={{ color: '#0066cc' }}>
+                                                                            {iface.ipAddress}
+                                                                        </span>
                                                                     </div>
                                                                 );
                                                             })}
