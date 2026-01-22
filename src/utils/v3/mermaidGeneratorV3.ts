@@ -199,15 +199,12 @@ export function generateIESDiagram(services: NokiaServiceV3[], hostnames: string
             }
 
             if (qosParts.length > 0) {
-                // Use Intermediate Node for robust styling (Green Background)
-                const qosNodeId = `Q_${groupIdx}_${i}`;
-                const qosLabel = qosParts.join('<br/>');
+                // Use Link Label Style (User Request: Label Style like Epipe/VPLS)
+                // Inline style for safety, mirroring Epipe/VPLS look
+                const labelContent = qosParts.join('<br/>');
+                const styledLabel = `<div style='background-color:#4caf50;color:white;padding:4px;border-radius:4px;font-size:0.8em;text-align:center;line-height:1.2;'>${labelContent}</div>`;
 
-                // shape: rounded rect
-                mermaid.push(`        ${qosNodeId}("${qosLabel}")`);
-                mermaid.push(`        class ${qosNodeId} qosBox`);
-
-                mermaid.push(`    ${lNode} --- ${qosNodeId} --> ${rNode}`);
+                mermaid.push(`    ${lNode} -->|"${styledLabel}"| ${rNode}`);
             } else {
                 mermaid.push(`    ${lNode} --> ${rNode}`);
             }
