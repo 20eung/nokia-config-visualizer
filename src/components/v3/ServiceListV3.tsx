@@ -123,18 +123,16 @@ export function ServiceListV3({
                     if (service.routeDistinguisher.toLowerCase().includes(query)) return true;
                 }
             } else if (service.serviceType === 'ies') {
-                // IES Interfaces
                 if ('interfaces' in service && service.interfaces) {
                     for (const iface of service.interfaces) {
-                        // Interface Name
                         if (iface.interfaceName && iface.interfaceName.toLowerCase().includes(query)) return true;
-                        // Interface Description
                         if (iface.description && iface.description.toLowerCase().includes(query)) return true;
-                        // Port ID
                         if (iface.portId && iface.portId.toLowerCase().includes(query)) return true;
-                        // IP Address
                         if (iface.ipAddress && iface.ipAddress.toLowerCase().includes(query)) return true;
                     }
+                }
+                if ('staticRoutes' in service && service.staticRoutes) {
+                    if (service.staticRoutes.some(route => route.prefix.toLowerCase().includes(query))) return true;
                 }
             }
 
