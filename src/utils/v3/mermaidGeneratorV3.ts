@@ -84,6 +84,7 @@ function findPeerAndRoutes(_hostname: string, intf: any, staticRoutes: any[]): {
 
 export function generateIESDiagram(services: NokiaServiceV3[], hostnames: string[]): string {
     const mermaid = ['graph LR'];
+    mermaid.push('classDef qosBox fill:#4caf50,stroke:#2e7d32,stroke-width:1px,color:#fff,rx:4,ry:4;');
 
     // 1. Prepare Data
     const items: any[] = [];
@@ -194,7 +195,7 @@ export function generateIESDiagram(services: NokiaServiceV3[], hostnames: string
 
             // Fallback for generic qosPolicyId if older parse
             if (qosParts.length === 0 && item.intf.qosPolicyId) {
-                qosParts.push(`QoS: ${item.intf.qosPolicyId}`);
+                qosParts.push(`In-QoS: ${item.intf.qosPolicyId}`);
             }
 
             if (qosParts.length > 0) {
@@ -204,7 +205,7 @@ export function generateIESDiagram(services: NokiaServiceV3[], hostnames: string
 
                 // shape: rounded rect
                 mermaid.push(`        ${qosNodeId}("${qosLabel}")`);
-                mermaid.push(`        style ${qosNodeId} fill:#4caf50,stroke:#2e7d32,stroke-width:1px,color:#fff,font-size:0.8em`);
+                mermaid.push(`        class ${qosNodeId} qosBox`);
 
                 mermaid.push(`    ${lNode} --- ${qosNodeId} --> ${rNode}`);
             } else {
