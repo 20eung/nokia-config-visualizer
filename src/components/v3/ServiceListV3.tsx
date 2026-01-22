@@ -489,7 +489,7 @@ export function ServiceListV3({
                             <h3>IES Services ({iesServices.length})</h3>
                         </div>
                         {expandedGroups['ies'] && (
-                            <div className="service-items">
+                            <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
                                 {iesServices.map(serviceGroup => {
                                     const representative = serviceGroup[0] as IESService;
                                     const hostname = (representative as any)._hostname || 'Unknown';
@@ -621,7 +621,7 @@ export function ServiceListV3({
                                                                         )}
                                                                     </div>
                                                                     <div style={{ color: '#666', fontSize: '0.85em', marginTop: '2px' }}>
-                                                                        {intf.portId || 'Virtual'} {intf.description ? `• ${intf.description}` : ''}
+                                                                        {intf.description || ''}
                                                                     </div>
                                                                 </div>
                                                             </div>
