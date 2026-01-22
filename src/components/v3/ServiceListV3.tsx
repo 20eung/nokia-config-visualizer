@@ -189,6 +189,8 @@ export function ServiceListV3({
         ies: true,
     });
 
+    const [expandedIESHosts, setExpandedIESHosts] = useState<{ [key: string]: boolean }>({});
+
     const toggleGroup = (group: string) => {
         setExpandedGroups(prev => ({
             ...prev,
@@ -491,53 +493,142 @@ export function ServiceListV3({
                                 {iesServices.map(serviceGroup => {
                                     const representative = serviceGroup[0] as IESService;
                                     const hostname = (representative as any)._hostname || 'Unknown';
-                                    const serviceKey = `ies-${hostname}`;
+                                    const fullHostKey = `ies-${hostname}`;
+
+                                    // Collect all interfaces from this group (usually one service object but handled loosely)
+                                    const allInterfaces: (L3Interface & { _parentService: IESService })[] = [];
+                                    serviceGroup.forEach(s => {
+                                        if ((s as IESService).interfaces) {
+                                            (s as IESService).interfaces.forEach(i => allInterfaces.push({ ...i, _parentService: s as IESService }));
+                                        }
+                                    });
+
+                                    const isHostExpanded = expandedIESHosts[hostname];
+
+                                    // Calculate Selection State
+                                    const isFullHostSelected = selectedServiceIds.includes(fullHostKey);
+                                    const selectedCount = allInterfaces.filter(intf =>
+                                        isFullHostSelected || selectedServiceIds.includes(`ies___${hostname}___${intf.interfaceName}`)
+                                    ).length;
+                                    const isAllSelected = allInterfaces.length > 0 && selectedCount === allInterfaces.length;
+                                    const isPartialSelected = selectedCount > 0 && selectedCount < allInterfaces.length;
+
+                                    // Handlers
+                                    const toggleHostAccordion = (e: React.MouseEvent) => {
+                                        e.stopPropagation();
+                                        setExpandedIESHosts(prev => ({ ...prev, [hostname]: !prev[hostname] }));
+                                    };
+
+                                    const handleHostSelect = (e: React.MouseEvent) => {
+                                        e.stopPropagation();
+                                        let newSelected = [...selectedServiceIds];
+
+                                        // Remove full host key and all specific keys for this host
+                                        newSelected = newSelected.filter(id =>
+                                            id !== fullHostKey && !id.startsWith(`ies___${hostname}___`)
+                                        );
+
+                                        if (!isAllSelected) {
+                                            // Select All: Add individual keys for granular control
+                                            allInterfaces.forEach(intf => {
+                                                newSelected.push(`ies___${hostname}___${intf.interfaceName}`);
+                                            });
+                                        }
+                                        onSetSelected(newSelected);
+                                    };
+
+                                    const handleInterfaceToggle = (interfaceName: string) => {
+                                        const specificKey = `ies___${hostname}___${interfaceName}`;
+                                        let newSelected = [...selectedServiceIds];
+
+                                        // If full host currently selected, explode it
+                                        if (newSelected.includes(fullHostKey)) {
+                                            newSelected = newSelected.filter(id => id !== fullHostKey);
+                                            // Add all other interfaces
+                                            allInterfaces.forEach(intf => {
+                                                if (intf.interfaceName !== interfaceName) {
+                                                    newSelected.push(`ies___${hostname}___${intf.interfaceName}`);
+                                                }
+                                            });
+                                            // Don't add specificKey (we are toggling it OFF)
+                                        } else {
+                                            if (newSelected.includes(specificKey)) {
+                                                newSelected = newSelected.filter(id => id !== specificKey);
+                                            } else {
+                                                newSelected.push(specificKey);
+                                            }
+                                        }
+                                        onSetSelected(newSelected);
+                                    };
 
                                     return (
-                                        <div
-                                            key={serviceKey}
-                                            className={`service-item ${selectedServiceIds.includes(serviceKey) ? 'selected' : ''}`}
-                                            onClick={() => onToggleService(serviceKey)}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedServiceIds.includes(serviceKey)}
-                                                onChange={() => { }}
-                                                className="service-checkbox"
-                                            />
-                                            <div className="service-info">
-                                                <div className="service-title">
-                                                    {hostname}
-                                                </div>
-                                                <div className="service-description">
-                                                    IES (Base Router) • {serviceGroup.reduce((count, s) => count + ((s as IESService).interfaces?.length || 0), 0)} interface{serviceGroup.reduce((count, s) => count + ((s as IESService).interfaces?.length || 0), 0) !== 1 ? 's' : ''}
-                                                </div>
-
-                                                {/* Simple interface list for sidebar */}
-                                                {serviceGroup.map((item, idx) => {
-                                                    const service = item as IESService;
-                                                    if (!service.interfaces || service.interfaces.length === 0) return null;
-
-                                                    return (
-                                                        <div key={idx} style={{ marginTop: '4px' }}>
-                                                            {service.interfaces.map((iface: L3Interface, ifIdx: number) => {
-                                                                const portDisplay = iface.portId ? `(${iface.portId})` : '';
-                                                                return (
-                                                                    <div key={ifIdx} style={{ marginLeft: '16px', fontSize: '0.9em', marginTop: '2px' }}>
-                                                                        <span style={{ fontWeight: '600', color: '#000' }}>
-                                                                            {iface.interfaceName}{portDisplay}:
-                                                                        </span>
-                                                                        {' '}
-                                                                        <span style={{ color: '#0066cc' }}>
-                                                                            {iface.ipAddress}
-                                                                        </span>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    );
-                                                })}
+                                        <div key={`ies-group-${hostname}`} className="service-subgroup" style={{ marginBottom: '8px', border: '1px solid #eee', borderRadius: '4px', overflow: 'hidden' }}>
+                                            {/* Hostname Header (Accordion) */}
+                                            <div
+                                                className="subgroup-header clickable"
+                                                onClick={toggleHostAccordion}
+                                                style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', background: '#f9fafb', cursor: 'pointer' }}
+                                            >
+                                                <span style={{ marginRight: '8px', display: 'flex' }}>
+                                                    {isHostExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                                </span>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isAllSelected}
+                                                    ref={el => { if (el) el.indeterminate = isPartialSelected; }}
+                                                    onChange={() => { }} // Handled by div click or separate click handler
+                                                    onClick={handleHostSelect}
+                                                    style={{ marginRight: '8px' }}
+                                                />
+                                                <span style={{ fontWeight: '600', flex: 1 }}>{hostname} ({allInterfaces.length})</span>
                                             </div>
+
+                                            {/* Interfaces List */}
+                                            {isHostExpanded && (
+                                                <div className="subgroup-items" style={{ padding: '8px' }}>
+                                                    {/* Quick Filters (Optional, can add later) */}
+                                                    {allInterfaces.map((intf) => {
+                                                        const isSelected = isFullHostSelected || selectedServiceIds.includes(`ies___${hostname}___${intf.interfaceName}`);
+                                                        return (
+                                                            <div
+                                                                key={`${hostname}-${intf.interfaceName}`}
+                                                                className={`interface-card ${isSelected ? 'selected' : ''}`}
+                                                                onClick={() => handleInterfaceToggle(intf.interfaceName)}
+                                                                style={{
+                                                                    display: 'flex', alignItems: 'center',
+                                                                    padding: '6px 10px', marginBottom: '4px',
+                                                                    background: isSelected ? '#e3f2fd' : 'white',
+                                                                    border: '1px solid #eee', borderRadius: '4px',
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={() => { }}
+                                                                    style={{ marginRight: '10px' }}
+                                                                />
+                                                                <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.9em' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                                        <span style={{ fontWeight: 'bold', marginRight: '8px' }}>{intf.interfaceName}</span>
+                                                                        {intf.ipAddress && (
+                                                                            <span style={{
+                                                                                background: '#e8f5e9', color: '#2e7d32',
+                                                                                padding: '1px 6px', borderRadius: '4px', fontSize: '0.85em'
+                                                                            }}>
+                                                                                {intf.ipAddress}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div style={{ color: '#666', fontSize: '0.85em', marginTop: '2px' }}>
+                                                                        {intf.portId || 'Virtual'} {intf.description ? `• ${intf.description}` : ''}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}

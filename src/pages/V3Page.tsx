@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { parseL2VPNConfig } from '../utils/v3/parserV3';
 import { generateServiceDiagram, generateIESDiagram } from '../utils/v3/mermaidGeneratorV3';
 import type { ParsedConfigV3 } from '../utils/v3/parserV3';
+import type { NokiaService, IESService } from '../types/v2';
 import { ServiceListV3 } from '../components/v3/ServiceListV3';
 import { ServiceDiagram } from '../components/v2/ServiceDiagram'; // Reuse for now or duplicate if needed
 import { FileUpload } from '../components/FileUpload';
@@ -68,14 +69,46 @@ export function V3Page() {
     // 모든 Config의 서비스를 하나로 합침 (Hostname 정보 주입)
     const allServices = configs.flatMap(c => c.services.map(s => ({ ...s, _hostname: c.hostname })));
 
-    // 선택된 서비스들 (IES는 Hostname 기반 키 매칭)
-    const selectedServices = allServices.filter(s => {
+    // 선택된 서비스들 (IES는 Hostname 기반 키 매칭 + Interface Filtering)
+    // Use 'as any[]' to avoid complex union type inference issues with flatMap
+    const selectedServices = ((allServices as any[]).flatMap(s => {
         if (s.serviceType === 'ies') {
             const hostname = (s as any)._hostname;
-            return selectedServiceIds.includes(`ies-${hostname}`);
+
+            // 1. Check for legacy/full-host selection key (All interfaces)
+            // This allows checking the strict "ies-[hostname]" key
+            if (selectedServiceIds.includes(`ies-${hostname}`)) {
+                return [s];
+            }
+
+            // 2. Check for individual interface keys
+            // Key format: ies___{hostname}___{interfaceName}
+            const prefix = `ies___${hostname}___`;
+            const selectedInterfaceKeys = selectedServiceIds.filter(id => id.startsWith(prefix));
+
+            if (selectedInterfaceKeys.length > 0) {
+                const selectedInterfaceNames = new Set(
+                    selectedInterfaceKeys.map(key => key.replace(prefix, ''))
+                );
+
+                // IESService 타입 단언 및 인터페이스 필터링
+                const iesService = s as IESService & { _hostname: string };
+                // Creating a new object with filtered interfaces
+                const filteredService = {
+                    ...iesService,
+                    interfaces: iesService.interfaces.filter((intf: any) => selectedInterfaceNames.has(intf.interfaceName))
+                };
+                return [filteredService];
+            }
+            return [];
         }
-        return selectedServiceIds.includes(`${s.serviceType}-${s.serviceId}`);
-    });
+
+        // Standard services
+        if (selectedServiceIds.includes(`${s.serviceType}-${s.serviceId}`)) {
+            return [s];
+        }
+        return [];
+    })) as (NokiaService & { _hostname: string })[];
 
     // Build Remote Device Map (System IP -> Hostname)
     const remoteDeviceMap = new Map<string, string>();
