@@ -145,7 +145,7 @@ export function generateIESDiagram(services: NokiaServiceV3[], hostnames: string
 
     Array.from(groups.values()).forEach((group, groupIdx) => {
         // Local Hosts (Left)
-        mermaid.push(`    subgraph Local_${groupIdx} ["\u003cb\u003eLocal Host\u003c/b\u003e"]`);
+        mermaid.push(`    subgraph Local_${groupIdx} ["\u003cb\u003e${group.items[0].hostname}\u003c/b\u003e"]`);
         group.items.forEach((item, i) => {
             const nodeId = `L_${groupIdx}_${i}`;
             let label = `\u003cb\u003eInterface:\u003c/b\u003e ${item.intf.interfaceName}\u003cbr/\u003e`;
@@ -160,6 +160,10 @@ export function generateIESDiagram(services: NokiaServiceV3[], hostnames: string
 
             if (item.intf.portId) {
                 label += `\u003cb\u003ePort:\u003c/b\u003e ${item.intf.portId}`;
+            }
+
+            if (item.intf.portDescription) {
+                label += `\u003cbr/\u003e\u003cb\u003ePort Desc:\u003c/b\u003e ${item.intf.portDescription}`;
             }
 
             mermaid.push(`        ${nodeId}["${label}"]`);
@@ -180,8 +184,17 @@ export function generateIESDiagram(services: NokiaServiceV3[], hostnames: string
         mermaid.push(`    end`);
 
         // Links Local -> Remote
-        group.items.forEach((_, i) => {
-            mermaid.push(`    L_${groupIdx}_${i} --> P_${groupIdx}_${i}`);
+        group.items.forEach((item, i) => {
+            const lNode = `L_${groupIdx}_${i}`;
+            const rNode = `P_${groupIdx}_${i}`;
+
+            if (item.intf.qosPolicyId) {
+                const qosLabel = `QoS: ${item.intf.qosPolicyId}`;
+                const styledLabel = `<div style='background-color:#4caf50;color:white;padding:2px 4px;border-radius:2px;'>${qosLabel}</div>`;
+                mermaid.push(`    ${lNode} -->|"${styledLabel}"| ${rNode}`);
+            } else {
+                mermaid.push(`    ${lNode} --> ${rNode}`);
+            }
         });
 
         // Network (Right)

@@ -152,6 +152,10 @@ export interface L3Interface {
     sapId?: string;
     spokeSdpId?: string;
 
+    // QoS & Port Info
+    qosPolicyId?: string;       // Ingress QoS ID
+    portDescription?: string;   // Physical Port description
+
     // VRRP
     vrrpGroupId?: number;
     vrrpBackupIp?: string;

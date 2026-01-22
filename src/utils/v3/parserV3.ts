@@ -961,13 +961,29 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
                 const portMatch = ifContent.match(/port\s+([\w\/-]+)/i) || ifContent.match(/sap\s+([\w\/-]+:?\d*)/i);
                 const descMatch = ifContent.match(/description\s+"?([^"\n]+)"?/);
 
+                // QoS Parsing (Ingress priority)
+                let qosId: string | undefined;
+                const ingressMatch = ifContent.match(/ingress\s+qos\s+(\d+)/i); // One-line ingress qos X
+                const qosBlockMatch = ifContent.match(/qos\s+(\d+)/i); // Simple qos X
+                if (ingressMatch) qosId = ingressMatch[1];
+                else if (qosBlockMatch) qosId = qosBlockMatch[1];
+
                 // Valid interface check (must have IP or Port to be useful)
                 if (ipMatch || portMatch) {
+                    const pId = portMatch?.[1];
+                    let pDesc = undefined;
+
+                    if (pId && portDescriptions.has(pId)) {
+                        pDesc = portDescriptions.get(pId);
+                    }
+
                     baseInterfaces.push({
                         interfaceName: ifName,
                         ipAddress: ipMatch?.[1],
-                        portId: portMatch?.[1],
+                        portId: pId,
                         description: descMatch ? descMatch[1] : undefined,
+                        portDescription: pDesc,
+                        qosPolicyId: qosId,
                         adminState: 'up'
                     });
                 }
