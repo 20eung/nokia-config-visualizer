@@ -527,12 +527,10 @@ export function ServiceListV3({
                                                                             Interface: {iface.interfaceName}
                                                                         </div>
 
-                                                                        {/* Interface Description */}
-                                                                        {iface.description && (
-                                                                            <div style={{ color: '#666', marginTop: '2px' }}>
-                                                                                Int Desc: {iface.description}
-                                                                            </div>
-                                                                        )}
+                                                                        {/* Interface Description - Always show label */}
+                                                                        <div style={{ color: '#666', marginTop: '2px' }}>
+                                                                            Int Desc: {iface.description || ''}
+                                                                        </div>
 
                                                                         {/* Interface IP */}
                                                                         {iface.ipAddress && (

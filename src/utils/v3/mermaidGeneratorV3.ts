@@ -145,10 +145,10 @@ export function generateIESDiagram(services: NokiaServiceV3[], hostnames: string
 
     Array.from(groups.values()).forEach((group, groupIdx) => {
         // Local Hosts (Left)
-        mermaid.push(`    subgraph Local_${groupIdx} ["<b>Local Hosts</b>"]`);
+        mermaid.push(`    subgraph Local_${groupIdx} ["\u003cb\u003e${group.items[0].hostname}\u003c/b\u003e"]`);
         group.items.forEach((item, i) => {
             const nodeId = `L_${groupIdx}_${i}`;
-            const label = `<b>Host:</b> ${item.hostname}<br/><b>Intf:</b> ${item.intf.interfaceName}<br/><b>IP:</b> ${item.intf.ipAddress}`;
+            const label = `\u003cb\u003eInterface:\u003c/b\u003e ${item.intf.interfaceName}\u003cbr/\u003e\u003cb\u003eInt IP:\u003c/b\u003e ${item.intf.ipAddress}`;
             mermaid.push(`        ${nodeId}["${label}"]`);
 
             // Style
