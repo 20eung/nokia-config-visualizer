@@ -83,7 +83,7 @@ function findPeerAndRoutes(_hostname: string, intf: any, staticRoutes: any[]): {
 }
 
 export function generateIESDiagram(services: NokiaServiceV3[], hostnames: string[]): string {
-    const mermaid = ['graph LR'];
+    const mermaid = ['flowchart LR'];
     mermaid.push('classDef qosBox fill:#4caf50,stroke:#2e7d32,stroke-width:1px,color:#fff,rx:4,ry:4;');
 
     // 1. Prepare Data
@@ -199,10 +199,9 @@ export function generateIESDiagram(services: NokiaServiceV3[], hostnames: string
             }
 
             if (qosParts.length > 0) {
-                // Use Link Label Style (User Request: Label Style like Epipe/VPLS)
-                // Inline style for safety, mirroring Epipe/VPLS look
+                // Use Link Label Style (Matching VPLS/Epipe exactly)
                 const labelContent = qosParts.join('<br/>');
-                const styledLabel = `<div style='background-color:#4caf50;color:white;padding:4px;border-radius:4px;font-size:0.8em;text-align:center;line-height:1.2;'>${labelContent}</div>`;
+                const styledLabel = `<div class='qos-label'>${labelContent}</div>`;
 
                 mermaid.push(`    ${lNode} -->|"${styledLabel}"| ${rNode}`);
             } else {
