@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import type { ParsedConfigV3, NokiaServiceV3, IESService } from '../../utils/v3/parserV3';
+import type { ParsedConfigV3, NokiaServiceV3 } from '../../utils/v3/parserV3';
+import type { IESService, L3Interface } from '../../types/v2';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import '../v2/ServiceList.css';
 
@@ -519,7 +520,7 @@ export function ServiceListV3({
 
                                                     return (
                                                         <div key={idx} style={{ marginTop: '4px' }}>
-                                                            {service.interfaces.map((iface, ifIdx) => {
+                                                            {service.interfaces.map((iface: L3Interface, ifIdx: number) => {
                                                                 const portDisplay = iface.portId ? `(${iface.portId})` : '';
                                                                 return (
                                                                     <div key={ifIdx} style={{ marginLeft: '16px', fontSize: '0.9em', marginTop: '2px' }}>

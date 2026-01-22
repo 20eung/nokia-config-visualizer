@@ -13,16 +13,12 @@ import type {
     AdminState,
     DeliveryType,
     OSPF,
-    OSPFInterface
+    OSPFInterface,
+    IESService
 } from '../../types/v2';
 
-// Force IES Type Definition for v3 (Temporary until types/v2 is updated or v3 types created)
-export interface IESService extends Omit<VPRNService, 'serviceType'> {
-    serviceType: 'ies';
-}
-
-// Extend NokiaService union locally for v3
-export type NokiaServiceV3 = EpipeService | VPLSService | VPRNService | IESService;
+// Use NokiaService from v2 types which now includes IES
+export type NokiaServiceV3 = NokiaService;
 
 export interface ParsedConfigV3 {
     hostname: string;

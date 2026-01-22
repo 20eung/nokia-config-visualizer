@@ -116,7 +116,7 @@ export function ServiceDiagram({ service, diagram, hostname }: ServiceDiagramPro
                     <span className="service-type-badge" data-type={service.serviceType}>
                         {service.serviceType.toUpperCase()}
                     </span>
-                    <h3>{service.serviceType === 'epipe' ? '🔗' : '🌐'} {service.serviceType.toUpperCase()} {service.serviceId}</h3>
+                    <h3>{service.serviceType === 'epipe' ? '🔗' : '🌐'} {service.serviceType === 'ies' ? hostname : `${service.serviceType.toUpperCase()} ${service.serviceId}`}</h3>
                 </div>
                 <div className="diagram-description">
                     {service.description}

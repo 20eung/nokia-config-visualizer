@@ -87,7 +87,14 @@ export function V3Page() {
 
     // 서비스를 serviceId와 serviceType별로 그룹화 (Diagram Generation용 - IES는 0으로 묶임)
     const serviceGroups = selectedServices.reduce((acc, service) => {
-        const key = `${service.serviceType}-${service.serviceId}`;
+        let key = `${service.serviceType}-${service.serviceId}`;
+
+        // IES 서비스는 Hostname별로 개별 그룹화 (Diagram 분리)
+        if (service.serviceType === 'ies') {
+            const hostname = (service as any)._hostname || 'Unknown';
+            key = `ies-${hostname}`;
+        }
+
         if (!acc[key]) {
             acc[key] = [];
         }

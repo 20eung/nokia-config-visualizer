@@ -192,7 +192,17 @@ export interface VPRNService extends BaseService {
 /**
  * 통합 서비스 타입 (L2 + L3)
  */
-export type NokiaService = EpipeService | VPLSService | VPRNService;
+/**
+ * IES 서비스 (VPRN과 유사하지만 L3 전용)
+ */
+export interface IESService extends Omit<VPRNService, 'serviceType'> {
+    serviceType: 'ies';
+}
+
+/**
+ * 통합 IP/MPLS 서비스 타입 (L2 + L3)
+ */
+export type NokiaService = EpipeService | VPLSService | VPRNService | IESService;
 
 // Legacy alias for backward compatibility
 export type L2VPNService = NokiaService;
