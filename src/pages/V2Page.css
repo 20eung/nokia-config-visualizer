@@ -145,24 +145,42 @@
 }
 
 /* Sidebar Resizer */
+/* Sidebar Resizer */
 .sidebar-resizer {
-    width: 8px;
-    /* Slightly wider for better hit target */
+    width: 10px;
+    /* Wider for easier grabbing */
     height: 100%;
     cursor: col-resize;
-    background-color: transparent;
+    background-color: #f1f5f9;
+    /* Visible but subtle background (slate-100) */
     border-left: 1px solid #e2e8f0;
-    transition: background-color 0.2s;
+    border-right: 1px solid #e2e8f0;
+    /* Add right border for definition */
     flex-shrink: 0;
-    z-index: 50;
-    /* Use negative margin to overlay border if needed, but flex layout places it adjacent */
-    margin-left: -1px;
-    /* Overlap the sidebar border */
+    z-index: 100;
+    /* High z-index */
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Optional: Add a handle icon visual using pseudo-element */
+.sidebar-resizer::after {
+    content: "";
+    width: 2px;
+    height: 20px;
+    background-color: #cbd5e1;
+    border-radius: 1px;
 }
 
 .sidebar-resizer:hover,
-.sidebar-resizer:active {
+.sidebar-resizer.resizing {
     background-color: #3b82f6;
-    /* Tailwind blue-500 equivalent */
-    width: 8px;
+    /* Blue highlight */
+}
+
+.sidebar-resizer:hover::after,
+.sidebar-resizer.resizing::after {
+    background-color: white;
 }
