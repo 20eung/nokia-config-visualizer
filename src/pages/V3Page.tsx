@@ -12,198 +12,43 @@ import './V2Page.css';
 export function V3Page() {
     const [configs, setConfigs] = useState<ParsedConfigV3[]>([]);
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    // 사이드바 너비 상태 (기본값 320px)
+    const [sidebarWidth, setSidebarWidth] = useState(320);
+    const [isResizing, setIsResizing] = useState(false);
 
-    // Auto-load sample config in demo/beta environment
+    // 사이드바 리사이징 핸들러
+    const startResizing = (mouseDownEvent: React.MouseEvent) => {
+        mouseDownEvent.preventDefault();
+        setIsResizing(true);
+    };
+
+    const stopResizing = () => {
+        setIsResizing(false);
+    };
+
+    const resize = (mouseMoveEvent: MouseEvent) => {
+        if (isResizing) {
+            const newWidth = mouseMoveEvent.clientX; // 사이드바가 왼쪽에 있으므로 clientX가 곧 너비
+            if (newWidth > 200 && newWidth < 800) { // 최소/최대 너비 제한
+                setSidebarWidth(newWidth);
+            }
+        }
+    };
+
     useEffect(() => {
-        const isDemoEnvironment = window.location.hostname.includes('demo') || window.location.hostname.includes('beta');
-
-        if (isDemoEnvironment && configs.length === 0) {
-            fetch('/docs/v2/pe-router-1-l2vpn.cfg')
-                .then(r => r.text())
-                .then(text => {
-                    handleConfigLoaded([text]);
-                    console.log('✅ Demo/Beta environment: Auto-loaded pe-router-1-l2vpn.cfg');
-                })
-                .catch(error => {
-                    console.warn('⚠️ Demo/Beta environment: Could not auto-load sample config:', error);
-                });
-        }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const handleConfigLoaded = (contents: string[]) => {
-        try {
-            const parsedConfigs: ParsedConfigV3[] = [];
-            contents.forEach(content => {
-                const parsed = parseL2VPNConfig(content);
-                // Only add if it has valid hostname or services
-                if (parsed.hostname || parsed.services.length > 0) {
-                    parsedConfigs.push(parsed);
-                }
-            });
-
-            if (parsedConfigs.length > 0) {
-                setConfigs(parsedConfigs);
-                setSelectedServiceIds([]);
-            } else {
-                alert('No valid configuration found in the uploaded files.');
-            }
-        } catch (error) {
-            console.error('Failed to parse L2 VPN config:', error);
-            alert('Failed to parse L2 VPN configuration file.');
-        }
-    };
-
-    const handleToggleService = (serviceKey: string) => {
-        setSelectedServiceIds(prev =>
-            prev.includes(serviceKey)
-                ? prev.filter(key => key !== serviceKey)
-                : [...prev, serviceKey]
-        );
-    };
-
-    const handleSetSelected = (serviceKeys: string[]) => {
-        setSelectedServiceIds(serviceKeys);
-    };
-
-    // 모든 Config의 서비스를 하나로 합침 (Hostname 정보 주입)
-    const allServices = configs.flatMap(c => c.services.map(s => ({ ...s, _hostname: c.hostname })));
-
-    // 선택된 서비스들 (IES는 Hostname 기반 키 매칭 + Interface Filtering)
-    // Use 'as any[]' to avoid complex union type inference issues with flatMap
-    const selectedServices = ((allServices as any[]).flatMap(s => {
-        if (s.serviceType === 'ies') {
-            const hostname = (s as any)._hostname;
-
-            // 1. Check for legacy/full-host selection key (All interfaces)
-            // This allows checking the strict "ies-[hostname]" key
-            if (selectedServiceIds.includes(`ies-${hostname}`)) {
-                return [s];
-            }
-
-            // 2. Check for individual interface keys
-            // Key format: ies___{hostname}___{interfaceName}
-            const prefix = `ies___${hostname}___`;
-            const selectedInterfaceKeys = selectedServiceIds.filter(id => id.startsWith(prefix));
-
-            if (selectedInterfaceKeys.length > 0) {
-                const selectedInterfaceNames = new Set(
-                    selectedInterfaceKeys.map(key => key.replace(prefix, ''))
-                );
-
-                // IESService 타입 단언 및 인터페이스 필터링
-                const iesService = s as IESService & { _hostname: string };
-                // Creating a new object with filtered interfaces
-                const filteredService = {
-                    ...iesService,
-                    interfaces: iesService.interfaces.filter((intf: any) => selectedInterfaceNames.has(intf.interfaceName))
-                };
-                return [filteredService];
-            }
-            return [];
-        }
-
-        // Standard services
-        if (selectedServiceIds.includes(`${s.serviceType}-${s.serviceId}`)) {
-            return [s];
-        }
-        return [];
-    })) as (NokiaService & { _hostname: string })[];
-
-    // Build Remote Device Map (System IP -> Hostname)
-    const remoteDeviceMap = new Map<string, string>();
-    configs.forEach(c => {
-        if (c.systemIp && c.hostname) {
-            remoteDeviceMap.set(c.systemIp, c.hostname);
-        }
-    });
-
-    // 서비스를 serviceId와 serviceType별로 그룹화 (Diagram Generation용 - IES는 0으로 묶임)
-    const serviceGroups = selectedServices.reduce((acc, service) => {
-        let key = `${service.serviceType}-${service.serviceId}`;
-
-        // IES 서비스는 Hostname별로 개별 그룹화 (Diagram 분리)
-        if (service.serviceType === 'ies') {
-            const hostname = (service as any)._hostname || 'Unknown';
-            key = `ies-${hostname}`;
-        }
-
-        if (!acc[key]) {
-            acc[key] = [];
-        }
-        acc[key].push(service);
-        return acc;
-    }, {} as Record<string, typeof selectedServices>);
-
-    // 다이어그램 생성 (그룹별로 하나의 다이어그램 생성)
-    const diagrams = Object.values(serviceGroups).map(group => {
-        // 각 서비스가 속한 Config와 Hostname 찾기
-        const servicesWithContext = group.map(service => {
-            // Use _hostname property that was injected in line 69
-            const hostname = (service as any)._hostname || 'Unknown';
-            const parentConfig = configs.find(c => c.hostname === hostname);
-            return {
-                service,
-                hostname: hostname,
-                sdps: parentConfig?.sdps || []
-            };
-        });
-
-        // 첫 번째 서비스를 대표로 사용
-        const representativeService = servicesWithContext[0].service;
-
-        // IES Special Handling
-        if (representativeService.serviceType === 'ies') {
-            return {
-                service: representativeService,
-                diagram: generateIESDiagram(
-                    servicesWithContext.map(s => s.service),
-                    servicesWithContext.map(s => s.hostname)
-                ),
-                hostname: servicesWithContext[0].hostname
-            };
-        }
-
-        // 단일 서비스인 경우와 다중 서비스인 경우 처리
-        if (servicesWithContext.length === 1) {
-            return {
-                service: representativeService,
-                diagram: generateServiceDiagram(
-                    representativeService,
-                    servicesWithContext[0].hostname,
-                    servicesWithContext[0].sdps,
-                    remoteDeviceMap
-                ),
-                hostname: servicesWithContext[0].hostname
-            };
+        if (isResizing) {
+            window.addEventListener('mousemove', resize);
+            window.addEventListener('mouseup', stopResizing);
         } else {
-            // Epipe의 경우 통합 다이어그램 생성
-            if (representativeService.serviceType === 'epipe') {
-                return {
-                    service: representativeService,
-                    diagram: generateServiceDiagram(
-                        servicesWithContext.map(s => s.service),
-                        servicesWithContext.map(s => s.hostname),
-                        servicesWithContext[0].sdps, // SDPs는 첫 번째 것 사용 (필요시 병합 가능)
-                        remoteDeviceMap
-                    ),
-                    hostname: servicesWithContext.map(s => s.hostname).join(' + ')
-                };
-            } else {
-                // VPLS, VPRN도 통합 다이어그램 생성
-                return {
-                    service: representativeService,
-                    diagram: generateServiceDiagram(
-                        servicesWithContext.map(s => s.service),
-                        servicesWithContext.map(s => s.hostname),
-                        servicesWithContext[0].sdps,
-                        remoteDeviceMap
-                    ),
-                    hostname: servicesWithContext.map(s => s.hostname).join(' + ')
-                };
-            }
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('mouseup', stopResizing);
         }
-    });
+
+        return () => {
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('mouseup', stopResizing);
+        };
+    }, [isResizing]);
 
     return (
         <div className="v2-page">
@@ -230,11 +75,14 @@ export function V3Page() {
             </header>
 
             {/* 메인 컨텐츠 */}
-            <main className="v2-main">
+            <main className="v2-main" onMouseUp={stopResizing}>
                 {configs.length > 0 ? (
                     <>
                         {/* 사이드바 - 서비스 목록 */}
-                        <aside className={`v2-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+                        <aside
+                            className={`v2-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}
+                            style={{ width: isSidebarCollapsed ? 0 : sidebarWidth, flexShrink: 0, transition: isResizing ? 'none' : 'width 0.3s ease' }}
+                        >
                             <ServiceListV3
                                 services={allServices}
                                 configs={configs}
@@ -243,6 +91,22 @@ export function V3Page() {
                                 onSetSelected={handleSetSelected}
                             />
                         </aside>
+
+                        {/* 리사이저 핸들 (사이드바가 펼쳐져 있을 때만 표시) */}
+                        {!isSidebarCollapsed && (
+                            <div
+                                className="sidebar-resizer"
+                                onMouseDown={startResizing}
+                                style={{
+                                    width: '5px',
+                                    cursor: 'col-resize',
+                                    backgroundColor: isResizing ? '#2196f3' : 'transparent',
+                                    borderLeft: '1px solid #e0e0e0',
+                                    transition: 'background-color 0.2s',
+                                    zIndex: 10
+                                }}
+                            />
+                        )}
 
                         {/* 컨텐츠 - 다이어그램 */}
                         <section className="v2-content">
