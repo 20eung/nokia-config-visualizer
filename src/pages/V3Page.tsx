@@ -95,16 +95,8 @@ export function V3Page() {
                         {/* 리사이저 핸들 (사이드바가 펼쳐져 있을 때만 표시) */}
                         {!isSidebarCollapsed && (
                             <div
-                                className="sidebar-resizer"
+                                className={`sidebar-resizer ${isResizing ? 'resizing' : ''}`}
                                 onMouseDown={startResizing}
-                                style={{
-                                    width: '5px',
-                                    cursor: 'col-resize',
-                                    backgroundColor: isResizing ? '#2196f3' : 'transparent',
-                                    borderLeft: '1px solid #e0e0e0',
-                                    transition: 'background-color 0.2s',
-                                    zIndex: 10
-                                }}
                             />
                         )}
 
