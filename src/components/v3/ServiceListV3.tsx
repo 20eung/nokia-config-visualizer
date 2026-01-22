@@ -580,7 +580,7 @@ export function ServiceListV3({
                                                     onClick={handleHostSelect}
                                                     style={{ marginRight: '8px' }}
                                                 />
-                                                <span style={{ fontWeight: '600', flex: 1 }}>{hostname} ({allInterfaces.length})</span>
+                                                <span className="service-title" style={{ flex: 1, margin: 0 }}>{hostname} ({allInterfaces.length})</span>
                                             </div>
 
                                             {/* Interfaces List */}
@@ -610,7 +610,7 @@ export function ServiceListV3({
                                                                 />
                                                                 <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.9em' }}>
                                                                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                                                                        <span style={{ fontWeight: 'bold', marginRight: '8px' }}>{intf.interfaceName}</span>
+                                                                        <span style={{ fontWeight: 'bold', color: '#0066cc', fontSize: '12px', marginRight: '8px' }}>{intf.interfaceName}</span>
                                                                         {intf.ipAddress && (
                                                                             <span style={{
                                                                                 background: '#e8f5e9', color: '#2e7d32',
