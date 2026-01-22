@@ -188,10 +188,25 @@ export function generateIESDiagram(services: NokiaServiceV3[], hostnames: string
             const lNode = `L_${groupIdx}_${i}`;
             const rNode = `P_${groupIdx}_${i}`;
 
-            if (item.intf.qosPolicyId) {
-                const qosLabel = `QoS: ${item.intf.qosPolicyId}`;
-                const styledLabel = `<div style='background-color:#4caf50;color:white;padding:2px 4px;border-radius:2px;'>${qosLabel}</div>`;
-                mermaid.push(`    ${lNode} -->|"${styledLabel}"| ${rNode}`);
+            const qosParts: string[] = [];
+            if (item.intf.ingressQosId) qosParts.push(`In-QoS: ${item.intf.ingressQosId}`);
+            if (item.intf.egressQosId) qosParts.push(`Out-QoS: ${item.intf.egressQosId}`);
+
+            // Fallback for generic qosPolicyId if older parse
+            if (qosParts.length === 0 && item.intf.qosPolicyId) {
+                qosParts.push(`QoS: ${item.intf.qosPolicyId}`);
+            }
+
+            if (qosParts.length > 0) {
+                // Use Intermediate Node for robust styling (Green Background)
+                const qosNodeId = `Q_${groupIdx}_${i}`;
+                const qosLabel = qosParts.join('<br/>');
+
+                // shape: rounded rect
+                mermaid.push(`        ${qosNodeId}("${qosLabel}")`);
+                mermaid.push(`        style ${qosNodeId} fill:#4caf50,stroke:#2e7d32,stroke-width:1px,color:#fff,font-size:0.8em`);
+
+                mermaid.push(`    ${lNode} --- ${qosNodeId} --> ${rNode}`);
             } else {
                 mermaid.push(`    ${lNode} --> ${rNode}`);
             }

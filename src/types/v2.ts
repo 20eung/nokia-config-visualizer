@@ -153,7 +153,9 @@ export interface L3Interface {
     spokeSdpId?: string;
 
     // QoS & Port Info
-    qosPolicyId?: string;       // Ingress QoS ID
+    qosPolicyId?: string;       // Generic/Deprecated
+    ingressQosId?: string;      // Ingress QoS
+    egressQosId?: string;       // Egress QoS
     portDescription?: string;   // Physical Port description
 
     // VRRP

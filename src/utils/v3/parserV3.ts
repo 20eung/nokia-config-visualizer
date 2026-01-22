@@ -961,12 +961,35 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
                 const portMatch = ifContent.match(/port\s+([\w\/-]+)/i) || ifContent.match(/sap\s+([\w\/-]+:?\d*)/i);
                 const descMatch = ifContent.match(/description\s+"?([^"\n]+)"?/);
 
-                // QoS Parsing (Ingress priority)
-                let qosId: string | undefined;
-                const ingressMatch = ifContent.match(/ingress\s+qos\s+(\d+)/i); // One-line ingress qos X
-                const qosBlockMatch = ifContent.match(/qos\s+(\d+)/i); // Simple qos X
-                if (ingressMatch) qosId = ingressMatch[1];
-                else if (qosBlockMatch) qosId = qosBlockMatch[1];
+                // QoS Parsing (Ingress/Egress separation)
+                let inQos: string | undefined;
+                let outQos: string | undefined;
+
+                // Try to capture ingress block
+                const ingressBlock = ifContent.match(/ingress\s+([\s\S]*?)\s+exit/i);
+                if (ingressBlock) {
+                    const qMatch = ingressBlock[1].match(/qos\s+(\d+)/i);
+                    if (qMatch) inQos = qMatch[1];
+                } else {
+                    const qMatch = ifContent.match(/ingress\s+qos\s+(\d+)/i);
+                    if (qMatch) inQos = qMatch[1];
+                }
+
+                // Try to capture egress block
+                const egressBlock = ifContent.match(/egress\s+([\s\S]*?)\s+exit/i);
+                if (egressBlock) {
+                    const qMatch = egressBlock[1].match(/qos\s+(\d+)/i);
+                    if (qMatch) outQos = qMatch[1];
+                } else {
+                    const qMatch = ifContent.match(/egress\s+qos\s+(\d+)/i);
+                    if (qMatch) outQos = qMatch[1];
+                }
+
+                // Fallback generic qos if specific direction not found
+                if (!inQos && !outQos) {
+                    const genericQos = ifContent.match(/qos\s+(\d+)/i);
+                    if (genericQos) inQos = genericQos[1];
+                }
 
                 // Valid interface check (must have IP or Port to be useful)
                 if (ipMatch || portMatch) {
@@ -983,7 +1006,8 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
                         portId: pId,
                         description: descMatch ? descMatch[1] : undefined,
                         portDescription: pDesc,
-                        qosPolicyId: qosId,
+                        ingressQosId: inQos,
+                        egressQosId: outQos,
                         adminState: 'up'
                     });
                 }
