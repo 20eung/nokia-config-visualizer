@@ -15,7 +15,8 @@ import type {
     OSPF,
     OSPFInterface,
     IESService,
-    PortEthernetConfig
+    PortEthernetConfig,
+    BGPGroup
 } from '../../types/v2';
 
 // Use NokiaService from v2 types which now includes IES
@@ -473,6 +474,10 @@ export function parseVPRN(
     const rdMatch = content.match(/route-distinguisher\s+([\d:.]+)/i);
     const vrfMatch = content.match(/vrf-target\s+(?:target:)?([\d:.]+)/i) || content.match(/vrf-target\s+([^\s]+)/i);
 
+    // ECMP 파싱
+    const ecmpMatch = content.match(/ecmp\s+(\d+)/i);
+    const ecmp = ecmpMatch ? parseInt(ecmpMatch[1]) : undefined;
+
     // Admin state - 서비스 최상위 레벨의 shutdown/no shutdown만 확인
     const adminState = detectServiceAdminState(content);
 
@@ -495,6 +500,10 @@ export function parseVPRN(
         const vrrpBackupMatch = ifContent.match(/backup\s+([\d.]+)/i);
         const vrrpPriorityMatch = ifContent.match(/priority\s+(\d+)/i);
 
+        // SAP 블록 내 ingress/egress QoS ID 파싱
+        const ingressQosMatch = ifContent.match(/ingress[\s\S]*?qos\s+(\d+)/i);
+        const egressQosMatch = ifContent.match(/egress[\s\S]*?qos\s+(\d+)/i);
+
         interfaces.push({
             interfaceName: ifName,
             description: descMatch ? descMatch[1] : undefined,
@@ -503,6 +512,8 @@ export function parseVPRN(
             mtu: mtuMatch ? parseInt(mtuMatch[1]) : undefined,
             vplsName: vplsMatch ? vplsMatch[1] : undefined,
             spokeSdpId: spokeSdpMatch ? spokeSdpMatch[1] : undefined,
+            ingressQosId: ingressQosMatch ? ingressQosMatch[1] : undefined,
+            egressQosId: egressQosMatch ? egressQosMatch[1] : undefined,
             vrrpGroupId: vrrpMatch ? parseInt(vrrpMatch[1]) : undefined,
             vrrpBackupIp: vrrpBackupMatch ? vrrpBackupMatch[1] : undefined,
             vrrpPriority: vrrpPriorityMatch ? parseInt(vrrpPriorityMatch[1]) : undefined,
@@ -511,9 +522,11 @@ export function parseVPRN(
     }
 
 
-    // BGP Neighbor 파싱 (Enhanced with extractSection)
+    // BGP Neighbor 파싱 (Enhanced with extractSection + Group/Split-Horizon support)
     const bgpNeighbors: { neighborIp: string; autonomousSystem?: number }[] = [];
     let bgpRouterId: string | undefined;
+    let bgpSplitHorizon: boolean | undefined;
+    const bgpGroups: BGPGroup[] = [];
 
     const bgpBlock = extractSection(content, 'bgp');
     if (bgpBlock) {
@@ -521,46 +534,146 @@ export function parseVPRN(
         const routerIdMatch = bgpBlock.match(/router-id\s+([\d.]+)/i);
         if (routerIdMatch) bgpRouterId = routerIdMatch[1];
 
-        // Neighbors - Handle indentation to find blocks
-        // neighbor can be inside "group"
-        // Let's iterate lines to find 'neighbor X' and its block
+        // Line-by-line parsing for groups, split-horizon, neighbors
         const bgpLines = bgpBlock.split('\n');
+        let currentGroup: BGPGroup | null = null;
+        let groupIndent = -1;
+        let currentNeighborIp: string | null = null;
+        let neighborIndent = -1;
+        let groupPeerAs: number | undefined;
 
         for (let i = 0; i < bgpLines.length; i++) {
             const line = bgpLines[i];
             const trimmed = line.trim();
+            const indent = line.search(/\S/);
+            if (indent < 0) continue; // empty line
 
-            const nbrMatch = trimmed.match(/^neighbor\s+([\d.]+)/);
-            if (nbrMatch) {
-                const nip = nbrMatch[1];
-                const startIndent = line.search(/\S/);
+            // split-horizon detection
+            if (trimmed === 'split-horizon') {
+                bgpSplitHorizon = true;
+                continue;
+            }
 
-                // Parse neighbor block
-                let nBlock = '';
-                let j = i + 1;
-                while (j < bgpLines.length) {
-                    const sub = bgpLines[j];
-                    const subTrimmed = sub.trim();
-                    const subIndent = sub.search(/\S/);
+            // Group start: group "name"
+            const groupMatch = trimmed.match(/^group\s+"([^"]+)"/);
+            if (groupMatch) {
+                // Save previous group if any
+                if (currentGroup) {
+                    bgpGroups.push(currentGroup);
+                }
+                currentGroup = { groupName: groupMatch[1], neighbors: [] };
+                groupIndent = indent;
+                groupPeerAs = undefined;
+                currentNeighborIp = null;
+                continue;
+            }
 
-                    if (subTrimmed === 'exit' && subIndent === startIndent) {
-                        break;
+            // Inside a group block
+            if (currentGroup && indent > groupIndent) {
+                // Group exit
+                if (trimmed === 'exit' && indent === groupIndent + 4) {
+                    // This could be a sub-block exit, not group exit
+                    // We check if current neighbor is active
+                    if (currentNeighborIp && indent === neighborIndent) {
+                        currentNeighborIp = null;
+                        neighborIndent = -1;
                     }
-                    if (subIndent < startIndent && subTrimmed !== '') {
-                        break; // Safety exit
-                    }
-                    nBlock += sub + '\n';
-                    j++;
+                    continue;
                 }
 
-                const asMatch = nBlock.match(/peer-as\s+(\d+)/i);
-                bgpNeighbors.push({
-                    neighborIp: nip,
-                    autonomousSystem: asMatch ? parseInt(asMatch[1]) : undefined
-                });
+                // Group-level peer-as
+                const groupPeerAsMatch = trimmed.match(/^peer-as\s+(\d+)/);
+                if (groupPeerAsMatch && !currentNeighborIp) {
+                    groupPeerAs = parseInt(groupPeerAsMatch[1]);
+                    currentGroup.peerAs = groupPeerAs;
+                    continue;
+                }
 
-                i = j; // Advance
+                // Neighbor inside group
+                const nbrMatch = trimmed.match(/^neighbor\s+([\d.]+)/);
+                if (nbrMatch) {
+                    currentNeighborIp = nbrMatch[1];
+                    neighborIndent = indent;
+                    currentGroup.neighbors.push({
+                        neighborIp: currentNeighborIp,
+                        peerAs: undefined // will be overridden if neighbor has own peer-as
+                    });
+                    // Also add to flat bgpNeighbors for backward compatibility
+                    bgpNeighbors.push({
+                        neighborIp: currentNeighborIp,
+                        autonomousSystem: groupPeerAs // default to group-level
+                    });
+                    continue;
+                }
+
+                // Neighbor-level peer-as override
+                if (currentNeighborIp && groupPeerAsMatch) {
+                    // This won't match because we already consumed it above when !currentNeighborIp
+                }
+                const nbrPeerAsMatch = trimmed.match(/^peer-as\s+(\d+)/);
+                if (nbrPeerAsMatch && currentNeighborIp) {
+                    const nbrAs = parseInt(nbrPeerAsMatch[1]);
+                    // Update last neighbor in group
+                    const lastNbr = currentGroup.neighbors[currentGroup.neighbors.length - 1];
+                    if (lastNbr) lastNbr.peerAs = nbrAs;
+                    // Update flat bgpNeighbors
+                    const lastFlat = bgpNeighbors[bgpNeighbors.length - 1];
+                    if (lastFlat) lastFlat.autonomousSystem = nbrAs;
+                    continue;
+                }
+
+                continue;
             }
+
+            // Group exit at group indent level
+            if (currentGroup && trimmed === 'exit' && indent === groupIndent) {
+                bgpGroups.push(currentGroup);
+                currentGroup = null;
+                groupIndent = -1;
+                currentNeighborIp = null;
+                neighborIndent = -1;
+                continue;
+            }
+
+            // Top-level neighbor (outside group) - fallback
+            if (!currentGroup) {
+                const nbrMatch = trimmed.match(/^neighbor\s+([\d.]+)/);
+                if (nbrMatch) {
+                    const nip = nbrMatch[1];
+                    const startIndent = indent;
+
+                    // Parse neighbor block for peer-as
+                    let nBlock = '';
+                    let j = i + 1;
+                    while (j < bgpLines.length) {
+                        const sub = bgpLines[j];
+                        const subTrimmed = sub.trim();
+                        const subIndent = sub.search(/\S/);
+
+                        if (subTrimmed === 'exit' && subIndent === startIndent) {
+                            break;
+                        }
+                        if (subIndent < startIndent && subTrimmed !== '') {
+                            break;
+                        }
+                        nBlock += sub + '\n';
+                        j++;
+                    }
+
+                    const nbrAsMatch = nBlock.match(/peer-as\s+(\d+)/i);
+                    bgpNeighbors.push({
+                        neighborIp: nip,
+                        autonomousSystem: nbrAsMatch ? parseInt(nbrAsMatch[1]) : undefined
+                    });
+
+                    i = j; // Advance
+                }
+            }
+        }
+
+        // Push last group if not yet pushed
+        if (currentGroup) {
+            bgpGroups.push(currentGroup);
         }
     }
 
@@ -691,6 +804,9 @@ export function parseVPRN(
         bgpRouterId,
         routeDistinguisher: rdMatch ? rdMatch[1] : undefined,
         vrfTarget: vrfMatch ? vrfMatch[1] : undefined,
+        ecmp,
+        bgpSplitHorizon,
+        bgpGroups: bgpGroups.length > 0 ? bgpGroups : undefined,
         interfaces,
         bgpNeighbors,
         staticRoutes,
@@ -1112,7 +1228,7 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
             });
         }
 
-        // Enrich L3 Interfaces (VPRN, IES) with Port info
+        // Enrich L3 Interfaces (VPRN, IES) with Port info and QoS rate
         if ('interfaces' in service && (service.serviceType === 'vprn' || service.serviceType === 'ies')) {
             const l3Service = service as VPRNService | IESService;
             l3Service.interfaces.forEach(intf => {
@@ -1123,6 +1239,21 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
                     if (info) {
                         if (info.description && !intf.portDescription) intf.portDescription = info.description;
                         if (info.ethernet) intf.portEthernet = info.ethernet;
+                    }
+                }
+                // Inject QoS rate info from policy definitions
+                if (intf.ingressQosId) {
+                    const p = qosPolicyMap.get(`ingress-${intf.ingressQosId}`);
+                    if (p) {
+                        intf.ingressQosRate = p.rate;
+                        intf.ingressQosRateMax = p.rateMax;
+                    }
+                }
+                if (intf.egressQosId) {
+                    const p = qosPolicyMap.get(`egress-${intf.egressQosId}`);
+                    if (p) {
+                        intf.egressQosRate = p.rate;
+                        intf.egressQosRateMax = p.rateMax;
                     }
                 }
             });

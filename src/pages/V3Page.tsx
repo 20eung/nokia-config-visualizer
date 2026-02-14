@@ -8,7 +8,6 @@ import { ServiceDiagram } from '../components/v2/ServiceDiagram'; // Reuse for n
 import { FileUpload } from '../components/FileUpload';
 import { Menu } from 'lucide-react';
 import { convertIESToV1Format, generateCrossDeviceIESDiagrams } from '../utils/v1IESAdapter';
-import { convertVPRNToV1Format, generateVPRNDiagramV1Style } from '../utils/v1VPRNAdapter';
 import './V2Page.css';
 
 export function V3Page() {
@@ -295,55 +294,19 @@ export function V3Page() {
         const representativeService = servicesWithContext[0].service;
 
         if (representativeService.serviceType === 'vprn') {
-            const vprnService = servicesWithContext[0].service as VPRNService;
-            const hostname = servicesWithContext[0].hostname;
-
-            // 동일 config 내 모든 IES + VPRN 서비스의 Static Routes 수집
-            const parentConfig = configs.find(c => c.hostname === hostname);
-            const aggregatedStaticRoutes: Array<{ prefix: string; nextHop: string }> = [];
-
-            if (parentConfig) {
-                parentConfig.services.forEach(service => {
-                    if (service.serviceType === 'ies' || service.serviceType === 'vprn') {
-                        const l3Service = service as IESService | VPRNService;
-                        if (l3Service.staticRoutes) {
-                            l3Service.staticRoutes.forEach(route => {
-                                aggregatedStaticRoutes.push({
-                                    prefix: route.prefix,
-                                    nextHop: route.nextHop
-                                });
-                            });
-                        }
-                    }
-                });
-            }
-
-            console.log(`📊 [V3Page] VPRN ${vprnService.serviceId} for ${hostname}: Aggregated ${aggregatedStaticRoutes.length} static routes from all IES/VPRN services`);
-
-            // V3 → V1 변환 (aggregated routes 포함)
-            const v1Device = convertVPRNToV1Format(vprnService, hostname, aggregatedStaticRoutes);
-
-            // 선택된 인터페이스 파싱
-            // 전체 서비스: "vprn-${serviceId}"
-            // 개별 인터페이스: "vprn___${serviceId}___${hostname}___${interfaceName}"
-            const fullServiceKey = `vprn-${vprnService.serviceId}`;
-            const selectedInterfaceNames = selectedServiceIds.includes(fullServiceKey)
-                ? vprnService.interfaces.map(i => i.interfaceName)
-                : selectedServiceIds
-                    .filter(id => id.startsWith(`vprn___${vprnService.serviceId}___${hostname}___`))
-                    .map(id => id.replace(`vprn___${vprnService.serviceId}___${hostname}___`, ''));
-
-            // V1 스타일 다이어그램 생성 (HA 감지 포함)
-            const diagrams = generateVPRNDiagramV1Style(v1Device, selectedInterfaceNames);
-
-            // 각 다이어그램을 개별 항목으로 반환
-            return diagrams.map(d => ({
+            // V3 네이티브: generateServiceDiagram() 사용
+            return [{
                 service: representativeService,
-                diagram: d.code,
-                hostname: hostname,
-                diagramName: d.name,
-                description: d.description
-            }));
+                diagram: generateServiceDiagram(
+                    servicesWithContext.map(s => s.service),
+                    servicesWithContext.map(s => s.hostname),
+                    servicesWithContext[0].sdps,
+                    remoteDeviceMap
+                ),
+                hostname: servicesWithContext.map(s => s.hostname).join(' + '),
+                diagramName: undefined,
+                description: undefined
+            }];
         }
 
         // Epipe: Split by Spoke-SDP so different SDPs get separate diagrams

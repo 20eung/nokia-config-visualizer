@@ -1,4 +1,4 @@
-import type { EpipeService, VPLSService, VPRNService, SDP, SAP } from '../../types/v2';
+import type { EpipeService, VPLSService, VPRNService, SDP, SAP, L3Interface } from '../../types/v2';
 import type { ParsedConfigV3, NokiaServiceV3 } from './parserV3';
 
 /**
@@ -34,6 +34,22 @@ const noWrap = (text: string): string => {
         .replace(/-/g, '\u2011');
 };
 
+// Helper: IP address를 32-bit 정수로 변환
+function ipToLong(ip: string): number {
+    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+}
+
+// Helper: IP가 CIDR 서브넷에 포함되는지 확인
+function isIpInSubnet(ip: string, cidr: string): boolean {
+    const parts = cidr.split('/');
+    if (parts.length !== 2) return false;
+    const subnetIp = parts[0];
+    const prefixLen = parseInt(parts[1], 10);
+    if (isNaN(prefixLen) || prefixLen < 0 || prefixLen > 32) return false;
+    const mask = prefixLen === 0 ? 0 : (~0 << (32 - prefixLen)) >>> 0;
+    return (ipToLong(ip) & mask) === (ipToLong(subnetIp) & mask);
+}
+
 // Helper: QoS rate를 KMG 단위로 변환 (kbps → K/M/G)
 // rate 파싱 성공 시: "100M", "2G", "500K", "Max"
 // rate 파싱 실패 시 (정책 정의 없음): policy ID만 표시 "15"
@@ -51,28 +67,6 @@ function formatRateKMG(qos: { policyId: number; rate?: number; rateMax?: boolean
         return `${kbps}K`;
     }
 }
-
-// Helper: IP Logic
-function ipToLong(ip: string): number {
-    return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
-}
-
-function isIpInSubnet(ip: string, cidr: string): boolean {
-    if (!ip || !cidr || !cidr.includes('/')) return false;
-    try {
-        const [rangeIp, prefixStr] = cidr.split('/');
-        const prefix = parseInt(prefixStr, 10);
-        const mask = prefix === 0 ? 0 : (~((1 << (32 - prefix)) - 1)) >>> 0; // Fix standard bitwise issue
-        // However JS bitwise operations are 32-bit signed. 
-        // Using >>> 0 ensures unsigned.
-        const ipLong = ipToLong(ip);
-        const rangeIpLong = ipToLong(rangeIp);
-        return (ipLong & mask) === (rangeIpLong & mask);
-    } catch (e) {
-        return false;
-    }
-}
-
 
 
 /**
@@ -418,276 +412,432 @@ export function generateVPLSDiagram(
     return lines.join('\n');
 }
 
+// Helper: L3Interface QoS rate를 KMG 단위로 변환
+function formatL3QosRate(iface: L3Interface, direction: 'ingress' | 'egress'): string | undefined {
+    if (direction === 'ingress') {
+        if (iface.ingressQosRateMax) return 'Max';
+        if (iface.ingressQosRate) {
+            const kbps = iface.ingressQosRate;
+            if (kbps >= 1000000) { const g = kbps / 1000000; return `${Number.isInteger(g) ? g : g.toFixed(1)}G`; }
+            if (kbps >= 1000) { const m = kbps / 1000; return `${Number.isInteger(m) ? m : m.toFixed(1)}M`; }
+            return `${kbps}K`;
+        }
+        return iface.ingressQosId || undefined;
+    } else {
+        if (iface.egressQosRateMax) return 'Max';
+        if (iface.egressQosRate) {
+            const kbps = iface.egressQosRate;
+            if (kbps >= 1000000) { const g = kbps / 1000000; return `${Number.isInteger(g) ? g : g.toFixed(1)}G`; }
+            if (kbps >= 1000) { const m = kbps / 1000; return `${Number.isInteger(m) ? m : m.toFixed(1)}M`; }
+            return `${kbps}K`;
+        }
+        return iface.egressQosId || undefined;
+    }
+}
+
 /**
  * VPRN 서비스 다이어그램 생성
+ *
+ * 라우팅 중간 노드:
+ *   Interface → BGP/OSPF/STATIC Node → Service Node
+ *   (매칭 없는 인터페이스는 Service에 직접 연결)
  */
 export function generateVPRNDiagram(
     vprn: VPRNService | VPRNService[],
     hostname: string | string[]
 ): string {
-    // 배열로 정규화  
     const vprnArray = Array.isArray(vprn) ? vprn : [vprn];
     const hostnameArray = Array.isArray(hostname) ? hostname : [hostname];
 
     const lines: string[] = [];
 
     lines.push('graph LR');
-
-    // Define clean styles
     lines.push('classDef default fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left;');
-    lines.push('classDef service fill:#e8eaf6,stroke:#1a237e,stroke-width:2px,color:#000;');
-    lines.push('classDef iface fill:#fff3e0,stroke:#e65100,stroke-width:1px;');
-    lines.push('classDef bgp fill:#e1f5fe,stroke:#0277bd,stroke-width:1px;');
-    lines.push('classDef route fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px;');
-    lines.push('classDef redBox fill:#ffffff,stroke:#ff0000,stroke-width:2px,color:#ff0000;');
-    lines.push('classDef qos fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff,text-align:center,padding:5px;');
-
+    lines.push('classDef service fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000;');
+    lines.push('classDef routing fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000,text-align:left;');
     lines.push('');
 
-    // 오른쪽: 공통 VPRN 서비스 노드
     const firstVprn = vprnArray[0];
     const serviceNodeId = `VPRN_SERVICE_${firstVprn.serviceId}`;
 
-    let vprnLabel = `<div style="text-align: left">`;
-    vprnLabel += `<b>Service:</b> VPRN ${firstVprn.serviceId}<br/>`;
+    // ========== Aggregate routing info from all hosts ==========
 
-    // Service Name & Description
-    if (firstVprn.serviceName) {
-        vprnLabel += `<b>VPRN Service Name:</b> ${noWrap(firstVprn.serviceName)}<br/>`;
-    }
-    if (firstVprn.description) {
-        // 사용자 요청: VPRN Desc: ...
-        vprnLabel += `<b>VPRN Desc:</b> ${firstVprn.description}<br/>`;
-    }
-
-
-    if (firstVprn.vrfTarget) {
-        vprnLabel += `<b>VRF:</b> ${firstVprn.vrfTarget}<br/>`;
-    }
-
-    vprnLabel += `<b>Customer:</b> ${firstVprn.customerId}`;
-    vprnLabel += `</div>`;
-
-    // 서브그래프들 먼저 그리기 (왼쪽)
-    vprnArray.forEach((currentVprn, idx) => {
-        const host = hostnameArray[idx] || hostnameArray[0];
-        const safeHost = sanitizeNodeId(host);
-
-        const hostId = `HOST_${safeHost}_${idx}`;
-
-        lines.push(`subgraph ${hostId} ["<b>${noWrap(host)}</b>"]`);
-        lines.push('direction TB');
-
-        // Pre-process Static Routes
-        const routesMap = new Map<string, string[]>();
-        if (currentVprn.staticRoutes) {
-            currentVprn.staticRoutes.forEach(r => {
-                const nh = r.nextHop || 'Unknown';
-                if (!routesMap.has(nh)) routesMap.set(nh, []);
-                routesMap.get(nh)!.push(r.prefix);
-            });
-        }
-
-        // 1. Interfaces
-        if (currentVprn.interfaces) {
-            currentVprn.interfaces.forEach((iface, ifIdx) => {
-                const ifId = `IF_${safeHost}_${idx}_${ifIdx}`;
-                const ifName = iface.interfaceName;
-
-                let details = `<div style="text-align: left">`;
-                details += `<b>Interface:</b> ${ifName}<br/>`;
-                if (iface.description) details += `Desc: ${iface.description}<br/>`;
-
-                let staticRoutesHtml = '';
-
-                if (iface.ipAddress) {
-                    details += `IP: ${iface.ipAddress}`;
-                    // VRRP Info: Group ID hidden per user request
-                    details += `<br/>`;
-
-                    // MERGE CHECK: Static Routes
-                    // Prepare HTML but append LATER
-                    const matchedNextHops: string[] = [];
-                    routesMap.forEach((_, nextHop) => {
-                        if (isIpInSubnet(nextHop, iface.ipAddress!)) {
-                            matchedNextHops.push(nextHop);
-                        }
-                    });
-
-                    if (matchedNextHops.length > 0) {
-                        staticRoutesHtml += `<hr/>`; // Separator
-                        matchedNextHops.forEach(nh => {
-                            const prefixes = routesMap.get(nh)!;
-                            staticRoutesHtml += `<b>Static Route:</b> ${nh}<br/>`;
-                            staticRoutesHtml += `Customer Network: ${prefixes.length}<br/>`;
-                            prefixes.forEach(p => staticRoutesHtml += `${p}<br/>`);
-                            // staticRoutesHtml += `<br/>`; 
-                            routesMap.delete(nh); // Mark as handled
-                        });
-                    }
-                }
-
-                if (iface.vrrpBackupIp) details += `(VIP: ${iface.vrrpBackupIp})<br/>`;
-                if (iface.portId) details += `SAP: ${iface.portId}<br/>`;
-                if (iface.portDescription) details += `Port Desc: ${iface.portDescription}<br/>`;
-                if (iface.portEthernet) {
-                    const pe = iface.portEthernet;
-                    if (pe.mode || pe.encapType) {
-                        details += `Ethernet: ${pe.mode || ''}${pe.encapType ? ` / encap\u2011type: ${pe.encapType}` : ''}<br/>`;
-                    }
-                    if (pe.mtu) {
-                        details += `Port\u00A0MTU: ${pe.mtu}<br/>`;
-                    }
-                }
-                if (iface.vplsName) details += `VPLS: ${iface.vplsName}<br/>`;
-                if (iface.spokeSdpId) details += `SPOKE-SDP: ${iface.spokeSdpId}<br/>`;
-                if (iface.mtu) details += `MTU: ${iface.mtu}`;
-
-                // Append Static Routes LAST
-                if (staticRoutesHtml) {
-                    details += staticRoutesHtml;
-                }
-
-                details += `</div>`;
-
-                lines.push(`${ifId}["${details}"]`);
-                lines.push(`class ${ifId} iface;`);
-            });
-        }
-
-        // 2. BGP Neighbors
-
-
-        // 3. Remaining Static Routes (Orphans)
-        const orphanRoutes: string[] = [];
-        if (routesMap.size > 0) {
-            let routeIdx = 0;
-            routesMap.forEach((prefixes, nextHop) => {
-                const routeId = `ROUTES_${safeHost}_${idx}_${routeIdx++}`;
-                let routeLabel = `<div style="text-align: left">`;
-                routeLabel += `<b>Static Route:</b> ${nextHop}<br/>`;
-                routeLabel += `Customer Network: ${prefixes.length}<br/>`;
-
-                prefixes.forEach(p => {
-                    routeLabel += `${p}<br/>`;
-                });
-                routeLabel += `</div>`;
-
-                lines.push(`${routeId}["${routeLabel}"]`);
-                lines.push(`class ${routeId} route;`);
-
-                // Collect ID for linking outside subgraph
-                orphanRoutes.push(routeId);
-            });
-        }
-
-        lines.push('end'); // End Host
-
-        // Orphan Static Route Connections (Outside Subgraph)
-        orphanRoutes.forEach(rId => {
-            lines.push(`${rId} -.- ${serviceNodeId}`);
-        });
-
-        // 연결선 추가 (서브그래프 밖에서 처리)
-        // Interfaces with QoS labels
-        if (currentVprn.interfaces) {
-            currentVprn.interfaces.forEach((iface, ifIdx) => {
-                const ifId = `IF_${safeHost}_${idx}_${ifIdx}`;
-                const qosParts: string[] = [];
-                if (iface.ingressQosId) qosParts.push(`In\u2011QoS: ${iface.ingressQosId}`);
-                if (iface.egressQosId) qosParts.push(`Out\u2011QoS: ${iface.egressQosId}`);
-
-                if (qosParts.length > 0) {
-                    const qosLabelContent = qosParts.join('<br/>');
-                    const qosLabel = `<div class='qos-label'>${qosLabelContent}</div>`;
-                    lines.push(`${ifId} -->|"${qosLabel}"| ${serviceNodeId}`);
-                } else {
-                    lines.push(`${ifId} --> ${serviceNodeId}`);
-                }
-            });
-        }
-        // BGP (Invisible or Dotted link to ensure layout if no interfaces)
-    });
-
-    // Aggregate BGP and OSPF info for the Service Node
-    // We'll take unique BGP router-ids and neighbors, and OSPF areas.
-    // For simplicity, considering visualization focus, we iterate all and append if not empty?
-    // User request implies one block for BGP, one for OSPF.
-    // If multiple hosts have diff configs, we might need multiple blocks or merged list.
-    // Let's assume single view or append all found configurations.
-
-    const allBgpNeighbors: { neighborIp: string; autonomousSystem?: number }[] = [];
-    const allOspfAreas: { areaId: string; interfaces: any[] }[] = []; // Reuse logic
+    // --- BGP ---
     let bgpRouterId = '';
+    const allBgpGroups: { groupName: string; peerAs?: number; neighbors: { neighborIp: string; peerAs?: number }[] }[] = [];
+    const allBgpNeighbors: { neighborIp: string; autonomousSystem?: number }[] = [];
+    let bgpSplitHorizon = false;
 
     vprnArray.forEach(v => {
-        if (v.bgpRouterId && !bgpRouterId) bgpRouterId = v.bgpRouterId; // Take first for now
-        if (v.bgpNeighbors) allBgpNeighbors.push(...v.bgpNeighbors);
+        if (v.bgpRouterId && !bgpRouterId) bgpRouterId = v.bgpRouterId;
+        if (v.bgpSplitHorizon) bgpSplitHorizon = true;
+        if (v.bgpGroups) {
+            v.bgpGroups.forEach(g => {
+                if (!allBgpGroups.find(eg => eg.groupName === g.groupName)) {
+                    allBgpGroups.push({ ...g, neighbors: [...g.neighbors] });
+                }
+            });
+        }
+        if (v.bgpNeighbors) {
+            v.bgpNeighbors.forEach(n => {
+                if (!allBgpNeighbors.find(en => en.neighborIp === n.neighborIp)) {
+                    allBgpNeighbors.push(n);
+                }
+            });
+        }
+    });
+
+    const hasBgp = !!(bgpRouterId || allBgpGroups.length > 0 || allBgpNeighbors.length > 0);
+
+    // Collect all BGP peer IPs for subnet matching
+    const allBgpPeerIps: string[] = [];
+    allBgpGroups.forEach(g => g.neighbors.forEach(n => allBgpPeerIps.push(n.neighborIp)));
+    allBgpNeighbors.forEach(n => allBgpPeerIps.push(n.neighborIp));
+
+    // --- OSPF ---
+    const allOspfAreas: { areaId: string; interfaces: { interfaceName: string; interfaceType?: string }[] }[] = [];
+    vprnArray.forEach(v => {
         if (v.ospf && v.ospf.areas) {
             v.ospf.areas.forEach(a => {
-                // Check if area already exists? OSPF structure is complex to merge visually.
-                // Let's just push for now, duplicate areas visually might be ok if different hosts
-                // But better to merge by Area ID?
                 const existing = allOspfAreas.find(ea => ea.areaId === a.areaId);
                 if (existing) {
-                    existing.interfaces.push(...a.interfaces);
+                    a.interfaces.forEach(i => {
+                        if (!existing.interfaces.find(ei => ei.interfaceName === i.interfaceName)) {
+                            existing.interfaces.push(i);
+                        }
+                    });
                 } else {
-                    // Clone to avoid mutation issues if deep copy needed?
                     allOspfAreas.push({ areaId: a.areaId, interfaces: [...a.interfaces] });
                 }
             });
         }
     });
 
-    let bpgHtml = '';
+    const hasOspf = allOspfAreas.length > 0;
 
-    // User requested AS/RD only in BGP section. Show BGP box if any BGP info exists (AS, RD, RouterID, Neighbors)
-    if (firstVprn.autonomousSystem || firstVprn.routeDistinguisher || bgpRouterId || allBgpNeighbors.length > 0) {
+    // Collect all OSPF interface names for matching
+    const allOspfIfNames = new Set<string>();
+    allOspfAreas.forEach(a => a.interfaces.forEach(i => allOspfIfNames.add(i.interfaceName)));
 
-        bpgHtml += `<div style="border: 2px solid #ff0000; padding: 5px; margin-top: 5px; text-align: left;">`;
-        bpgHtml += `<b>BGP:</b><br/>`;
-        if (firstVprn.autonomousSystem) bpgHtml += `AS: ${firstVprn.autonomousSystem}<br/>`;
-        if (firstVprn.routeDistinguisher) bpgHtml += `RD: ${firstVprn.routeDistinguisher}<br/>`;
-        if (bgpRouterId) bpgHtml += `Router-id: ${bgpRouterId}<br/>`;
-        if (allBgpNeighbors.length > 0) {
-            bpgHtml += `Neighbor<br/>`;
-            allBgpNeighbors.forEach(n => {
-                bpgHtml += `- ${n.neighborIp}`;
-                if (n.autonomousSystem) bpgHtml += `(AS ${n.autonomousSystem})`;
-                bpgHtml += `<br/>`;
+    // --- STATIC ---
+    const allStaticRoutes: { prefix: string; nextHop: string }[] = [];
+    vprnArray.forEach(v => {
+        if (v.staticRoutes) {
+            v.staticRoutes.forEach(r => {
+                if (!allStaticRoutes.find(er => er.prefix === r.prefix && er.nextHop === r.nextHop)) {
+                    allStaticRoutes.push(r);
+                }
             });
         }
-        bpgHtml += `</div>`;
+    });
+
+    // Group static routes by next-hop
+    const staticByNextHop = new Map<string, string[]>();
+    allStaticRoutes.forEach(r => {
+        if (!staticByNextHop.has(r.nextHop)) {
+            staticByNextHop.set(r.nextHop, []);
+        }
+        staticByNextHop.get(r.nextHop)!.push(r.prefix);
+    });
+
+    const hasStatic = allStaticRoutes.length > 0;
+
+    // ========== Build routing match map per interface ==========
+    // Key: "hostIdx_ifIdx", Value: { bgpMatched, ospfMatched, staticNextHops[] }
+    interface RoutingMatch {
+        bgpMatched: boolean;
+        ospfMatched: boolean;
+        staticNextHops: string[];
     }
 
-    let ospfHtml = '';
-    if (allOspfAreas.length > 0) {
-        ospfHtml += `<div style="border: 2px solid #ff0000; padding: 5px; margin-top: 5px; text-align: left;">`;
-        ospfHtml += `<b>OSPF:</b><br/>`;
-        allOspfAreas.forEach(a => {
-            ospfHtml += `Area ${a.areaId}<br/>`;
-            a.interfaces.forEach(i => {
-                ospfHtml += `- int: ${i.interfaceName}`;
-                // Simplified type display as per user request example? "- int: ..."
-                // User example: "- int: p3/2/23"
-                // If types exist, maybe useful? User example didn't show type explicitly, just "- int: ..."
-                // Let's keep it simple or match user? User provided "- int: p3/2/23". 
-                // My previous code added type. I'll include type if present but maybe less verbose.
-                // User example: "- int: TO-..."
-                ospfHtml += `<br/>`;
-            });
+    const routingMatchMap = new Map<string, RoutingMatch>();
+
+    vprnArray.forEach((currentVprn, idx) => {
+        if (!currentVprn.interfaces) return;
+        currentVprn.interfaces.forEach((iface, ifIdx) => {
+            const key = `${idx}_${ifIdx}`;
+            const match: RoutingMatch = { bgpMatched: false, ospfMatched: false, staticNextHops: [] };
+
+            // BGP matching: peer IP in interface subnet
+            if (hasBgp && iface.ipAddress) {
+                for (const peerIp of allBgpPeerIps) {
+                    if (isIpInSubnet(peerIp, iface.ipAddress)) {
+                        match.bgpMatched = true;
+                        break;
+                    }
+                }
+            }
+
+            // OSPF matching: OSPF area interface name matches L3 interface name
+            if (hasOspf) {
+                if (allOspfIfNames.has(iface.interfaceName)) {
+                    match.ospfMatched = true;
+                }
+            }
+
+            // STATIC matching: next-hop in interface subnet
+            if (hasStatic && iface.ipAddress) {
+                for (const nextHop of staticByNextHop.keys()) {
+                    if (isIpInSubnet(nextHop, iface.ipAddress)) {
+                        match.staticNextHops.push(nextHop);
+                    }
+                }
+            }
+
+            routingMatchMap.set(key, match);
         });
-        ospfHtml += `</div>`;
+    });
+
+    // ========== 왼쪽: Host 서브그래프 (Interface 중심) ==========
+    vprnArray.forEach((currentVprn, idx) => {
+        const host = hostnameArray[idx] || hostnameArray[0];
+        const safeHost = sanitizeNodeId(host);
+        const hostId = `HOST_${safeHost}_${idx}`;
+
+        lines.push(`subgraph ${hostId} ["\u003cb\u003e${noWrap(host)}\u003c/b\u003e"]`);
+        lines.push('direction TB');
+
+        if (currentVprn.interfaces) {
+            currentVprn.interfaces.forEach((iface, ifIdx) => {
+                const ifId = `IF_${safeHost}_${idx}_${ifIdx}`;
+
+                let label = `\u003cdiv style=\"text-align: left\"\u003e`;
+
+                // Interface (최상위 헤더)
+                label += `\u003cb\u003eInterface:\u003c/b\u003e ${noWrap(iface.interfaceName)}<br/>`;
+
+                // Int Desc
+                if (iface.description) {
+                    label += `\u00A0\u00A0\u2011\u00A0Int\u00A0Desc:\u00A0${noWrap(iface.description)}<br/>`;
+                }
+
+                // IP
+                if (iface.ipAddress) {
+                    label += `\u00A0\u00A0\u2011\u00A0IP:\u00A0${iface.ipAddress}<br/>`;
+                }
+
+                // VRRP: priority >= 100 → MASTER, < 100 → BACKUP
+                if (iface.vrrpBackupIp) {
+                    const role = (iface.vrrpPriority !== undefined && iface.vrrpPriority >= 100) ? 'MASTER' : 'BACKUP';
+                    label += `\u00A0\u00A0\u2011\u00A0VRRP:\u00A0${iface.vrrpBackupIp}\u00A0(${role})<br/>`;
+                }
+
+                // VPLS binding
+                if (iface.vplsName) {
+                    label += `\u00A0\u00A0\u2011\u00A0VPLS:\u00A0${noWrap(iface.vplsName)}<br/>`;
+                }
+
+                // SAP + QoS (하위 항목)
+                if (iface.portId) {
+                    label += `\u003cb\u003eSAP:\u003c/b\u003e ${iface.portId}<br/>`;
+                    // In-QoS
+                    const inRate = formatL3QosRate(iface, 'ingress');
+                    if (inRate) {
+                        label += `\u00A0\u00A0\u2011\u00A0In\u2011QoS:\u00A0${inRate}<br/>`;
+                    }
+                    // Out-QoS
+                    const outRate = formatL3QosRate(iface, 'egress');
+                    if (outRate) {
+                        label += `\u00A0\u00A0\u2011\u00A0Out\u2011QoS:\u00A0${outRate}<br/>`;
+                    }
+                }
+
+                // Port (sapId에서 ':' 이전 부분)
+                if (iface.portId) {
+                    const portOnly = iface.portId.split(':')[0];
+                    label += `\u003cb\u003ePort:\u003c/b\u003e ${portOnly}<br/>`;
+                }
+
+                // Port Desc
+                if (iface.portDescription) {
+                    label += `\u003cb\u003ePort\u00A0Desc:\u003c/b\u003e ${noWrap(iface.portDescription)}<br/>`;
+                }
+
+                // IP-MTU
+                if (iface.mtu) {
+                    label += `\u003cb\u003eIP\u2011MTU:\u003c/b\u003e ${iface.mtu}<br/>`;
+                }
+
+                // Spoke-Sdp
+                if (iface.spokeSdpId) {
+                    label += `\u003cb\u003eSpoke\u2011Sdp:\u003c/b\u003e ${iface.spokeSdpId}<br/>`;
+                }
+
+                label += `\u003c/div\u003e`;
+                lines.push(`${ifId}["${label}"]`);
+            });
+        }
+
+        lines.push('end');
+    });
+
+    // ========== 중간: Routing Nodes ==========
+
+    const bgpNodeId = `ROUTING_BGP_${firstVprn.serviceId}`;
+    const ospfNodeId = `ROUTING_OSPF_${firstVprn.serviceId}`;
+
+    // --- BGP Node ---
+    if (hasBgp) {
+        let bgpLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
+        bgpLabel += `\u003cb\u003eBGP:\u003c/b\u003e<br/>`;
+        if (bgpRouterId) {
+            bgpLabel += `\u00A0\u00A0\u2011\u00A0Router\u2011ID:\u00A0${bgpRouterId}<br/>`;
+        }
+        if (bgpSplitHorizon) {
+            bgpLabel += `\u00A0\u00A0\u2011\u00A0Split\u2011Horizon:\u00A0On<br/>`;
+        }
+        if (allBgpGroups.length > 0) {
+            allBgpGroups.forEach(g => {
+                bgpLabel += `\u00A0\u00A0\u2011\u00A0GROUP:\u00A0${noWrap(g.groupName)}<br/>`;
+                g.neighbors.forEach(n => {
+                    const peerAs = n.peerAs || g.peerAs;
+                    bgpLabel += `\u00A0\u00A0\u00A0\u00A0\u2011\u00A0Peer:\u00A0${n.neighborIp}<br/>`;
+                    if (peerAs) {
+                        bgpLabel += `\u00A0\u00A0\u00A0\u00A0\u2011\u00A0Peer\u2011AS:\u00A0${peerAs}<br/>`;
+                    }
+                });
+            });
+        } else if (allBgpNeighbors.length > 0) {
+            allBgpNeighbors.forEach(n => {
+                bgpLabel += `\u00A0\u00A0\u2011\u00A0Peer:\u00A0${n.neighborIp}`;
+                if (n.autonomousSystem) bgpLabel += `\u00A0(AS\u00A0${n.autonomousSystem})`;
+                bgpLabel += `<br/>`;
+            });
+        }
+        bgpLabel += `\u003c/div\u003e`;
+        lines.push(`${bgpNodeId}["${bgpLabel}"]`);
+        lines.push(`class ${bgpNodeId} routing;`);
     }
 
-    vprnLabel += bpgHtml + ospfHtml;
+    // --- OSPF Node ---
+    if (hasOspf) {
+        let ospfLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
+        ospfLabel += `\u003cb\u003eOSPF:\u003c/b\u003e<br/>`;
+        allOspfAreas.forEach(a => {
+            ospfLabel += `\u00A0\u00A0\u2011\u00A0AREA:\u00A0${a.areaId}<br/>`;
+            if (a.interfaces.length > 0) {
+                ospfLabel += `\u00A0\u00A0\u00A0\u00A0\u2011\u00A0Interface:<br/>`;
+                a.interfaces.forEach(i => {
+                    const typeStr = i.interfaceType ? `:\u00A0${i.interfaceType}` : '';
+                    ospfLabel += `\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u2011\u00A0${noWrap(i.interfaceName)}${typeStr}<br/>`;
+                });
+            }
+        });
+        ospfLabel += `\u003c/div\u003e`;
+        lines.push(`${ospfNodeId}["${ospfLabel}"]`);
+        lines.push(`class ${ospfNodeId} routing;`);
+    }
 
-    // 서비스 노드 추가 (오른쪽)
+    // --- STATIC Nodes (one per next-hop) ---
+    const staticNodeIds = new Map<string, string>(); // nextHop → nodeId
+    if (hasStatic) {
+        let staticCounter = 0;
+        staticByNextHop.forEach((prefixes, nextHop) => {
+            const nodeId = `ROUTING_STATIC_${firstVprn.serviceId}_${staticCounter}`;
+            staticNodeIds.set(nextHop, nodeId);
+            let staticLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
+            staticLabel += `\u003cb\u003eSTATIC:\u003c/b\u003e<br/>`;
+            staticLabel += `Next\u2011Hop:\u00A0${nextHop}<br/>`;
+            prefixes.forEach(p => {
+                staticLabel += `\u00A0\u00A0\u2011\u00A0${p}<br/>`;
+            });
+            staticLabel += `\u003c/div\u003e`;
+            lines.push(`${nodeId}["${staticLabel}"]`);
+            lines.push(`class ${nodeId} routing;`);
+            staticCounter++;
+        });
+    }
+
+    // ========== 오른쪽: Service Node (BGP/OSPF/STATIC 제거) ==========
+    let svcLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
+
+    // Service header
+    if (firstVprn.serviceName) {
+        svcLabel += `\u003cb\u003eService:\u003c/b\u003e ${noWrap(firstVprn.serviceName)}<br/>`;
+    }
+    svcLabel += `\u003cb\u003eVPRN:\u003c/b\u003e ${firstVprn.serviceId}<br/>`;
+    if (firstVprn.description) {
+        svcLabel += `\u003cb\u003eVPRN\u00A0Desc:\u003c/b\u003e ${noWrap(firstVprn.description)}<br/>`;
+    }
+
+    // ECMP
+    if (firstVprn.ecmp) {
+        svcLabel += `\u003cb\u003eECMP:\u003c/b\u003e ${firstVprn.ecmp}<br/>`;
+    }
+
+    // AS NO
+    if (firstVprn.autonomousSystem) {
+        svcLabel += `\u003cb\u003eAS\u00A0NO:\u003c/b\u003e ${firstVprn.autonomousSystem}<br/>`;
+    }
+
+    // RD
+    if (firstVprn.routeDistinguisher) {
+        svcLabel += `\u003cb\u003eRD:\u003c/b\u003e ${firstVprn.routeDistinguisher}<br/>`;
+    }
+
+    // VRF-TARGET
+    if (firstVprn.vrfTarget) {
+        svcLabel += `\u003cb\u003eVRF\u2011TARGET:\u003c/b\u003e ${noWrap(firstVprn.vrfTarget)}<br/>`;
+    }
+
+    svcLabel += `\u003c/div\u003e`;
+
     lines.push('');
-    lines.push(`${serviceNodeId}["${vprnLabel}"]`);
+    lines.push(`${serviceNodeId}["${svcLabel}"]`);
     lines.push(`class ${serviceNodeId} service;`);
 
+    // ========== 연결선 ==========
 
+    // Routing nodes → Service node
+    if (hasBgp) {
+        lines.push(`${bgpNodeId} --> ${serviceNodeId}`);
+    }
+    if (hasOspf) {
+        lines.push(`${ospfNodeId} --> ${serviceNodeId}`);
+    }
+    staticNodeIds.forEach((nodeId) => {
+        lines.push(`${nodeId} --> ${serviceNodeId}`);
+    });
+
+    // Interface → Routing nodes / Service node
+    vprnArray.forEach((currentVprn, idx) => {
+        if (!currentVprn.interfaces) return;
+        const host = hostnameArray[idx] || hostnameArray[0];
+        const safeHost = sanitizeNodeId(host);
+
+        currentVprn.interfaces.forEach((_iface, ifIdx) => {
+            const ifId = `IF_${safeHost}_${idx}_${ifIdx}`;
+            const key = `${idx}_${ifIdx}`;
+            const match = routingMatchMap.get(key);
+
+            let hasAnyMatch = false;
+
+            if (match) {
+                if (match.bgpMatched && hasBgp) {
+                    lines.push(`${ifId} --> ${bgpNodeId}`);
+                    hasAnyMatch = true;
+                }
+                if (match.ospfMatched && hasOspf) {
+                    lines.push(`${ifId} --> ${ospfNodeId}`);
+                    hasAnyMatch = true;
+                }
+                if (match.staticNextHops.length > 0) {
+                    match.staticNextHops.forEach(nh => {
+                        const staticNodeId = staticNodeIds.get(nh);
+                        if (staticNodeId) {
+                            lines.push(`${ifId} --> ${staticNodeId}`);
+                            hasAnyMatch = true;
+                        }
+                    });
+                }
+            }
+
+            // 매칭 없으면 서비스 노드에 직접 연결
+            if (!hasAnyMatch) {
+                lines.push(`${ifId} --> ${serviceNodeId}`);
+            }
+        });
+    });
 
     return lines.join('\n');
 }

@@ -173,6 +173,10 @@ export interface L3Interface {
     qosPolicyId?: string;       // Generic/Deprecated
     ingressQosId?: string;      // Ingress QoS
     egressQosId?: string;       // Egress QoS
+    ingressQosRate?: number;    // Ingress QoS rate (kbps)
+    ingressQosRateMax?: boolean; // true if ingress rate is "max"
+    egressQosRate?: number;     // Egress QoS rate (kbps)
+    egressQosRateMax?: boolean;  // true if egress rate is "max"
     portDescription?: string;   // Physical Port description
     portEthernet?: PortEthernetConfig; // Port ethernet config
 
@@ -198,12 +202,24 @@ export interface OSPF {
     adminState: AdminState;
 }
 
+export interface BGPGroup {
+    groupName: string;
+    peerAs?: number;            // Group-level peer-as
+    neighbors: {
+        neighborIp: string;
+        peerAs?: number;        // Neighbor-level override
+    }[];
+}
+
 export interface VPRNService extends BaseService {
     serviceType: 'vprn';
     autonomousSystem?: number;
     bgpRouterId?: string; // BGP Router ID
     routeDistinguisher?: string;
     vrfTarget?: string;
+    ecmp?: number;                  // ecmp 16
+    bgpSplitHorizon?: boolean;      // bgp > split-horizon
+    bgpGroups?: BGPGroup[];         // bgp > group "name" > neighbor
     interfaces: L3Interface[];
     bgpNeighbors: { neighborIp: string; autonomousSystem?: number }[];     // Neighbor IPs with AS
     staticRoutes: StaticRoute[];

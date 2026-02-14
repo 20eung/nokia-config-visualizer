@@ -60,10 +60,9 @@ SAP: 3/1/12
 |---|---|---|
 | `default` | 일반 노드 | 흰색 배경, 검정 테두리 |
 | `service` | 서비스 노드 | 연한 파란색 배경 (`#e3f2fd`) |
-| `qos` | QoS 라벨 | 녹색 배경 (`#4caf50`), 흰색 텍스트 |
-| `iface` | VPRN 인터페이스 | 연한 주황색 배경 (`#fff3e0`) |
-| `route` | Static Route | 연한 보라색 배경 (`#f3e5f5`) |
-| `redBox` | BGP/OSPF 정보 | 빨간 테두리 |
+| `qos` | QoS 라벨 (IES) | 녹색 배경 (`#4caf50`), 흰색 텍스트 |
+| `vpls` | VPLS 서비스 | 연한 파란색 배경 (`#e3f2fd`) |
+| `svcinfo` | SDP 정보 (VPLS) | 연한 노란색 배경 (`#fff9c4`) |
 
 ---
 
@@ -230,80 +229,141 @@ VPLS에 여러 호스트가 참여할 때, **SDP(Mesh + Spoke) 합산 개수가 
 
 ## 4. VPRN 다이어그램
 
-### 4.1 V1 스타일 (HA 감지 포함)
+### 4.1 전체 레이아웃
 
-VPRN은 V1 어댑터를 통해 다이어그램을 생성한다.
-- `v1VPRNAdapter.ts`에서 L3Interface → NokiaInterface 변환
-- V1의 `generateSingleInterfaceDiagram()` / `generateCombinedHaDiagram()` 재사용
-- Static Route 기반 HA 페어 자동 감지
-
-### 4.2 호스트 노드
+VPRN 다이어그램은 3단 레이아웃을 사용한다:
 
 ```
-Host: PE-Router-1
+[Host Subgraph]         [Routing Nodes]         [Service Node]
 
-Port: 1/1/3 (TO-CE-Router)
-Ethernet: access / encap-type: dot1q
-Port MTU: 9212
-
-Interface: TO-CE-VPN (VPN Customer A)
-
-IP: 10.0.0.1/30
-(VIP: 10.0.0.3)
-
-Service: VPRN 3093 (VPN Customer A)
+ Interface A ---------> BGP Node ────────────> Service Info
+ Interface B ---------> OSPF Node ───────────>
+ Interface C ---------> STATIC (NH1) ────────>
+ Interface D ---------> STATIC (NH2) ────────>
+ Interface E ─────────────────────────────────> (direct)
 ```
 
-### 4.3 VPRN 전용 다이어그램 (V3 네이티브)
+- **왼쪽**: Host 서브그래프 (Interface 노드들)
+- **중간**: 라우팅 중간 노드 (BGP, OSPF, STATIC)
+- **오른쪽**: Service 노드 (VPRN 기본 정보만)
 
-직접 `mermaidGeneratorV3.ts`에서 생성하는 경우:
+### 4.2 호스트 노드 (Interface 중심)
 
-**인터페이스 노드:**
+Interface를 최상위 헤더로, SAP+QoS를 하위 항목으로 표시한다.
+
 ```
-Interface: TO-CE-Router
-Desc: Customer A
-IP: 10.0.0.1/30
-(VIP: 10.0.0.3)
-SAP: 1/1/3:100
-Port Desc: TO-CE-SWITCH
-Ethernet: access / encap-type: dot1q
-Port MTU: 9212
-VPLS: vpls-name
-SPOKE-SDP: 1005
-MTU: 1500
----
-Static Route: 10.1.0.1
-Customer Network: 3
-10.1.1.0/24
-10.1.2.0/24
-10.1.3.0/24
+Interface: p4/2/13
+  - Int Desc: To_FG60E_2
+  - IP: 192.168.123.2/30
+  - VRRP: 10.230.62.89 (MASTER)
+  - VPLS: vpls-name
+SAP: 4/2/13:0
+  - In‑QoS: 100M
+  - Out‑QoS: 100M
+Port: 4/2/13
+Port Desc: TO-CUSTOMER
+IP‑MTU: 1504
+Spoke‑Sdp: 9990:4019
 ```
 
-**서비스 노드:**
+**규칙:**
+- **Interface가 최상위 헤더** — Interface Name을 첫 줄에 굵게 표시
+- Int Desc, IP, VRRP, VPLS는 Interface 하위 항목으로 들여쓰기
+- **VRRP 표시**: priority ≥ 100 → `MASTER`, < 100 → `BACKUP`
+- **SAP + QoS**: SAP ID를 굵게 표시, In-QoS/Out-QoS를 하위 항목으로 들여쓰기
+- **QoS rate 표시**: `formatRateKMG()` 사용 (`L3Interface`의 `ingressQosRate`/`egressQosRate` → KMG 변환). 정의 없으면 policy ID만 표시.
+- **Port**: SAP ID에서 `:` 이전 부분만 표시 (예: `4/2/13:0` → Port: `4/2/13`)
+- **값이 없는 필드는 생략** (표시하지 않음)
+- 연결선은 plain arrow (`-->`) — QoS 라벨 없음
+
+### 4.3 라우팅 중간 노드
+
+BGP/OSPF/STATIC 정보를 서비스 노드에서 분리하여 **별도 중간 노드**로 표시한다.
+인터페이스와의 관계를 서브넷/이름 매칭으로 자동 연결한다.
+
+#### 4.3.1 BGP 노드
+
 ```
-Service: VPRN 3093
-VPRN Service Name: vpn-service
-VPRN Desc: VPN Customer A
-VRF: target:65000:3093
-Customer: 1
-
-[BGP 박스]
-AS: 65000
-RD: 65000:3093
-Router-id: 10.255.0.1
-Neighbor
-- 10.0.0.2 (AS 65001)
-
-[OSPF 박스]
-Area 0.0.0.0
-- int: TO-CE-Router
+BGP:
+  - Router‑ID: 192.168.25.1
+  - Split‑Horizon: On
+  - GROUP: group-name
+    - Peer: 10.0.0.1
+    - Peer‑AS: 65001
 ```
 
-### 4.4 QoS 표시
+**매칭 규칙**: BGP Peer IP → 인터페이스의 `ipAddress` 서브넷에 포함 여부 (`isIpInSubnet`)
+- 하나의 BGP 노드에 모든 BGP 정보 통합
+- Router-ID, Split-Horizon, Group/Peer 정보 표시
 
-- 인터페이스→서비스 연결선에 QoS 라벨 표시
-- `ingressQosId` / `egressQosId` 값이 있으면 표시
-- 없으면 QoS 라벨 없이 직접 연결 (`-->`)
+#### 4.3.2 OSPF 노드
+
+```
+OSPF:
+  - AREA: 0.0.0.0
+    - Interface:
+      - p3/2/23: point-to-point
+      - system_vrf
+```
+
+**매칭 규칙**: OSPF Area의 interface name → L3Interface의 `interfaceName` 직접 비교
+- 하나의 OSPF 노드에 모든 OSPF Area/Interface 정보 통합
+
+#### 4.3.3 STATIC 노드 (Next-Hop별 분리)
+
+```
+STATIC:
+Next‑Hop: 192.168.100.1
+  - 10.1.0.0/24
+  - 10.2.0.0/24
+```
+
+**매칭 규칙**: Static Route의 Next-Hop → 인터페이스의 `ipAddress` 서브넷에 포함 여부 (`isIpInSubnet`)
+- **Next-Hop별로 별도 노드 생성** (같은 Next-Hop의 route는 하나의 노드에 그룹화)
+- 각 STATIC 노드는 매칭된 인터페이스에 연결
+
+### 4.4 연결선 규칙
+
+1. 인터페이스가 BGP/OSPF/STATIC 중 **하나 이상에 매칭** → 매칭된 라우팅 노드에만 연결
+2. **어떤 라우팅에도 매칭되지 않는 인터페이스** → 서비스 노드에 직접 연결 (`-->`)
+3. **라우팅 노드 → 서비스 노드** 연결 (`-->`)
+4. 모든 연결선은 plain arrow (`-->`)
+
+### 4.5 서비스 노드
+
+```
+Service: service-name
+VPRN: 3093
+VPRN Desc: description
+ECMP: 16
+AS NO: 65030
+RD: 65030:103001
+VRF‑TARGET: target:65030:103001
+```
+
+**규칙:**
+- Service Name이 있으면 첫 줄에 표시, 없으면 생략
+- **ECMP**: `ecmp N` 값 표시
+- **AS NO**: autonomous-system 번호
+- **RD**: route-distinguisher
+- **VRF-TARGET**: vrf-target 값
+- **BGP/OSPF/STATIC 정보는 서비스 노드에 포함하지 않음** (라우팅 중간 노드로 분리)
+- 값이 있는 필드만 표시
+
+### 4.6 스타일
+
+| classDef | 용도 | 스타일 |
+|---|---|---|
+| `default` | 호스트 노드 | 흰색 배경, 검정 테두리 |
+| `service` | 서비스 노드 | 연한 파란색 배경 (`#e3f2fd`), 파란 테두리 (`#1976d2`) |
+| `routing` | 라우팅 노드 | 연한 보라색 배경 (`#f3e5f5`), 보라 테두리 (`#7b1fa2`) |
+
+### 4.7 QoS 표시
+
+- QoS는 **SAP 하위 항목**으로 호스트 노드 안에 표시한다 (연결선 라벨이 아님)
+- `L3Interface`의 `ingressQosRate`/`egressQosRate`를 KMG 변환하여 표시
+- rate 파싱 실패 시 policy ID만 표시 (fallback)
+- QoS 정보가 없으면 생략
 
 ---
 
