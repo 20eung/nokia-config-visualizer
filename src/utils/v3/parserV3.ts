@@ -633,7 +633,8 @@ export function parseL2VPNServices(configText: string): NokiaServiceV3[] {
         // Identify service start
         // 7750 SR: epipe 1026 name "..." customer 1 create
         // 7210 SAS: epipe 1543 customer 1 svc-sap-type any create
-        const match = trimmed.match(/^(epipe|vpls|vprn)\s+(\d+)(?:\s+name\s+"([^"]+)")?\s+customer\s+(\d+).*\s+create/i);
+        // IES: ies 10 customer 1 create
+        const match = trimmed.match(/^(epipe|vpls|vprn|ies)\s+(\d+)(?:\s+name\s+"([^"]+)")?\s+customer\s+(\d+).*\s+create/i);
         if (match) {
             const type = match[1].toLowerCase();
             const serviceId = parseInt(match[2]);
@@ -756,6 +757,54 @@ export function parseL2VPNServices(configText: string): NokiaServiceV3[] {
                     };
                 } else {
                     services.push(newService);
+                }
+            } else if (type === 'ies') {
+                // IES has same structure as VPRN (interfaces, staticRoutes, bgp, ospf)
+                // Parse using VPRN parser, then convert to IESService
+                const vprnLike = parseVPRN(serviceId, customerId, content, name);
+                const iesService: IESService = {
+                    serviceType: 'ies',
+                    serviceId: vprnLike.serviceId,
+                    serviceName: vprnLike.serviceName,
+                    customerId: vprnLike.customerId,
+                    description: vprnLike.description,
+                    adminState: vprnLike.adminState,
+                    interfaces: vprnLike.interfaces,
+                    staticRoutes: vprnLike.staticRoutes,
+                    bgpNeighbors: vprnLike.bgpNeighbors
+                };
+
+                const existingIndex = services.findIndex(s => s.serviceId === serviceId && s.serviceType === 'ies');
+                if (existingIndex !== -1) {
+                    const existing = services[existingIndex] as IESService;
+                    // Merge interfaces by name
+                    const mergedInterfaces = [...existing.interfaces];
+                    iesService.interfaces.forEach(newIf => {
+                        const idx = mergedInterfaces.findIndex(iface => iface.interfaceName === newIf.interfaceName);
+                        if (idx !== -1) {
+                            mergedInterfaces[idx] = {
+                                ...mergedInterfaces[idx],
+                                ...newIf,
+                                ipAddress: mergedInterfaces[idx].ipAddress || newIf.ipAddress,
+                                portId: mergedInterfaces[idx].portId || newIf.portId,
+                                vrrpGroupId: mergedInterfaces[idx].vrrpGroupId || newIf.vrrpGroupId
+                            };
+                        } else {
+                            mergedInterfaces.push(newIf);
+                        }
+                    });
+
+                    services[existingIndex] = {
+                        ...existing,
+                        ...iesService,
+                        serviceName: existing.serviceName || iesService.serviceName,
+                        description: existing.description || iesService.description,
+                        interfaces: mergedInterfaces,
+                        bgpNeighbors: [...new Set([...existing.bgpNeighbors, ...iesService.bgpNeighbors])],
+                        staticRoutes: [...new Set([...existing.staticRoutes, ...iesService.staticRoutes])]
+                    };
+                } else {
+                    services.push(iesService);
                 }
             }
         }
@@ -888,7 +937,7 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
     // so we want them merged into Base Router (IES 0) or we need to update L2VPN parser.
     // For now, let's treat explicit IES services as part of Base Router.
     const serviceRanges: { start: number; end: number }[] = [];
-    const serviceStartRegex = /^\s*(epipe|vpls|vprn)\s+\d+(?:\s+name\s+"[^"]+")?\s+customer\s+\d+.*create/i;
+    const serviceStartRegex = /^\s*(epipe|vpls|vprn|ies)\s+\d+(?:\s+name\s+"[^"]+")?\s+customer\s+\d+.*create/i;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -918,8 +967,9 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
         }
     }
 
-    // Pass 2: Find Interfaces NOT in Service Ranges
+    // Pass 2: Find Interfaces NOT in Service Ranges (Base Router only)
     const interfacePattern = /^\s*interface\s+"([^"]+)"(?:\s+create)?/;
+    const parsedInterfaceNames = new Set<string>(); // 중복 방지
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -931,6 +981,12 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
 
             if (!isInsideService) {
                 const ifName = match[1];
+
+                // 중복 체크: 이미 파싱된 인터페이스는 건너뛰기
+                if (parsedInterfaceNames.has(ifName)) {
+                    continue;
+                }
+                parsedInterfaceNames.add(ifName);
                 const startIndent = line.length - line.trimStart().length;
 
                 // Parse Block
@@ -991,26 +1047,25 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
                     if (genericQos) inQos = genericQos[1];
                 }
 
-                // Valid interface check (must have IP or Port to be useful)
-                if (ipMatch || portMatch) {
-                    const pId = portMatch?.[1];
-                    let pDesc = undefined;
+                // V1 호환: 모든 인터페이스 수집 (IP/Port 정보가 없어도 포함)
+                // 이렇게 해야 LAG 멤버, 설정 중인 인터페이스 등도 표시됨
+                const pId = portMatch?.[1];
+                let pDesc = undefined;
 
-                    if (pId && portDescriptions.has(pId)) {
-                        pDesc = portDescriptions.get(pId);
-                    }
-
-                    baseInterfaces.push({
-                        interfaceName: ifName,
-                        ipAddress: ipMatch?.[1],
-                        portId: pId,
-                        description: descMatch ? descMatch[1] : undefined,
-                        portDescription: pDesc,
-                        ingressQosId: inQos,
-                        egressQosId: outQos,
-                        adminState: 'up'
-                    });
+                if (pId && portDescriptions.has(pId)) {
+                    pDesc = portDescriptions.get(pId);
                 }
+
+                baseInterfaces.push({
+                    interfaceName: ifName,
+                    ipAddress: ipMatch?.[1],
+                    portId: pId,
+                    description: descMatch ? descMatch[1] : undefined,
+                    portDescription: pDesc,
+                    ingressQosId: inQos,
+                    egressQosId: outQos,
+                    adminState: 'up'
+                });
 
                 i = blockEnd; // Skip block
             }
@@ -1019,15 +1074,47 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
 
     // Static Routes (Global)
     const staticRoutes: StaticRoute[] = [];
+
+    // 1. One-line format: static-route <prefix> next-hop <ip>
     const srRegex = /^\s*static-route\s+([\d.\/]+)\s+next-hop\s+([\d.]+)/gm;
     let srMatch;
     while ((srMatch = srRegex.exec(configText)) !== null) {
         staticRoutes.push({ prefix: srMatch[1], nextHop: srMatch[2] });
     }
 
-    // static-route-entry block support (Global)
-    // Reuse parseVPRN logic or extract global blocks
-    // For now, simpler regex support for v1 parity.
+    // 2. Block format: static-route-entry <prefix> ... next-hop <ip> ... exit
+    // Parse directly from configText (works for both router management and router Base)
+    const allLines = configText.split('\n');
+    let currentPrefix: string | null = null;
+    let entryIndent = -1;
+
+    for (const line of allLines) {
+        // static-route-entry start
+        const entryMatch = line.match(/static-route-entry\s+([\d.\/]+)/);
+        if (entryMatch) {
+            currentPrefix = entryMatch[1];
+            entryIndent = line.search(/\S/); // Count leading spaces
+            continue;
+        }
+
+        if (currentPrefix) {
+            // Check if block ended (exit at same indent)
+            const trimLine = line.trim();
+            const currentIndent = line.search(/\S/);
+
+            if (trimLine === 'exit' && currentIndent === entryIndent) {
+                currentPrefix = null;
+                continue;
+            }
+
+            // Look for next-hop
+            const nhMatch = trimLine.match(/next-hop\s+([\d.]+)/);
+            if (nhMatch) {
+                staticRoutes.push({ prefix: currentPrefix, nextHop: nhMatch[1] });
+                // Note: Do NOT reset currentPrefix here, as there might be multiple next-hops
+            }
+        }
+    }
 
     if (baseInterfaces.length > 0 || staticRoutes.length > 0) {
         const iesService: IESService = {

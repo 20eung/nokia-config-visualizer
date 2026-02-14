@@ -220,7 +220,7 @@ function buildNodeLabel(device: NokiaDevice, intf: NokiaInterface): string {
 }
 
 // Generate Combined HA Diagram
-function generateCombinedHaDiagram(group: DiagramGroup, _topology: NetworkTopology): string {
+export function generateCombinedHaDiagram(group: DiagramGroup, _topology: NetworkTopology): string {
   const mermaid = ['graph LR'];
 
   // Local Subgraph
@@ -280,7 +280,7 @@ function generateCombinedHaDiagram(group: DiagramGroup, _topology: NetworkTopolo
 }
 
 // Generate Single Interface Diagram (Original Beta Format)
-function generateSingleInterfaceDiagram(device: NokiaDevice, intf: NokiaInterface, _topology: NetworkTopology): string {
+export function generateSingleInterfaceDiagram(device: NokiaDevice, intf: NokiaInterface, _topology: NetworkTopology): string {
   const mermaid: string[] = ['graph LR'];
   const { peerIp, relatedRoutes } = findPeerAndRoutes(device, intf);
 

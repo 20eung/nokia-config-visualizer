@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { parseL2VPNConfig } from '../utils/v3/parserV3';
-import { generateServiceDiagram, generateIESDiagram } from '../utils/v3/mermaidGeneratorV3';
+import { generateServiceDiagram } from '../utils/v3/mermaidGeneratorV3';
 import type { ParsedConfigV3 } from '../utils/v3/parserV3';
-import type { NokiaService, IESService } from '../types/v2';
+import type { NokiaService, IESService, VPRNService } from '../types/v2';
 import { ServiceListV3 } from '../components/v3/ServiceListV3';
 import { ServiceDiagram } from '../components/v2/ServiceDiagram'; // Reuse for now or duplicate if needed
 import { FileUpload } from '../components/FileUpload';
 import { Menu } from 'lucide-react';
+import { convertIESToV1Format, generateCrossDeviceIESDiagrams } from '../utils/v1IESAdapter';
+import { convertVPRNToV1Format, generateVPRNDiagramV1Style } from '../utils/v1VPRNAdapter';
 import './V2Page.css';
 
 export function V3Page() {
@@ -127,6 +129,34 @@ export function V3Page() {
             return [];
         }
 
+        if (s.serviceType === 'vprn') {
+            const hostname = (s as any)._hostname;
+            const serviceId = s.serviceId;
+
+            // Full service selection
+            if (selectedServiceIds.includes(`vprn-${serviceId}`)) {
+                return [s];
+            }
+
+            // Individual interface selection
+            const prefix = `vprn___${serviceId}___${hostname}___`;
+            const selectedInterfaceKeys = selectedServiceIds.filter(id => id.startsWith(prefix));
+
+            if (selectedInterfaceKeys.length > 0) {
+                const selectedInterfaceNames = new Set(
+                    selectedInterfaceKeys.map(key => key.replace(prefix, ''))
+                );
+
+                const vprnService = s as VPRNService & { _hostname: string };
+                const filteredService = {
+                    ...vprnService,
+                    interfaces: vprnService.interfaces.filter((intf: any) => selectedInterfaceNames.has(intf.interfaceName))
+                };
+                return [filteredService];
+            }
+            return [];
+        }
+
         if (selectedServiceIds.includes(`${s.serviceType}-${s.serviceId}`)) {
             return [s];
         }
@@ -155,7 +185,103 @@ export function V3Page() {
         return acc;
     }, {} as Record<string, typeof selectedServices>);
 
-    const diagrams = Object.values(serviceGroups).map(group => {
+    type DiagramItem = {
+        service: NokiaService & { _hostname: string };
+        diagram: string;
+        hostname: string;
+        diagramName?: string;
+        description?: string;
+    };
+
+    // ==================================================
+    // Cross-Device IES 다이어그램 생성
+    // IES는 호스트별로 분리되어 있으므로, 모든 IES 그룹을 통합하여
+    // 크로스 디바이스 HA 페어를 감지합니다.
+    // ==================================================
+    const iesGroupEntries = Object.entries(serviceGroups).filter(
+        ([, group]) => group[0].serviceType === 'ies'
+    );
+    const nonIesGroupEntries = Object.entries(serviceGroups).filter(
+        ([, group]) => group[0].serviceType !== 'ies'
+    );
+
+    const iesDiagrams: DiagramItem[] = (() => {
+        if (iesGroupEntries.length === 0) return [];
+
+        // 각 IES 호스트별로 V1 디바이스 변환 + 선택된 인터페이스 수집
+        const deviceEntries: Array<{
+            v1Device: import('../types').NokiaDevice;
+            selectedInterfaceNames: string[];
+            hostname: string;
+            representativeService: NokiaService & { _hostname: string };
+        }> = [];
+
+        iesGroupEntries.forEach(([, group]) => {
+            const iesService = group[0] as IESService & { _hostname: string };
+            const hostname = iesService._hostname || 'Unknown';
+
+            // 동일 config 내 모든 IES 서비스의 Static Routes 수집
+            const parentConfig = configs.find(c => c.hostname === hostname);
+            const aggregatedStaticRoutes: Array<{ prefix: string; nextHop: string }> = [];
+
+            if (parentConfig) {
+                parentConfig.services.forEach(service => {
+                    if (service.serviceType === 'ies') {
+                        const ies = service as IESService;
+                        if (ies.staticRoutes) {
+                            ies.staticRoutes.forEach(route => {
+                                aggregatedStaticRoutes.push({
+                                    prefix: route.prefix,
+                                    nextHop: route.nextHop
+                                });
+                            });
+                        }
+                    }
+                });
+            }
+
+            console.log(`📊 [V3Page] IES for ${hostname}: Aggregated ${aggregatedStaticRoutes.length} static routes from all IES services`);
+
+            const v1Device = convertIESToV1Format(iesService, hostname, aggregatedStaticRoutes);
+
+            // 선택된 인터페이스 파싱
+            const fullHostKey = `ies-${hostname}`;
+            const selectedInterfaceNames = selectedServiceIds.includes(fullHostKey)
+                ? iesService.interfaces.map(i => i.interfaceName)
+                : selectedServiceIds
+                    .filter(id => id.startsWith(`ies___${hostname}___`))
+                    .map(id => id.replace(`ies___${hostname}___`, ''));
+
+            if (selectedInterfaceNames.length > 0) {
+                deviceEntries.push({
+                    v1Device,
+                    selectedInterfaceNames,
+                    hostname,
+                    representativeService: iesService
+                });
+            }
+        });
+
+        if (deviceEntries.length === 0) return [];
+
+        // 크로스 디바이스 HA 다이어그램 생성
+        const crossDeviceDiagrams = generateCrossDeviceIESDiagrams(
+            deviceEntries.map(e => ({ v1Device: e.v1Device, selectedInterfaceNames: e.selectedInterfaceNames }))
+        );
+
+        // 대표 서비스를 첫 번째 entry에서 가져옴
+        const representativeService = deviceEntries[0].representativeService;
+
+        return crossDeviceDiagrams.map(d => ({
+            service: representativeService as NokiaService & { _hostname: string },
+            diagram: d.code,
+            hostname: deviceEntries.map(e => e.hostname).join(' + '),
+            diagramName: d.name,
+            description: d.description
+        }));
+    })();
+
+    const nonIesDiagrams: DiagramItem[] = nonIesGroupEntries.flatMap<DiagramItem>(([, group]) => {
         const servicesWithContext = group.map(service => {
             const hostname = (service as any)._hostname || 'Unknown';
             const parentConfig = configs.find(c => c.hostname === hostname);
@@ -168,19 +294,60 @@ export function V3Page() {
 
         const representativeService = servicesWithContext[0].service;
 
-        if (representativeService.serviceType === 'ies') {
-            return {
+        if (representativeService.serviceType === 'vprn') {
+            const vprnService = servicesWithContext[0].service as VPRNService;
+            const hostname = servicesWithContext[0].hostname;
+
+            // 동일 config 내 모든 IES + VPRN 서비스의 Static Routes 수집
+            const parentConfig = configs.find(c => c.hostname === hostname);
+            const aggregatedStaticRoutes: Array<{ prefix: string; nextHop: string }> = [];
+
+            if (parentConfig) {
+                parentConfig.services.forEach(service => {
+                    if (service.serviceType === 'ies' || service.serviceType === 'vprn') {
+                        const l3Service = service as IESService | VPRNService;
+                        if (l3Service.staticRoutes) {
+                            l3Service.staticRoutes.forEach(route => {
+                                aggregatedStaticRoutes.push({
+                                    prefix: route.prefix,
+                                    nextHop: route.nextHop
+                                });
+                            });
+                        }
+                    }
+                });
+            }
+
+            console.log(`📊 [V3Page] VPRN ${vprnService.serviceId} for ${hostname}: Aggregated ${aggregatedStaticRoutes.length} static routes from all IES/VPRN services`);
+
+            // V3 → V1 변환 (aggregated routes 포함)
+            const v1Device = convertVPRNToV1Format(vprnService, hostname, aggregatedStaticRoutes);
+
+            // 선택된 인터페이스 파싱
+            // 전체 서비스: "vprn-${serviceId}"
+            // 개별 인터페이스: "vprn___${serviceId}___${hostname}___${interfaceName}"
+            const fullServiceKey = `vprn-${vprnService.serviceId}`;
+            const selectedInterfaceNames = selectedServiceIds.includes(fullServiceKey)
+                ? vprnService.interfaces.map(i => i.interfaceName)
+                : selectedServiceIds
+                    .filter(id => id.startsWith(`vprn___${vprnService.serviceId}___${hostname}___`))
+                    .map(id => id.replace(`vprn___${vprnService.serviceId}___${hostname}___`, ''));
+
+            // V1 스타일 다이어그램 생성 (HA 감지 포함)
+            const diagrams = generateVPRNDiagramV1Style(v1Device, selectedInterfaceNames);
+
+            // 각 다이어그램을 개별 항목으로 반환
+            return diagrams.map(d => ({
                 service: representativeService,
-                diagram: generateIESDiagram(
-                    servicesWithContext.map(s => s.service),
-                    servicesWithContext.map(s => s.hostname)
-                ),
-                hostname: servicesWithContext[0].hostname
-            };
+                diagram: d.code,
+                hostname: hostname,
+                diagramName: d.name,
+                description: d.description
+            }));
         }
 
         if (servicesWithContext.length === 1) {
-            return {
+            return [{
                 service: representativeService,
                 diagram: generateServiceDiagram(
                     representativeService,
@@ -188,11 +355,13 @@ export function V3Page() {
                     servicesWithContext[0].sdps,
                     remoteDeviceMap
                 ),
-                hostname: servicesWithContext[0].hostname
-            };
+                hostname: servicesWithContext[0].hostname,
+                diagramName: undefined,
+                description: undefined
+            }];
         } else {
             if (representativeService.serviceType === 'epipe') {
-                return {
+                return [{
                     service: representativeService,
                     diagram: generateServiceDiagram(
                         servicesWithContext.map(s => s.service),
@@ -200,10 +369,12 @@ export function V3Page() {
                         servicesWithContext[0].sdps,
                         remoteDeviceMap
                     ),
-                    hostname: servicesWithContext.map(s => s.hostname).join(' + ')
-                };
+                    hostname: servicesWithContext.map(s => s.hostname).join(' + '),
+                    diagramName: undefined,
+                    description: undefined
+                }];
             } else {
-                return {
+                return [{
                     service: representativeService,
                     diagram: generateServiceDiagram(
                         servicesWithContext.map(s => s.service),
@@ -211,11 +382,15 @@ export function V3Page() {
                         servicesWithContext[0].sdps,
                         remoteDeviceMap
                     ),
-                    hostname: servicesWithContext.map(s => s.hostname).join(' + ')
-                };
+                    hostname: servicesWithContext.map(s => s.hostname).join(' + '),
+                    diagramName: undefined,
+                    description: undefined
+                }];
             }
         }
     });
+
+    const diagrams: DiagramItem[] = [...iesDiagrams, ...nonIesDiagrams];
 
     return (
         <div className="v2-page">
@@ -283,9 +458,9 @@ export function V3Page() {
                                                     </div>
                                                 )}
                                                 <div className="group-items">
-                                                    {group.map(({ service, diagram, hostname }) => (
+                                                    {group.map(({ service, diagram, hostname }, idx) => (
                                                         <ServiceDiagram
-                                                            key={`${hostname}-${service.serviceId}`}
+                                                            key={`${hostname}-${service.serviceId}-${idx}`}
                                                             service={service as any}
                                                             diagram={diagram}
                                                             hostname={hostname}

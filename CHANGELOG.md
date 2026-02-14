@@ -6,6 +6,39 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [3.1.0] - 2026-02-14
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **크로스 디바이스 IES HA 다이어그램**: 여러 장비(BB3, BB4 등)의 IES 인터페이스를 통합하여 이중화(HA) 다이어그램을 자동 생성합니다.
+  - 기존: 장비별로 독립 처리하여 HA 페어를 감지할 수 없었음
+  - 변경: 모든 장비의 IES 인터페이스를 통합 처리하여 공통 Static Route 기반 HA 페어 감지
+- **VPRN V1 스타일 다이어그램**: VPRN 서비스에 V1 검증 로직(HA 감지, QoS 표시)을 적용한 다이어그램 생성
+- **IES 서비스 파싱 고도화**: `ies N customer M create` 블록을 독립 서비스로 파싱 (기존 Base Router만 지원)
+
+### ✨ 새로운 기능 (New Features)
+- **V1 IES Adapter** (`v1IESAdapter.ts`): V3 IES 데이터를 V1 형식으로 변환하여 검증된 V1 다이어그램 생성 로직 재사용
+  - `convertIESToV1Format()`: IES → NokiaDevice 변환
+  - `generateCrossDeviceIESDiagrams()`: 크로스 디바이스 HA 통합 다이어그램 생성
+- **V1 VPRN Adapter** (`v1VPRNAdapter.ts`): V3 VPRN 데이터를 V1 형식으로 변환
+  - `convertVPRNToV1Format()`: VPRN → NokiaDevice 변환
+  - `generateVPRNDiagramV1Style()`: V1 스타일 VPRN 다이어그램 생성
+- **HA Filter 고도화** (`ServiceListV3.tsx`):
+  - IES/VPRN 인터페이스 개별 선택 지원 (`ies___hostname___interfaceName`, `vprn___serviceId___hostname___interfaceName`)
+  - Static Route 기반 크로스 디바이스 HA 페어 자동 감지 (79개 후보 → 33개 인터페이스 선택)
+  - Aggregated Static Routes를 HA Filter에서도 사용하여 정확한 relatedRoutes 계산
+- **Static Route Block 파싱** (`parserV3.ts`): `static-route-entry` 블록 형식 파싱 지원 (기존 한줄 형식만 지원)
+- **VPRN 개별 인터페이스 선택**: VPRN 서비스 내 인터페이스를 개별적으로 선택/해제 가능 (아코디언 UI)
+
+### 🐛 버그 수정 (Bug Fixes)
+- **HA Filter에 Aggregated Routes 전달**: `convertIESToV1Format` 호출 시 동일 config의 모든 IES Static Routes를 통합하여 전달
+- **React 중복 Key 경고 수정**: IES 다이어그램 그룹 및 인터페이스 목록에서 발생하던 중복 key 문제 해결
+- **mermaidGeneratorV3.ts 중복 코드 제거**: IES 다이어그램 생성 로직을 V1 Adapter로 이관하여 코드 중복 해소
+
+### 🔧 기술적 변경 (Technical Changes)
+- `mermaidGenerator.ts`: `generateCombinedHaDiagram`, `generateSingleInterfaceDiagram` 함수를 export로 변경
+- `Dockerfile`: Node.js 18 → 22 업그레이드
+- `V3Page.tsx`: IES 다이어그램 생성을 per-hostname에서 cross-device 방식으로 리팩토링
+
 ## [2.0.0] - 2026-01-13
 
 ### 🚀 주요 변경 사항 (Major Changes)

@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import type { ParsedConfigV3, NokiaServiceV3 } from '../../utils/v3/parserV3';
-import type { IESService, L3Interface } from '../../types/v2';
+import type { IESService, VPRNService, L3Interface } from '../../types/v2';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { findPeerAndRoutes } from '../../utils/mermaidGenerator';
+import { convertIESToV1Format } from '../../utils/v1IESAdapter';
+import { convertVPRNToV1Format } from '../../utils/v1VPRNAdapter';
 import '../v2/ServiceList.css';
 
 interface ServiceListProps {
@@ -14,7 +17,7 @@ interface ServiceListProps {
 
 export function ServiceListV3({
     services,
-    configs: _configs,
+    configs,
     selectedServiceIds,
     onToggleService,
     onSetSelected,
@@ -165,6 +168,13 @@ export function ServiceListV3({
     const vprnServices = Object.values(groupedServices).filter(group => group[0].serviceType === 'vprn');
     const iesServices = Object.values(groupedServices).filter(group => group[0].serviceType === 'ies');
 
+    // IES Interface Count (호스트별 그룹이므로 interface 개수를 따로 계산)
+    const iesInterfaceCount = iesServices.reduce((acc, group) => {
+        return acc + group.reduce((sum, service) => {
+            return sum + ((service as IESService).interfaces?.length || 0);
+        }, 0);
+    }, 0);
+
     const handleSelectAll = () => {
         onSetSelected(filteredServices.map(s => {
             if (s.serviceType === 'ies') {
@@ -179,6 +189,175 @@ export function ServiceListV3({
         onSetSelected([]);
     };
 
+    const handleHAFilter = () => {
+        const haServiceIds: string[] = [];
+
+        console.log(`🔍 [HA Filter] Starting HA detection (v1 algorithm), configs:`, configs.length);
+
+        // ==================================================
+        // Step 1: Collect all static routes from all configs
+        // ==================================================
+        interface RouteInfo {
+            prefix: string;
+            nextHop: string;
+            hostname: string;
+            serviceType: 'ies' | 'vprn';
+            serviceId?: number;
+        }
+
+        const allRoutes: RouteInfo[] = [];
+
+        configs.forEach(config => {
+            config.services.forEach(service => {
+                if (service.serviceType === 'ies') {
+                    const iesService = service as IESService;
+                    iesService.staticRoutes?.forEach(route => {
+                        allRoutes.push({
+                            prefix: route.prefix,
+                            nextHop: route.nextHop,
+                            hostname: config.hostname,
+                            serviceType: 'ies'
+                        });
+                    });
+                } else if (service.serviceType === 'vprn') {
+                    const vprnService = service as VPRNService;
+                    vprnService.staticRoutes?.forEach(route => {
+                        allRoutes.push({
+                            prefix: route.prefix,
+                            nextHop: route.nextHop,
+                            hostname: config.hostname,
+                            serviceType: 'vprn',
+                            serviceId: vprnService.serviceId
+                        });
+                    });
+                }
+            });
+        });
+
+        console.log(`📊 [HA Filter] Total static routes collected: ${allRoutes.length}`);
+
+        // ==================================================
+        // Step 2: Group routes by prefix and find HA pairs
+        // (같은 prefix에 2개의 서로 다른 next-hop)
+        // ==================================================
+        const nextHopGroups: Record<string, Set<string>> = {};
+
+        allRoutes.forEach(route => {
+            if (!nextHopGroups[route.prefix]) {
+                nextHopGroups[route.prefix] = new Set();
+            }
+            nextHopGroups[route.prefix].add(route.nextHop);
+        });
+
+        console.log(`📊 [HA Filter] Total unique prefixes: ${Object.keys(nextHopGroups).length}`);
+
+        // Detect HA pairs: prefix with exactly 2 different next-hops
+        interface HAPairCandidate {
+            prefix: string;
+            nextHop1: string;
+            nextHop2: string;
+        }
+
+        const haPairs: HAPairCandidate[] = [];
+
+        for (const [prefix, hops] of Object.entries(nextHopGroups)) {
+            if (hops.size === 2) {
+                const [hop1, hop2] = Array.from(hops).sort();
+                haPairs.push({ prefix, nextHop1: hop1, nextHop2: hop2 });
+                console.log(`✅ [HA Filter] HA Pair candidate: ${prefix} → ${hop1} & ${hop2}`);
+            }
+        }
+
+        console.log(`🎯 [HA Filter] Total HA pair candidates: ${haPairs.length}`);
+
+        // ==================================================
+        // Step 3: Collect HA next-hop IPs (v1 style)
+        // ==================================================
+        const haIps = new Set<string>();
+        haPairs.forEach(pair => {
+            haIps.add(pair.nextHop1);
+            haIps.add(pair.nextHop2);
+        });
+
+        console.log('🔍 [HA Filter] HA IPs from pairs:', Array.from(haIps).slice(0, 10), '...');
+
+        // ==================================================
+        // Step 4: Find interfaces whose peerIp matches HA next-hops (v1 style)
+        // ==================================================
+        let totalInterfaces = 0;
+        configs.forEach(config => {
+            config.services.forEach(service => {
+                if (service.serviceType === 'ies') {
+                    const iesService = service as IESService;
+
+                    // 동일 config 내 모든 IES 서비스의 Static Routes 수집
+                    const aggregatedStaticRoutes: Array<{ prefix: string; nextHop: string }> = [];
+                    config.services.forEach(svc => {
+                        if (svc.serviceType === 'ies') {
+                            const ies = svc as IESService;
+                            ies.staticRoutes?.forEach(route => {
+                                aggregatedStaticRoutes.push({ prefix: route.prefix, nextHop: route.nextHop });
+                            });
+                        }
+                    });
+
+                    const v1Device = convertIESToV1Format(iesService, config.hostname, aggregatedStaticRoutes);
+
+                    console.log(`🔍 [HA Filter] Processing IES: ${config.hostname}, Interfaces: ${v1Device.interfaces.length}, Static Routes: ${v1Device.staticRoutes.length}`);
+
+                    v1Device.interfaces.forEach((intf, idx) => {
+                        totalInterfaces++;
+                        const { peerIp, relatedRoutes } = findPeerAndRoutes(v1Device, intf);
+                        const intfIp = intf.ipAddress?.split('/')[0] || '';
+
+                        if (idx < 3) { // Log first 3 interfaces for debugging
+                            console.log(`  🔍 Interface ${intf.name}: IP=${intfIp}, Peer=${peerIp}, Routes=${relatedRoutes.length}`);
+                        }
+
+                        // Check if either the peer IP or the interface's own IP is in HA pairs
+                        if (haIps.has(peerIp) || haIps.has(intfIp)) {
+                            const serviceId = `ies___${config.hostname}___${intf.name}`;
+                            if (!haServiceIds.includes(serviceId)) {
+                                haServiceIds.push(serviceId);
+                                console.log(`✅ [HA Filter] IES Selected: ${config.hostname}:${intf.name} (IP: ${intfIp}, Peer: ${peerIp})`);
+                            }
+                        }
+                    });
+                } else if (service.serviceType === 'vprn') {
+                    const vprnService = service as VPRNService;
+                    const v1Device = convertVPRNToV1Format(vprnService, config.hostname);
+
+                    console.log(`🔍 [HA Filter] Processing VPRN ${vprnService.serviceId}: ${config.hostname}, Interfaces: ${v1Device.interfaces.length}, Static Routes: ${v1Device.staticRoutes.length}`);
+
+                    v1Device.interfaces.forEach((intf, idx) => {
+                        totalInterfaces++;
+                        const { peerIp, relatedRoutes } = findPeerAndRoutes(v1Device, intf);
+                        const intfIp = intf.ipAddress?.split('/')[0] || '';
+
+                        if (idx < 3) {
+                            console.log(`  🔍 Interface ${intf.name}: IP=${intfIp}, Peer=${peerIp}, Routes=${relatedRoutes.length}`);
+                        }
+
+                        if (haIps.has(peerIp) || haIps.has(intfIp)) {
+                            const serviceId = `vprn___${vprnService.serviceId}___${config.hostname}___${intf.name}`;
+                            if (!haServiceIds.includes(serviceId)) {
+                                haServiceIds.push(serviceId);
+                                console.log(`✅ [HA Filter] VPRN Selected: ${config.hostname}:${intf.name} (service ${vprnService.serviceId}, IP: ${intfIp}, Peer: ${peerIp})`);
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        console.log(`📊 [HA Filter] Total interfaces processed: ${totalInterfaces}`);
+
+        // 중복 제거 및 선택
+        const uniqueIds = Array.from(new Set(haServiceIds));
+        console.log(`🎯 [HA Filter v3] Total HA interfaces selected: ${uniqueIds.length}`);
+        onSetSelected(uniqueIds);
+    };
+
     // 그룹 접기/펼침 상태 (기본값: 모두 펼침)
     const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({
         epipe: true,
@@ -188,6 +367,7 @@ export function ServiceListV3({
     });
 
     const [expandedIESHosts, setExpandedIESHosts] = useState<{ [key: string]: boolean }>({});
+    const [expandedVPRNServices, setExpandedVPRNServices] = useState<{ [key: string]: boolean }>({});
 
     const toggleGroup = (group: string) => {
         setExpandedGroups(prev => ({
@@ -258,10 +438,15 @@ export function ServiceListV3({
             {/* 선택 버튼 */}
             <div className="service-actions">
                 <button onClick={handleSelectAll} className="action-btn">
-                    Select All
+                    All
                 </button>
-                <button onClick={handleSelectNone} className="action-btn">
-                    Select None
+                <span style={{ margin: '0 4px', color: '#ccc' }}>|</span>
+                <button onClick={handleHAFilter} className="action-btn" style={{ fontWeight: 'bold', color: '#0066cc' }}>
+                    이중화
+                </button>
+                <span style={{ margin: '0 4px', color: '#ccc' }}>|</span>
+                <button onClick={handleSelectNone} className="action-btn" style={{ color: '#666' }}>
+                    None
                 </button>
             </div>
 
@@ -427,44 +612,154 @@ export function ServiceListV3({
                         {expandedGroups['vprn'] && (
                             <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
                                 {vprnServices.map(serviceGroup => {
-                                    const representative = serviceGroup[0];
+                                    const representative = serviceGroup[0] as VPRNService;
+                                    const hostname = (representative as any)._hostname || 'Unknown';
+                                    const serviceId = representative.serviceId;
+                                    const serviceKey = `vprn-${serviceId}-${hostname}`;
+
+                                    // Collect all interfaces from this service group
+                                    const allInterfaces: (L3Interface & { _parentService: VPRNService })[] = [];
+                                    serviceGroup.forEach(s => {
+                                        if ((s as VPRNService).interfaces) {
+                                            (s as VPRNService).interfaces.forEach(i => allInterfaces.push({ ...i, _parentService: s as VPRNService }));
+                                        }
+                                    });
+
+                                    const isServiceExpanded = expandedVPRNServices[serviceKey];
+
+                                    // Calculate Selection State
+                                    const fullServiceKey = `vprn-${serviceId}`;
+                                    const isFullServiceSelected = selectedServiceIds.includes(fullServiceKey);
+                                    const selectedCount = allInterfaces.filter(intf =>
+                                        isFullServiceSelected || selectedServiceIds.includes(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`)
+                                    ).length;
+                                    const isAllSelected = allInterfaces.length > 0 && selectedCount === allInterfaces.length;
+                                    const isPartialSelected = selectedCount > 0 && selectedCount < allInterfaces.length;
+
+                                    // Handlers
+                                    const toggleServiceAccordion = (e: React.MouseEvent) => {
+                                        e.stopPropagation();
+                                        setExpandedVPRNServices(prev => ({ ...prev, [serviceKey]: !prev[serviceKey] }));
+                                    };
+
+                                    const handleServiceSelect = (e: React.MouseEvent) => {
+                                        e.stopPropagation();
+                                        let newSelected = [...selectedServiceIds];
+
+                                        // Remove full service key and all specific keys for this service
+                                        newSelected = newSelected.filter(id =>
+                                            id !== fullServiceKey && !id.startsWith(`vprn___${serviceId}___${hostname}___`)
+                                        );
+
+                                        if (!isAllSelected) {
+                                            // Select All: Add individual keys for granular control
+                                            allInterfaces.forEach(intf => {
+                                                newSelected.push(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`);
+                                            });
+                                        }
+                                        onSetSelected(newSelected);
+                                    };
+
+                                    const handleInterfaceToggle = (interfaceName: string) => {
+                                        const specificKey = `vprn___${serviceId}___${hostname}___${interfaceName}`;
+                                        let newSelected = [...selectedServiceIds];
+
+                                        // If full service currently selected, explode it
+                                        if (newSelected.includes(fullServiceKey)) {
+                                            newSelected = newSelected.filter(id => id !== fullServiceKey);
+                                            // Add all other interfaces
+                                            allInterfaces.forEach(intf => {
+                                                if (intf.interfaceName !== interfaceName) {
+                                                    newSelected.push(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`);
+                                                }
+                                            });
+                                            // Don't add specificKey (we are toggling it OFF)
+                                        } else {
+                                            if (newSelected.includes(specificKey)) {
+                                                newSelected = newSelected.filter(id => id !== specificKey);
+                                            } else {
+                                                newSelected.push(specificKey);
+                                            }
+                                        }
+                                        onSetSelected(newSelected);
+                                    };
 
                                     return (
-                                        <div
-                                            key={representative.serviceId}
-                                            className={`service-item ${selectedServiceIds.includes(`${representative.serviceType}-${representative.serviceId}`) ? 'selected' : ''}`}
-                                            onClick={() => onToggleService(`${representative.serviceType}-${representative.serviceId}`)}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedServiceIds.includes(`${representative.serviceType}-${representative.serviceId}`)}
-                                                onChange={() => { }}
-                                                className="service-checkbox"
-                                            />
-                                            <div className="service-info">
-                                                <div className="service-title">
-                                                    VPRN {representative.serviceId}
-                                                </div>
-                                                <div className="service-description">
+                                        <div key={`vprn-group-${serviceKey}`} className="service-subgroup" style={{ marginBottom: '8px', border: '1px solid #eee', borderRadius: '4px', overflow: 'hidden' }}>
+                                            {/* Service Header (Accordion) */}
+                                            <div
+                                                className="subgroup-header clickable"
+                                                onClick={toggleServiceAccordion}
+                                                style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', background: '#f9fafb', cursor: 'pointer' }}
+                                            >
+                                                <span style={{ marginRight: '8px', display: 'flex' }}>
+                                                    {isServiceExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                                </span>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isAllSelected}
+                                                    ref={el => { if (el) el.indeterminate = isPartialSelected; }}
+                                                    onChange={() => { }} // Handled by div click or separate click handler
+                                                    onClick={handleServiceSelect}
+                                                    style={{ marginRight: '8px' }}
+                                                />
+                                                <span className="service-title" style={{ flex: 1, margin: 0 }}>
+                                                    VPRN {serviceId} - {hostname} ({allInterfaces.length})
+                                                </span>
+                                            </div>
+
+                                            {/* Service Description */}
+                                            {isServiceExpanded && representative.description && (
+                                                <div style={{ padding: '4px 12px 8px 44px', fontSize: '0.85em', color: '#666' }}>
                                                     {representative.description}
                                                 </div>
-                                                {serviceGroup.map((service, idx) => {
-                                                    const hostname = (service as any)._hostname || 'Unknown';
+                                            )}
 
-                                                    const ifNames = 'interfaces' in service ? service.interfaces.map(intf => intf.interfaceName).join(', ') : '';
-
-                                                    return (
-                                                        <div key={idx}>
-                                                            <div className="service-meta">
-                                                                <span className="meta-item" style={{ fontWeight: 'bold', color: '#0066cc' }}>{hostname}</span>
+                                            {/* Interfaces List */}
+                                            {isServiceExpanded && (
+                                                <div className="subgroup-items" style={{ padding: '8px' }}>
+                                                    {allInterfaces.map((intf) => {
+                                                        const isSelected = isFullServiceSelected || selectedServiceIds.includes(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`);
+                                                        return (
+                                                            <div
+                                                                key={`${hostname}-vprn-${serviceId}-${intf.interfaceName}`}
+                                                                className={`interface-card ${isSelected ? 'selected' : ''}`}
+                                                                onClick={() => handleInterfaceToggle(intf.interfaceName)}
+                                                                style={{
+                                                                    display: 'flex', alignItems: 'center',
+                                                                    padding: '6px 10px', marginBottom: '4px',
+                                                                    background: isSelected ? '#e3f2fd' : 'white',
+                                                                    border: '1px solid #eee', borderRadius: '4px',
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={() => { }}
+                                                                    style={{ marginRight: '10px' }}
+                                                                />
+                                                                <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.9em' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                                        <span style={{ fontWeight: 'bold', color: '#0066cc', fontSize: '12px', marginRight: '8px' }}>{intf.interfaceName}</span>
+                                                                        {intf.ipAddress && (
+                                                                            <span style={{
+                                                                                background: '#e8f5e9', color: '#2e7d32',
+                                                                                padding: '1px 6px', borderRadius: '4px', fontSize: '0.85em'
+                                                                            }}>
+                                                                                {intf.ipAddress}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div style={{ color: '#666', fontSize: '0.85em', marginTop: '2px' }}>
+                                                                        {intf.description || ''}
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                            <div className="service-meta">
-                                                                {ifNames && <span className="meta-item">IF: {ifNames}</span>}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -484,7 +779,7 @@ export function ServiceListV3({
                                 {expandedGroups['ies'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                             </span>
                             <span className="service-icon">🌐</span>
-                            <h3>IES Services ({iesServices.length})</h3>
+                            <h3>IES Services ({iesInterfaceCount})</h3>
                         </div>
                         {expandedGroups['ies'] && (
                             <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
@@ -589,7 +884,7 @@ export function ServiceListV3({
                                                         const isSelected = isFullHostSelected || selectedServiceIds.includes(`ies___${hostname}___${intf.interfaceName}`);
                                                         return (
                                                             <div
-                                                                key={`${hostname}-${intf.interfaceName}`}
+                                                                key={`${hostname}-${intf._parentService.serviceId}-${intf.interfaceName}`}
                                                                 className={`interface-card ${isSelected ? 'selected' : ''}`}
                                                                 onClick={() => handleInterfaceToggle(intf.interfaceName)}
                                                                 style={{
