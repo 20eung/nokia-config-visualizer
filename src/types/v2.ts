@@ -40,6 +40,8 @@ export interface BaseService {
 export interface QosPolicy {
     policyId: number;
     policyName: string;
+    rate?: number;          // Rate in kbps (from sap-ingress/sap-egress policy definition)
+    rateMax?: boolean;      // true if rate is "max" (unlimited)
 }
 
 /**

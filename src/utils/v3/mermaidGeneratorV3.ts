@@ -1,4 +1,4 @@
-import type { EpipeService, VPLSService, VPRNService, SDP } from '../../types/v2';
+import type { EpipeService, VPLSService, VPRNService, SDP, SAP } from '../../types/v2';
 import type { ParsedConfigV3, NokiaServiceV3 } from './parserV3';
 
 /**
@@ -33,6 +33,24 @@ const noWrap = (text: string): string => {
         .replace(/ /g, '\u00A0')
         .replace(/-/g, '\u2011');
 };
+
+// Helper: QoS rate를 KMG 단위로 변환 (kbps → K/M/G)
+// rate 파싱 성공 시: "100M", "2G", "500K", "Max"
+// rate 파싱 실패 시 (정책 정의 없음): policy ID만 표시 "15"
+function formatRateKMG(qos: { policyId: number; rate?: number; rateMax?: boolean }): string {
+    if (qos.rateMax) return 'Max';
+    if (!qos.rate) return `${qos.policyId}`;
+    const kbps = qos.rate;
+    if (kbps >= 1000000) {
+        const g = kbps / 1000000;
+        return `${Number.isInteger(g) ? g : g.toFixed(1)}G`;
+    } else if (kbps >= 1000) {
+        const m = kbps / 1000;
+        return `${Number.isInteger(m) ? m : m.toFixed(1)}M`;
+    } else {
+        return `${kbps}K`;
+    }
+}
 
 // Helper: IP Logic
 function ipToLong(ip: string): number {
@@ -107,7 +125,7 @@ export function generateEpipeDiagram(
     const lines: string[] = ['graph LR'];
     lines.push('classDef default fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left;');
     lines.push('classDef service fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000;');
-    lines.push('classDef qos fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff,text-align:center,padding:5px;');
+    // QoS는 SAP 노드 내부에 표시 (엣지 라벨 사용 안 함)
     lines.push('');
 
     let groupCounter = 0;
@@ -129,7 +147,11 @@ export function generateEpipeDiagram(
             epipe.saps.forEach((sap, sapIdx) => {
                 const sapNodeId = `SAP_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
                 let label = `\u003cdiv style=\"text-align: left\"\u003e`;
+                // SAP + QoS (SAP 하위 항목)
                 label += `\u003cb\u003eSAP:\u003c/b\u003e ${sap.sapId}<br/>`;
+                if (sap.ingressQos) label += `\u00A0\u00A0\u2011\u00A0In\u2011QoS:\u00A0${formatRateKMG(sap.ingressQos)}<br/>`;
+                if (sap.egressQos) label += `\u00A0\u00A0\u2011\u00A0Out\u2011QoS:\u00A0${formatRateKMG(sap.egressQos)}<br/>`;
+                // Port
                 label += `\u003cb\u003ePort:\u003c/b\u003e ${sap.portId}<br/>`;
                 if (sap.portDescription) {
                     label += `\u003cb\u003ePort\u00A0Desc:\u003c/b\u003e ${noWrap(sap.portDescription)}<br/>`;
@@ -174,19 +196,13 @@ export function generateEpipeDiagram(
         lines.push(`${svcNodeId}[\"${svcLabel}\"]`);
         lines.push(`class ${svcNodeId} service;`);
 
-        // Links with QoS as intermediate nodes
+        // Links: plain arrows (QoS는 SAP 노드 안에 표시)
         subsetEpipes.forEach((epipe, idx) => {
             const host = subsetHosts[idx];
             const safeHost = sanitizeNodeId(host);
-            epipe.saps.forEach((sap, sapIdx) => {
+            epipe.saps.forEach((_sap, sapIdx) => {
                 const sapNodeId = `SAP_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
-
-                // QoS - Always show both In/Out with Default fallback
-                const inQos = sap.ingressQos?.policyId ?? 'Default';
-                const outQos = sap.egressQos?.policyId ?? 'Default';
-                const qosLabelContent = `In\u2011QoS: ${inQos}<br/>Out\u2011QoS: ${outQos}`;
-                const qosLabel = `<div class='qos-label'>${qosLabelContent}</div>`;
-                lines.push(`${sapNodeId} -->|"${qosLabel}"| ${svcNodeId}`);
+                lines.push(`${sapNodeId} --> ${svcNodeId}`);
             });
         });
 
@@ -208,6 +224,11 @@ export function generateEpipeDiagram(
 
 /**
  * VPLS 서비스 다이어그램 생성
+ *
+ * Hub-Spoke 레이아웃 자동 감지:
+ * - Mesh-Sdp가 가장 많은 호스트 = Hub (코어 장비) → 오른쪽 배치
+ * - 나머지 호스트 = Spoke (액세스 장비) → 왼쪽 배치
+ * - Hub가 명확하지 않으면 (동률 등) 기존 Flat 레이아웃 사용
  */
 export function generateVPLSDiagram(
     vpls: VPLSService | VPLSService[],
@@ -215,114 +236,184 @@ export function generateVPLSDiagram(
     _sdps: SDP[] = [],
     _remoteDeviceMap?: Map<string, string>
 ): string {
-    // 배열로 정규화
     const vplsArray = Array.isArray(vpls) ? vpls : [vpls];
     const hostnameArray = Array.isArray(hostname) ? hostname : [hostname];
 
     const lines: string[] = [];
-
     lines.push('graph LR');
-
-    // Define clean styles (matching EPIPE)
     lines.push('classDef default fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left;');
     lines.push('classDef vpls fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000;');
-    lines.push('classDef qos fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff,padding:5px,border-radius:5px;');
-
+    // QoS는 SAP 노드 내부에 텍스트로 표시 (엣지 라벨 사용 안 함)
+    lines.push('classDef svcinfo fill:#fff9c4,stroke:#f9a825,stroke-width:2px,color:#000,text-align:left;');
     lines.push('');
 
-    // 왼쪽: 각 호스트별 서브그래프 (각 SAP를 개별 박스로 표시)
     const firstVpls = vplsArray[0];
     const vplsNodeId = `VPLS_${firstVpls.serviceId}`;
 
-    vplsArray.forEach((currentVpls, vplsIdx) => {
-        const currentHostname = hostnameArray[vplsIdx] || hostnameArray[0];
-        const safeHost = sanitizeNodeId(currentHostname);
+    // --- Helper: SAP 노드 라벨 생성 (SAP + QoS + Port + Ethernet) ---
+    // Config 구조: SAP 블록 안에 ingress/egress qos가 있으므로 QoS는 SAP 하위 항목으로 표시
+    const buildSapLabel = (sap: SAP): string => {
+        let label = `\u003cdiv style=\"text-align: left\"\u003e`;
+        // SAP + QoS (SAP 하위 항목)
+        label += `\u003cb\u003eSAP:\u003c/b\u003e ${sap.sapId}<br/>`;
+        if (sap.ingressQos) label += `\u00A0\u00A0\u2011\u00A0In\u2011QoS:\u00A0${formatRateKMG(sap.ingressQos)}<br/>`;
+        if (sap.egressQos) label += `\u00A0\u00A0\u2011\u00A0Out\u2011QoS:\u00A0${formatRateKMG(sap.egressQos)}<br/>`;
+        // Port
+        label += `\u003cb\u003ePort:\u003c/b\u003e ${sap.portId}<br/>`;
+        if (sap.portDescription) {
+            label += `\u003cb\u003ePort\u00A0Desc:\u003c/b\u003e ${noWrap(sap.portDescription)}<br/>`;
+        }
+        if (sap.vlanId) {
+            label += `\u003cb\u003eVLAN:\u003c/b\u003e ${sap.vlanId}<br/>`;
+        }
+        // Ethernet 하위 필드
+        const pe = sap.portEthernet;
+        const ethItems: string[] = [];
+        if (pe?.mode) ethItems.push(`\u00A0\u00A0\u2011\u00A0Mode:\u00A0${pe.mode}`);
+        if (pe?.mtu) ethItems.push(`\u00A0\u00A0\u2011\u00A0MTU:\u00A0${pe.mtu}`);
+        if (pe?.speed) ethItems.push(`\u00A0\u00A0\u2011\u00A0SPEED:\u00A0${pe.speed}`);
+        if (pe?.autonegotiate) ethItems.push(`\u00A0\u00A0\u2011\u00A0AUTONEGO:\u00A0${pe.autonegotiate}`);
+        if (pe?.networkQueuePolicy) ethItems.push(`\u00A0\u00A0\u2011\u00A0NETWORK:\u00A0${pe.networkQueuePolicy}`);
+        if (sap.llf) ethItems.push(`\u00A0\u00A0\u2011\u00A0LLF:\u00A0On`);
+        if (pe?.lldp) ethItems.push(`\u00A0\u00A0\u2011\u00A0LLDP:\u00A0${pe.lldp}`);
+        if (ethItems.length > 0) {
+            label += `\u003cb\u003eEthernet:\u003c/b\u003e<br/>`;
+            label += ethItems.join('<br/>') + '<br/>';
+        }
+        label += `\u003c/div\u003e`;
+        return label;
+    };
+
+    // QoS는 SAP 노드 안에 표시하므로 엣지 라벨에는 사용하지 않음
+
+    // --- Helper: 호스트 서브그래프 렌더링 (SAP 노드 ID 배열 반환) ---
+    const renderHost = (currentVpls: VPLSService, vplsIdx: number, hostName: string): string[] => {
+        const safeHost = sanitizeNodeId(hostName);
         const hostId = `HOST_${safeHost}_${vplsIdx}`;
+        lines.push(`subgraph ${hostId}["\u003cb\u003e${noWrap(hostName)}\u003c/b\u003e"]`);
+        lines.push('direction TB');
 
-        // 호스트 서브그래프 시작
-        lines.push(`subgraph ${hostId}["<b>${noWrap(currentHostname)}</b>"]`);
-        lines.push('direction TB');  // 세로 방향
-
-        // 각 SAP를 개별 노드로 생성
+        // SAP 노드들 (포트 정보만)
+        const sapIds: string[] = [];
         currentVpls.saps.forEach((sap, sapIdx) => {
             const sapNodeId = `SAP_${safeHost}_${vplsIdx}_${sapIdx}`;
-
-            let sapLabel = `<div style="text-align: left">`;
-            sapLabel += `<b>SAP:</b> ${sap.sapId}<br/>`;
-            if (sap.description) {
-                sapLabel += `<b>SAP Desc:</b> ${noWrap(sap.description)}<br/>`;
-            }
-            sapLabel += `<b>Port:</b> ${sap.portId}<br/>`;
-            if (sap.portDescription) {
-                sapLabel += `<b>Port Desc:</b> ${noWrap(sap.portDescription)}<br/>`;
-            }
-            sapLabel += `<b>VLAN:</b> ${sap.vlanId}<br/>`;
-            if (sap.portEthernet) {
-                const pe = sap.portEthernet;
-                if (pe.mode || pe.encapType) {
-                    sapLabel += `<b>Ethernet:</b> ${pe.mode || ''}${pe.encapType ? ` / encap\u2011type: ${pe.encapType}` : ''}<br/>`;
-                }
-                if (pe.mtu) {
-                    sapLabel += `<b>Port\u00A0MTU:</b> ${pe.mtu}<br/>`;
-                }
-            }
-            if (sap.llf) {
-                sapLabel += `<b>LLF:</b> Enabled<br/>`;
-            }
-            sapLabel += `</div>`;
-
-            lines.push(`${sapNodeId}["${sapLabel}"]`);
+            sapIds.push(sapNodeId);
+            const label = buildSapLabel(sap);
+            lines.push(`${sapNodeId}["${label}"]`);
         });
 
-        lines.push('end');  // 서브그래프 종료
-    });
+        // SDP 정보 노드 (서비스 레벨: Spoke-Sdp, Mesh-Sdp, MAC-Move)
+        const sdpItems: string[] = [];
+        const spokeSet = new Set<string>();
+        const meshSet = new Set<string>();
+        if (currentVpls.spokeSdps) currentVpls.spokeSdps.forEach(s => spokeSet.add(`${s.sdpId}:${s.vcId}`));
+        if (currentVpls.meshSdps) currentVpls.meshSdps.forEach(m => meshSet.add(`${m.sdpId}:${m.vcId}`));
+        spokeSet.forEach(key => {
+            sdpItems.push(`\u003cb\u003eSpoke\u2011Sdp:\u003c/b\u003e ${key}`);
+        });
+        meshSet.forEach(key => {
+            sdpItems.push(`\u003cb\u003eMesh\u2011Sdp:\u003c/b\u003e ${key}`);
+        });
+        if (currentVpls.macMoveShutdown) {
+            sdpItems.push(`\u003cb\u003eMAC\u2011MOVE:\u003c/b\u003e Detected`);
+        }
+        if (sdpItems.length > 0) {
+            const sdpNodeId = `SDP_${safeHost}_${vplsIdx}`;
+            const sdpLabel = `\u003cdiv style=\"text-align: left\"\u003e${sdpItems.join('<br/>')}\u003c/div\u003e`;
+            lines.push(`${sdpNodeId}["${sdpLabel}"]`);
+            lines.push(`class ${sdpNodeId} svcinfo;`);
+        }
 
-    // 오른쪽: 공통 VPLS 서비스 정보 (호스트 이후에 선언)
-    lines.push('');
-    let vplsLabel = `<div style="text-align: left">`;
-    vplsLabel += `<b>Service:</b> VPLS ${firstVpls.serviceId}<br/>`;
-    if (firstVpls.serviceName) {
-        vplsLabel += `<b>VPLS Name:</b> ${noWrap(firstVpls.serviceName)}<br/>`;
-    }
-    if (firstVpls.description) {
-        vplsLabel += `<b>VPLS Desc:</b> ${noWrap(firstVpls.description)}<br/>`;
-    }
-    if (firstVpls.macMoveShutdown) {
-        vplsLabel += `<b>MAC\u2011MOVE:</b> Detected<br/>`;
-    }
-    vplsLabel += `</div>`;
+        lines.push('end');
+        return sapIds;
+    };
 
-    lines.push(`${vplsNodeId}["${vplsLabel}"]`);
-    lines.push(`class ${vplsNodeId} vpls;`);
+    // --- Helper: VPLS 서비스 노드 렌더링 ---
+    const renderServiceNode = () => {
+        lines.push('');
+        let vplsLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
+        vplsLabel += `\u003cb\u003eService:\u003c/b\u003e VPLS ${firstVpls.serviceId}<br/>`;
+        if (firstVpls.serviceName) {
+            vplsLabel += `\u003cb\u003eVPLS\u00A0Name:\u003c/b\u003e ${noWrap(firstVpls.serviceName)}<br/>`;
+        }
+        if (firstVpls.description) {
+            vplsLabel += `\u003cb\u003eVPLS\u00A0Desc:\u003c/b\u003e ${noWrap(firstVpls.description)}<br/>`;
+        }
+        vplsLabel += `\u003c/div\u003e`;
+        lines.push(`${vplsNodeId}["${vplsLabel}"]`);
+        lines.push(`class ${vplsNodeId} vpls;`);
+    };
 
-    // 연결선: 각 SAP에서 VPLS로 (QoS 정보 포함)
-    vplsArray.forEach((currentVpls, vplsIdx) => {
-        const currentHostname = hostnameArray[vplsIdx] || hostnameArray[0];
-        const safeHost = sanitizeNodeId(currentHostname);
-
-        currentVpls.saps.forEach((sap, sapIdx) => {
-            const sapNodeId = `SAP_${safeHost}_${vplsIdx}_${sapIdx}`;
-
-            // QoS 정보 수집
-            const qosParts: string[] = [];
-            if (sap.ingressQos?.policyId) {
-                qosParts.push(`In-QoS: ${sap.ingressQos.policyId}`);
-            }
-            if (sap.egressQos?.policyId) {
-                qosParts.push(`Out-QoS: ${sap.egressQos.policyId}`);
-            }
-
-            if (qosParts.length > 0) {
-                // V1 Style: QoS as link label (more compact)
-                const qosLabelContent = qosParts.join('<br/>');
-                const qosLabel = `<div class='qos-label'>${qosLabelContent}</div>`;
-                lines.push(`${sapNodeId} -->|"${qosLabel}"| ${vplsNodeId}`);
-            } else {
-                // No QoS: direct connection
-                lines.push(`${sapNodeId} --- ${vplsNodeId}`);
+    // --- Hub 감지: SDP(Mesh + Spoke) 합산이 가장 많은 호스트 ---
+    let hubIndex = -1;
+    if (vplsArray.length >= 2) {
+        let maxCount = 0;
+        let maxIdx = -1;
+        let tied = false;
+        vplsArray.forEach((v, idx) => {
+            const count = (v.meshSdps?.length || 0) + (v.spokeSdps?.length || 0);
+            if (count > maxCount) {
+                maxCount = count;
+                maxIdx = idx;
+                tied = false;
+            } else if (count === maxCount && count > 0) {
+                tied = true;
             }
         });
-    });
+        // Hub는 유일해야 하고, SDP가 1개 이상이어야 하고, SAP이 있어야 함
+        if (!tied && maxCount > 0 && vplsArray[maxIdx].saps.length > 0) {
+            hubIndex = maxIdx;
+        }
+    }
+
+    if (hubIndex !== -1) {
+        // ===== Hub-Spoke 레이아웃 =====
+        // Spoke(액세스 장비) → Hub(코어 장비) → VPLS 서비스
+        const spokeIndices = vplsArray.map((_, i) => i).filter(i => i !== hubIndex);
+
+        // 1. Spoke 서브그래프 (왼쪽)
+        const spokeSapMap: { idx: number; sapIds: string[] }[] = [];
+        spokeIndices.forEach(idx => {
+            const sapIds = renderHost(vplsArray[idx], idx, hostnameArray[idx] || hostnameArray[0]);
+            spokeSapMap.push({ idx, sapIds });
+        });
+
+        // 2. Hub 서브그래프 (중간)
+        const hubSapIds = renderHost(vplsArray[hubIndex], hubIndex, hostnameArray[hubIndex] || hostnameArray[0]);
+
+        // 3. VPLS 서비스 노드 (오른쪽)
+        renderServiceNode();
+
+        // 4. 연결: Spoke SAPs → Hub 첫 번째 SAP (QoS는 SAP 노드 안에 표시)
+        const hubTarget = hubSapIds[0];
+        spokeSapMap.forEach(({ sapIds }) => {
+            sapIds.forEach((sapId) => {
+                lines.push(`${sapId} --> ${hubTarget}`);
+            });
+        });
+
+        // 5. 연결: Hub SAPs → VPLS 서비스 (QoS는 SAP 노드 안에 표시)
+        hubSapIds.forEach((sapId) => {
+            lines.push(`${sapId} --> ${vplsNodeId}`);
+        });
+
+    } else {
+        // ===== Flat 레이아웃 (Hub 미감지) =====
+        // 모든 호스트 왼쪽, VPLS 서비스 오른쪽
+        const allSapMap: { idx: number; sapIds: string[] }[] = [];
+        vplsArray.forEach((currentVpls, vplsIdx) => {
+            const sapIds = renderHost(currentVpls, vplsIdx, hostnameArray[vplsIdx] || hostnameArray[0]);
+            allSapMap.push({ idx: vplsIdx, sapIds });
+        });
+
+        renderServiceNode();
+
+        allSapMap.forEach(({ sapIds }) => {
+            sapIds.forEach((sapId) => {
+                lines.push(`${sapId} --> ${vplsNodeId}`);
+            });
+        });
+    }
 
     return lines.join('\n');
 }

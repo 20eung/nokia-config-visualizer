@@ -30,16 +30,15 @@
 
 ### 1.2 QoS 표시 규칙
 
-- QoS는 **항상** In-QoS와 Out-QoS **모두** 표시한다.
-- 값이 없는 경우 `Default`로 표시한다.
-- 연결선(edge label)에 `<div class='qos-label'>` 래핑하여 녹색 배경으로 표시한다.
+- **Epipe/VPLS**: QoS는 **SAP 하위 항목**으로 SAP 노드 안에 표시. config에 QoS가 있는 경우만 표시, 없으면 생략.
+- **VPRN/IES**: 연결선(edge label)에 표시 (기존 방식 유지)
+- Nokia config에서 QoS는 `sap` 블록 안의 `ingress qos` / `egress qos`에 설정됨
 
 ```
-In‑QoS: 20
-Out‑QoS: 30
+SAP: 3/1/12
+  - In‑QoS: 400
+  - Out‑QoS: 400
 ```
-
-- 적용 스타일: `classDef qos fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff`
 
 ### 1.3 텍스트 표시 규칙
 
@@ -82,8 +81,10 @@ Out‑QoS: 30
 SAP 노드에 표시하는 정보와 순서:
 
 ```
-SAP: 1/1/1:100
-Port: 1/1/1
+SAP: 3/1/12
+  - In‑QoS: 400
+  - Out‑QoS: 400
+Port: 3/1/12
 Port Desc: TO-CUSTOMER-SW
 Ethernet:
   - Mode: access
@@ -96,11 +97,13 @@ Ethernet:
 ```
 
 **규칙:**
+- **QoS는 SAP 하위 항목으로 표시** — Nokia config에서 `sap` 블록 안에 `ingress qos` / `egress qos`가 있으므로, SAP ID 바로 아래에 들여쓰기하여 표시. config에 QoS가 없으면 생략.
 - **VLAN 정보는 표시하지 않는다.**
 - **Spoke-SDP 정보는 표시하지 않는다.** (서비스 노드에서 표시)
 - **Ethernet** 헤더 아래에 하위 필드를 들여쓰기(`  - `)하여 표시
 - Ethernet 하위 필드 중 **값이 있는 것만 표시** (없으면 생략)
 - Ethernet 하위 필드가 하나도 없으면 Ethernet 헤더 자체를 표시하지 않는다.
+- 연결선은 plain arrow (`-->`) — QoS 라벨 없음
 
 ### 2.3 서비스 노드
 
@@ -134,37 +137,94 @@ Spoke‑Sdp: 1005:2043
 ### 3.1 호스트 노드 (SAP Node)
 
 ```
-SAP: 1/1/2:200
-SAP Desc: customer-port
-Port: 1/1/2
+SAP: 3/2/15
+  - In‑QoS: 100
+  - Out‑QoS: 100
+Port: 3/2/15
 Port Desc: TO-SWITCH
 VLAN: 200
-Ethernet: access / encap-type: dot1q
-Port MTU: 9212
-LLF: Enabled
+Ethernet:
+  - Mode: access
+  - MTU: 9212
+  - SPEED: 10000
+  - AUTONEGO: limited
+  - NETWORK: queue-policy-name
+  - LLF: On
+  - LLDP: tx-rx
 ```
 
 **규칙:**
-- VPLS는 VLAN 정보를 표시한다. (Epipe와 다름)
-- Ethernet은 한 줄 요약 형식 (`mode / encap-type: type`)
-- Port MTU, LLF는 값이 있을 때만 표시
+- **QoS는 SAP 하위 항목으로 표시** — Nokia config에서 `sap` 블록 안에 `ingress qos` / `egress qos`가 있으므로, SAP ID 바로 아래에 들여쓰기하여 표시. config에 QoS가 없으면 생략.
+- **VLAN 0인 경우 표시하지 않는다.** VLAN이 0이 아닌 경우에만 표시.
+- **SAP Desc는 표시하지 않는다.** (Epipe와 동일)
+- **Ethernet** 헤더 아래에 하위 필드를 들여쓰기(`  - `)하여 표시 (Epipe와 동일 형식)
+- Ethernet 하위 필드 중 **값이 있는 것만 표시** (없으면 생략)
+- Ethernet 하위 필드가 하나도 없으면 Ethernet 헤더 자체를 표시하지 않는다.
+- **SAP 노드에는 SAP/QoS/포트/Ethernet 정보만 표시** — Spoke-Sdp, Mesh-Sdp, MAC-MOVE는 별도 SDP 정보 노드에 표시
 
-### 3.2 서비스 노드
+### 3.2 SDP 정보 노드 (서비스 레벨)
+
+SAP과 Mesh-Sdp/Spoke-Sdp는 Nokia config에서 **형제 관계** (VPLS 서비스 아래 동등한 레벨)이므로, SAP 노드와 분리하여 **별도 노드**로 표시한다.
+
+```
+Mesh‑Sdp: 6320:4050
+Mesh‑Sdp: 6410:4050
+MAC-MOVE: Detected
+```
+
+- 각 호스트 서브그래프 안에 **노란색 배경** 노드로 표시
+- `classDef svcinfo fill:#fff9c4,stroke:#f9a825,stroke-width:2px`
+- Spoke-Sdp, Mesh-Sdp, MAC-MOVE 중 값이 있는 것만 표시
+- `sdpId:vcId` 기준 중복 제거 적용
+- SDP 정보가 하나도 없으면 노드 자체를 생성하지 않음
+
+### 3.3 서비스 노드
 
 ```
 Service: VPLS 5000
 VPLS Name: office-lan
 VPLS Desc: Office LAN Service
-MAC-MOVE: Detected
 ```
 
-- **MAC-MOVE**: `mac-move` 블록이 config에 존재하면 `Detected` 표시
-- 없으면 MAC-MOVE 행 자체를 표시하지 않음
+- Service ID, Name, Description만 표시
+- Spoke-Sdp, Mesh-Sdp, MAC-MOVE는 호스트 종속이므로 서비스 노드에 표시하지 않음
 
-### 3.3 QoS 표시
+### 3.3 Hub-Spoke 레이아웃
 
-- In/Out QoS가 있으면 표시, 없으면 QoS 없이 직접 연결 (`---`)
-- (Epipe는 항상 Default를 표시하지만, VPLS는 현재 있는 것만 표시 — 향후 통일 가능)
+VPLS에 여러 호스트가 참여할 때, **SDP(Mesh + Spoke) 합산 개수가 가장 많은 호스트를 Hub(코어 장비)**로 자동 감지하여 레이아웃을 최적화한다.
+
+**감지 조건:**
+- 호스트가 2대 이상
+- SDP 합산(Mesh-Sdp + Spoke-Sdp)이 가장 많은 호스트가 **유일**해야 함 (동률이면 Flat 레이아웃)
+- Hub 호스트에 SAP이 1개 이상 존재
+- Mesh-Sdp만 있는 경우, Spoke-Sdp만 있는 경우 모두 감지 가능
+
+**Hub-Spoke 레이아웃:**
+```
+[Spoke 1 (액세스)] --> [Hub (코어)] --> [VPLS 서비스 정보]
+[Spoke 2 (액세스)] -->
+```
+
+- 왼쪽: Spoke 호스트 서브그래프 (액세스 장비)
+- 중간: Hub 호스트 서브그래프 (코어 장비)
+- 오른쪽: VPLS 서비스 정보 노드
+- Spoke SAPs → Hub 첫 번째 SAP (plain arrow, QoS는 각 SAP 노드 안에)
+- Hub SAPs → VPLS 서비스 (plain arrow, QoS는 각 SAP 노드 안에)
+- 연결선에 QoS를 표시하지 않는 이유: QoS는 SAP 포트(고객 연결)에 설정되며, 장비 간 터널(Mesh-Sdp/Spoke-Sdp)에 설정되는 것이 아님
+
+**Flat 레이아웃 (Hub 미감지 시):**
+```
+[Host A] --> [VPLS 서비스 정보]
+[Host B] -->
+[Host C] -->
+```
+
+### 3.4 QoS 표시
+
+- QoS는 **SAP 하위 항목**으로 SAP 노드 안에 표시한다. (연결선 라벨이 아님)
+- Nokia config에서 `sap` 블록 안에 `ingress qos` / `egress qos`가 있으므로 config 구조에 맞춤
+- **config에 QoS가 있는 경우만 표시**, 없으면 생략 (Default 표시 안 함)
+- 연결선에 QoS를 표시하지 않는 이유: QoS는 SAP 포트(고객 연결)에 설정되며, 장비 간 터널(Mesh-Sdp/Spoke-Sdp)에 설정되는 것이 아님
 
 ---
 
@@ -380,7 +440,98 @@ exit
 - 정규식: `/mac-move\b/i`
 - 결과: `vpls.macMoveShutdown = true`
 
-### 6.4 Port 정보 주입 (Injection)
+### 6.4 QoS 정책 Rate 파싱
+
+파일: `src/utils/v3/parserV3.ts` → `parseQosPolicyDefinitions()`
+
+SAP에서 참조하는 QoS 정책 ID의 실제 rate(속도)를 파싱하여 KMG 단위로 다이어그램에 표시한다.
+
+#### 6.4.1 QoS 정책 선언 형식 (장비별)
+
+Nokia 장비 버전에 따라 `sap-ingress` / `sap-egress` 선언 문법이 다르다:
+
+| 선언 형식 | 장비 |
+|---|---|
+| `sap-ingress <ID> create` | 전 장비 (7210SAS, 7750SR, 7450ESS, 7705SAR) |
+| `sap-ingress <ID> name "<NAME>" create` | 7750SR |
+| `sap-egress <ID> create` | 7750SR, 7450ESS |
+| `sap-egress <ID> name "<NAME>" create` | 7750SR |
+
+- 파서 정규식: `/sap-(ingress|egress)\s+(\d+)(?:\s+name\s+"[^"]*")?\s+create/`
+- `name` 필드는 선택적(optional)으로 처리
+
+#### 6.4.2 Rate 형식 (장비별)
+
+장비 플랫폼에 따라 QoS 내부 구조(queue vs meter)와 rate 문법이 다르다:
+
+**7750SR / 7450ESS / 7705SAR** — Queue 기반:
+```
+sap-ingress 10 create
+    queue 1 create
+        rate 10000                    ← Format 1: rate <PIR>
+    exit
+    queue 2 expedite create
+        rate 10000 cir 10000          ← Format 2: rate <PIR> cir <CIR>
+    exit
+exit
+```
+
+**7210SAS** — Meter 기반:
+```
+sap-ingress 2 create
+    num-qos-classifiers 2
+    meter 1 create
+        rate cir 2000 pir 2000        ← Format 3: rate cir <CIR> pir <PIR>
+    exit
+exit
+```
+
+**Unlimited (전 장비)**:
+```
+rate max cir max                      ← Format 4: 7750SR/7450ESS/7705SAR
+rate cir max                          ← Format 5: 7210SAS
+```
+
+| Rate 형식 | 장비 | 파싱 방법 |
+|---|---|---|
+| `rate 10000` | 7750SR, 7450ESS, 7705SAR | `rate\s+(\d+)` → PIR |
+| `rate 10000 cir 10000` | 7750SR, 7705SAR | `rate\s+(\d+)` → PIR |
+| `rate cir 2000 pir 2000` | 7210SAS | `pir\s+(\d+)` → PIR |
+| `rate max cir max` | 7750SR, 7450ESS, 7705SAR | `max` 감지 → rateMax |
+| `rate cir max` | 7210SAS | `max` 감지 → rateMax |
+
+#### 6.4.3 Rate 표시 형식 (KMG 변환)
+
+파싱된 PIR (kbps) 값을 K/M/G 단위로 변환하여 표시:
+
+| PIR (kbps) | 표시 | 비고 |
+|---|---|---|
+| 2,000 | `2M` | 2,000 / 1,000 = 2 |
+| 15,000 | `15M` | 15,000 / 1,000 = 15 |
+| 100,000 | `100M` | 100,000 / 1,000 = 100 |
+| 500,000 | `500M` | |
+| 1,000,000 | `1G` | 1,000,000 / 1,000,000 = 1 |
+| max | `Max` | 속도 제한 없음 |
+| (정의 없음) | `15` | policy ID만 표시 (fallback) |
+
+- 함수: `formatRateKMG()` (`mermaidGeneratorV3.ts`)
+- Rate 파싱 실패 시 (config에 정책 정의 블록 없음) policy ID 숫자만 표시
+
+#### 6.4.4 QoS Rate 주입 (Injection)
+
+`parseL2VPNConfig()`에서 QoS 정책 맵을 생성하고 SAP 객체에 주입:
+
+1. `parseQosPolicyDefinitions(configText)` → `Map<'ingress-{id}' | 'egress-{id}', { rate?, rateMax? }>`
+2. 각 SAP의 `ingressQos.policyId` → `qosPolicyMap.get('ingress-{id}')` → `ingressQos.rate` 주입
+3. 각 SAP의 `egressQos.policyId` → `qosPolicyMap.get('egress-{id}')` → `egressQos.rate` 주입
+
+#### 6.4.5 sap-egress 참고사항
+
+- `sap-egress` 정의는 7750SR, 7450ESS에서만 발견됨 (전체 config 중 소수)
+- 대부분의 SAP은 `egress` 블록에 `qos` 참조가 없음 → egress QoS 미표시
+- `sap-egress`의 rate는 `rate <number>` (단순 형식)만 사용
+
+### 6.5 Port 정보 주입 (Injection)
 
 파싱된 Port Ethernet 정보는 아래 경로로 각 서비스 객체에 주입된다:
 
@@ -437,11 +588,24 @@ interface PortEthernetConfig {
 }
 ```
 
+### QosPolicy (`src/types/v2.ts`)
+
+```typescript
+interface QosPolicy {
+    policyId: number;
+    policyName: string;
+    rate?: number;          // Rate in kbps (from sap-ingress/sap-egress policy definition)
+    rateMax?: boolean;      // true if rate is "max" (unlimited)
+}
+```
+
 ### SAP 추가 필드
 
 ```typescript
 interface SAP {
     // ...기존 필드...
+    ingressQos?: QosPolicy;     // SAP ingress QoS (with rate from policy definition)
+    egressQos?: QosPolicy;      // SAP egress QoS (with rate from policy definition)
     llf?: boolean;
     portEthernet?: PortEthernetConfig;
 }
@@ -482,7 +646,7 @@ interface NokiaInterface {
 |---|---|
 | `src/types/v2.ts` | V2/V3 서비스 타입 정의 |
 | `src/types.ts` | V1 타입 정의 (NokiaInterface 등) |
-| `src/utils/v3/parserV3.ts` | Config 파싱 (LLF, MAC-MOVE, Port Ethernet) |
+| `src/utils/v3/parserV3.ts` | Config 파싱 (LLF, MAC-MOVE, Port Ethernet, QoS Rate) |
 | `src/utils/v3/mermaidGeneratorV3.ts` | Epipe, VPLS, VPRN 다이어그램 생성 |
 | `src/utils/mermaidGenerator.ts` | V1 스타일 다이어그램 생성 (IES/VPRN HA용) |
 | `src/utils/v1IESAdapter.ts` | IES → V1 변환 + 다이어그램 생성 |

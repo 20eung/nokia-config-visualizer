@@ -109,7 +109,7 @@ export function extractSystemIp(configText: string): string {
 }
 
 /**
- * QoS 정책 파싱
+ * QoS 정책 파싱 (SAP 블록 내 ingress/egress qos 참조)
  */
 function parseQosPolicy(content: string, direction: 'ingress' | 'egress'): QosPolicy | undefined {
     const regex = new RegExp(`${direction}\\s+qos\\s+(\\d+)`, 'i');
@@ -124,6 +124,74 @@ function parseQosPolicy(content: string, direction: 'ingress' | 'egress'): QosPo
     }
 
     return undefined;
+}
+
+/**
+ * sap-ingress / sap-egress 정책 정의 파싱 (line-by-line)
+ * 정책 블록에서 rate 정보를 추출하여 Map<'ingress-{id}' | 'egress-{id}', { rate?, rateMax? }> 반환
+ */
+export function parseQosPolicyDefinitions(configText: string): Map<string, { rate?: number; rateMax?: boolean }> {
+    const policyMap = new Map<string, { rate?: number; rateMax?: boolean }>();
+    const lines = configText.split('\n');
+
+    // "sap-ingress 15 create" 또는 "sap-ingress 15 name "15" create" 모두 매칭
+    const policyStartRegex = /^\s*sap-(ingress|egress)\s+(\d+)(?:\s+name\s+"[^"]*")?\s+create/i;
+
+    for (let i = 0; i < lines.length; i++) {
+        const startMatch = lines[i].match(policyStartRegex);
+        if (!startMatch) continue;
+
+        const direction = startMatch[1].toLowerCase();
+        const idStr = startMatch[2];
+        const key = `${direction}-${idStr}`;
+        const startIndent = lines[i].search(/\S/);
+
+        // 블록 내 rate 수집 (동일 indent의 exit까지)
+        let maxRate = 0;
+        let isMax = false;
+
+        for (let j = i + 1; j < lines.length; j++) {
+            const line = lines[j];
+            const trimmed = line.trim();
+            if (trimmed === '') continue;
+
+            const indent = line.search(/\S/);
+            // 동일 indent에서 exit → 블록 종료
+            if (trimmed === 'exit' && indent === startIndent) break;
+
+            // rate 라인 파싱
+            // 패턴: "rate 45000", "rate 45000 cir 45000", "rate cir 2000 pir 2000",
+            //        "rate cir max", "rate max cir max"
+            const rateMatch = trimmed.match(/^rate\s+(.*)/i);
+            if (rateMatch) {
+                const rateStr = rateMatch[1];
+                if (rateStr.includes('max')) {
+                    isMax = true;
+                }
+                // PIR 추출: "pir <number>" 우선
+                const pirMatch = rateStr.match(/pir\s+(\d+)/i);
+                if (pirMatch) {
+                    const rate = parseInt(pirMatch[1]);
+                    if (rate > maxRate) maxRate = rate;
+                    continue;
+                }
+                // "rate <number>" (첫 번째 숫자 = PIR)
+                const numMatch = rateStr.match(/^(\d+)/);
+                if (numMatch) {
+                    const rate = parseInt(numMatch[1]);
+                    if (rate > maxRate) maxRate = rate;
+                }
+            }
+        }
+
+        if (isMax && maxRate === 0) {
+            policyMap.set(key, { rateMax: true });
+        } else if (maxRate > 0) {
+            policyMap.set(key, { rate: maxRate });
+        }
+    }
+
+    return policyMap;
 }
 
 /**
@@ -216,6 +284,19 @@ export function parseSAPs(serviceContent: string): SAP[] {
     }
 
     return saps;
+}
+
+/**
+ * SDP 배열 중복 제거 (sdpId:vcId 기준)
+ */
+function deduplicateSdps<T extends { sdpId: number; vcId: number }>(sdps: T[]): T[] {
+    const seen = new Set<string>();
+    return sdps.filter(s => {
+        const key = `${s.sdpId}:${s.vcId}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
 }
 
 /**
@@ -701,7 +782,7 @@ export function parseL2VPNServices(configText: string): NokiaServiceV3[] {
                         ...newService,
                         serviceName: existing.serviceName || newService.serviceName, // Prefer existing unless empty
                         saps: [...existing.saps, ...newService.saps], // Simple concat for SAPs (could be smarter)
-                        spokeSdps: [...(existing.spokeSdps || []), ...(newService.spokeSdps || [])],
+                        spokeSdps: deduplicateSdps([...(existing.spokeSdps || []), ...(newService.spokeSdps || [])]),
                         description: existing.description || newService.description // Prefer existing unless empty
                     };
                 } else {
@@ -717,8 +798,8 @@ export function parseL2VPNServices(configText: string): NokiaServiceV3[] {
                         ...newService,
                         serviceName: existing.serviceName || newService.serviceName,
                         saps: [...existing.saps, ...newService.saps],
-                        meshSdps: [...(existing.meshSdps || []), ...(newService.meshSdps || [])],
-                        spokeSdps: [...(existing.spokeSdps || []), ...(newService.spokeSdps || [])],
+                        meshSdps: deduplicateSdps([...(existing.meshSdps || []), ...(newService.meshSdps || [])]),
+                        spokeSdps: deduplicateSdps([...(existing.spokeSdps || []), ...(newService.spokeSdps || [])]),
                         description: existing.description || newService.description
                     };
                 } else {
@@ -1002,6 +1083,9 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
     // Enrich SAPs and Interfaces with Port Info (Description + Ethernet config)
     const portInfoMap = extractPortInfo(configText);
 
+    // Parse QoS policy definitions (sap-ingress/sap-egress) for rate info
+    const qosPolicyMap = parseQosPolicyDefinitions(configText);
+
     services.forEach(service => {
         if ('saps' in service) {
             service.saps.forEach(sap => {
@@ -1009,6 +1093,21 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
                 if (info) {
                     if (info.description) sap.portDescription = info.description;
                     if (info.ethernet) sap.portEthernet = info.ethernet;
+                }
+                // Inject QoS rate info from policy definitions
+                if (sap.ingressQos) {
+                    const policyInfo = qosPolicyMap.get(`ingress-${sap.ingressQos.policyId}`);
+                    if (policyInfo) {
+                        sap.ingressQos.rate = policyInfo.rate;
+                        sap.ingressQos.rateMax = policyInfo.rateMax;
+                    }
+                }
+                if (sap.egressQos) {
+                    const policyInfo = qosPolicyMap.get(`egress-${sap.egressQos.policyId}`);
+                    if (policyInfo) {
+                        sap.egressQos.rate = policyInfo.rate;
+                        sap.egressQos.rateMax = policyInfo.rateMax;
+                    }
                 }
             });
         }
