@@ -45,6 +45,16 @@ export interface QosPolicy {
 /**
  * SAP (Service Access Point)
  */
+export interface PortEthernetConfig {
+    mode?: string;              // access or network
+    encapType?: string;         // e.g., dot1q
+    mtu?: number;               // Port MTU
+    speed?: string;             // e.g., "10000"
+    autonegotiate?: string;     // e.g., "limited"
+    networkQueuePolicy?: string; // network queue-policy
+    lldp?: string;              // LLDP admin-status (e.g., "tx-rx")
+}
+
 export interface SAP {
     sapId: string;              // 예: "1/1/1:100"
     portId: string;             // 예: "1/1/1" 또는 "lag-1"
@@ -52,6 +62,10 @@ export interface SAP {
     description: string;
     portDescription?: string;   // Physical Port description
     adminState: AdminState;
+    llf?: boolean;              // Link Loss Forwarding
+
+    // Port Ethernet config (from physical port)
+    portEthernet?: PortEthernetConfig;
 
     // QoS 정보
     ingressQos?: QosPolicy;
@@ -126,6 +140,7 @@ export interface VPLSService extends BaseService {
     saps: SAP[];                // 여러 개 (Multipoint)
     meshSdps?: MeshSDP[];       // Mesh SDP
     spokeSdps?: SpokeSDP[];     // Spoke SDP
+    macMoveShutdown?: boolean;  // MAC Move detected (mac-move primary-ports/secondary-ports shutdown)
 
     // VPLS 특화 설정
     fdbSize?: number;           // FDB 테이블 크기
@@ -157,6 +172,7 @@ export interface L3Interface {
     ingressQosId?: string;      // Ingress QoS
     egressQosId?: string;       // Egress QoS
     portDescription?: string;   // Physical Port description
+    portEthernet?: PortEthernetConfig; // Port ethernet config
 
     // VRRP
     vrrpGroupId?: number;

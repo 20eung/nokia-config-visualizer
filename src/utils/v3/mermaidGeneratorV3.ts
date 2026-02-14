@@ -132,10 +132,22 @@ export function generateEpipeDiagram(
                 label += `\u003cb\u003eSAP:\u003c/b\u003e ${sap.sapId}<br/>`;
                 label += `\u003cb\u003ePort:\u003c/b\u003e ${sap.portId}<br/>`;
                 if (sap.portDescription) {
-                    label += `\u003cb\u003ePort Desc:\u003c/b\u003e ${noWrap(sap.portDescription)}<br/>`;
+                    label += `\u003cb\u003ePort\u00A0Desc:\u003c/b\u003e ${noWrap(sap.portDescription)}<br/>`;
                 }
-                label += `\u003cb\u003eVLAN:\u003c/b\u003e ${sap.vlanId}<br/>`;
-                // SDP removed per request
+                // Ethernet sub-fields (only show fields that have values)
+                const pe = sap.portEthernet;
+                const ethItems: string[] = [];
+                if (pe?.mode) ethItems.push(`\u00A0\u00A0\u2011\u00A0Mode:\u00A0${pe.mode}`);
+                if (pe?.mtu) ethItems.push(`\u00A0\u00A0\u2011\u00A0MTU:\u00A0${pe.mtu}`);
+                if (pe?.speed) ethItems.push(`\u00A0\u00A0\u2011\u00A0SPEED:\u00A0${pe.speed}`);
+                if (pe?.autonegotiate) ethItems.push(`\u00A0\u00A0\u2011\u00A0AUTONEGO:\u00A0${pe.autonegotiate}`);
+                if (pe?.networkQueuePolicy) ethItems.push(`\u00A0\u00A0\u2011\u00A0NETWORK:\u00A0${pe.networkQueuePolicy}`);
+                if (sap.llf) ethItems.push(`\u00A0\u00A0\u2011\u00A0LLF:\u00A0On`);
+                if (pe?.lldp) ethItems.push(`\u00A0\u00A0\u2011\u00A0LLDP:\u00A0${pe.lldp}`);
+                if (ethItems.length > 0) {
+                    label += `\u003cb\u003eEthernet:\u003c/b\u003e<br/>`;
+                    label += ethItems.join('<br/>') + '<br/>';
+                }
                 label += `\u003c/div\u003e`;
                 lines.push(`${sapNodeId}[\"${label}\"]`);
             });
@@ -152,10 +164,10 @@ export function generateEpipeDiagram(
         if (first.description) {
             svcLabel += `\u003cb\u003eEPIPE Desc:\u003c/b\u003e ${first.description}<br/>`;
         }
-        // Add SDP Info
+        // Spoke-SDP Info
         if (first.spokeSdps && first.spokeSdps.length > 0) {
             const sdp = first.spokeSdps[0];
-            svcLabel += `\u003cb\u003eSDP ${sdp.sdpId}:${sdp.vcId}\u003c/b\u003e<br/>`;
+            svcLabel += `\u003cb\u003eSpoke\u2011Sdp:\u003c/b\u003e ${sdp.sdpId}:${sdp.vcId}<br/>`;
         }
         svcLabel += `\u003c/div\u003e`;
 
@@ -169,25 +181,12 @@ export function generateEpipeDiagram(
             epipe.saps.forEach((sap, sapIdx) => {
                 const sapNodeId = `SAP_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
 
-                // QoS logic - Create intermediate node for visibility
-                // User Request: Format "In-QoS: 20", Background Color Green (Match Main Branch)
-                const qosParts: string[] = [];
-                if (sap.ingressQos?.policyId) {
-                    qosParts.push(`In-QoS: ${sap.ingressQos.policyId}`);
-                }
-                if (sap.egressQos?.policyId) {
-                    qosParts.push(`Out-QoS: ${sap.egressQos.policyId}`);
-                }
-
-                if (qosParts.length > 0) {
-                    // V1 Style: QoS as link label (more compact)
-                    const qosLabelContent = qosParts.join('<br/>');
-                    const qosLabel = `<div class='qos-label'>${qosLabelContent}</div>`;
-                    lines.push(`${sapNodeId} -->|"${qosLabel}"| ${svcNodeId}`);
-                } else {
-                    // No QoS: direct connection
-                    lines.push(`${sapNodeId} --- ${svcNodeId}`);
-                }
+                // QoS - Always show both In/Out with Default fallback
+                const inQos = sap.ingressQos?.policyId ?? 'Default';
+                const outQos = sap.egressQos?.policyId ?? 'Default';
+                const qosLabelContent = `In\u2011QoS: ${inQos}<br/>Out\u2011QoS: ${outQos}`;
+                const qosLabel = `<div class='qos-label'>${qosLabelContent}</div>`;
+                lines.push(`${sapNodeId} -->|"${qosLabel}"| ${svcNodeId}`);
             });
         });
 
@@ -258,6 +257,18 @@ export function generateVPLSDiagram(
                 sapLabel += `<b>Port Desc:</b> ${noWrap(sap.portDescription)}<br/>`;
             }
             sapLabel += `<b>VLAN:</b> ${sap.vlanId}<br/>`;
+            if (sap.portEthernet) {
+                const pe = sap.portEthernet;
+                if (pe.mode || pe.encapType) {
+                    sapLabel += `<b>Ethernet:</b> ${pe.mode || ''}${pe.encapType ? ` / encap\u2011type: ${pe.encapType}` : ''}<br/>`;
+                }
+                if (pe.mtu) {
+                    sapLabel += `<b>Port\u00A0MTU:</b> ${pe.mtu}<br/>`;
+                }
+            }
+            if (sap.llf) {
+                sapLabel += `<b>LLF:</b> Enabled<br/>`;
+            }
             sapLabel += `</div>`;
 
             lines.push(`${sapNodeId}["${sapLabel}"]`);
@@ -275,6 +286,9 @@ export function generateVPLSDiagram(
     }
     if (firstVpls.description) {
         vplsLabel += `<b>VPLS Desc:</b> ${noWrap(firstVpls.description)}<br/>`;
+    }
+    if (firstVpls.macMoveShutdown) {
+        vplsLabel += `<b>MAC\u2011MOVE:</b> Detected<br/>`;
     }
     vplsLabel += `</div>`;
 
@@ -335,6 +349,7 @@ export function generateVPRNDiagram(
     lines.push('classDef bgp fill:#e1f5fe,stroke:#0277bd,stroke-width:1px;');
     lines.push('classDef route fill:#f3e5f5,stroke:#7b1fa2,stroke-width:1px;');
     lines.push('classDef redBox fill:#ffffff,stroke:#ff0000,stroke-width:2px,color:#ff0000;');
+    lines.push('classDef qos fill:#4caf50,stroke:#2e7d32,stroke-width:2px,color:#fff,text-align:center,padding:5px;');
 
     lines.push('');
 
@@ -423,6 +438,16 @@ export function generateVPRNDiagram(
 
                 if (iface.vrrpBackupIp) details += `(VIP: ${iface.vrrpBackupIp})<br/>`;
                 if (iface.portId) details += `SAP: ${iface.portId}<br/>`;
+                if (iface.portDescription) details += `Port Desc: ${iface.portDescription}<br/>`;
+                if (iface.portEthernet) {
+                    const pe = iface.portEthernet;
+                    if (pe.mode || pe.encapType) {
+                        details += `Ethernet: ${pe.mode || ''}${pe.encapType ? ` / encap\u2011type: ${pe.encapType}` : ''}<br/>`;
+                    }
+                    if (pe.mtu) {
+                        details += `Port\u00A0MTU: ${pe.mtu}<br/>`;
+                    }
+                }
                 if (iface.vplsName) details += `VPLS: ${iface.vplsName}<br/>`;
                 if (iface.spokeSdpId) details += `SPOKE-SDP: ${iface.spokeSdpId}<br/>`;
                 if (iface.mtu) details += `MTU: ${iface.mtu}`;
@@ -473,11 +498,21 @@ export function generateVPRNDiagram(
         });
 
         // 연결선 추가 (서브그래프 밖에서 처리)
-        // Interfaces
+        // Interfaces with QoS labels
         if (currentVprn.interfaces) {
-            currentVprn.interfaces.forEach((_, ifIdx) => {
+            currentVprn.interfaces.forEach((iface, ifIdx) => {
                 const ifId = `IF_${safeHost}_${idx}_${ifIdx}`;
-                lines.push(`${ifId} --> ${serviceNodeId}`);
+                const qosParts: string[] = [];
+                if (iface.ingressQosId) qosParts.push(`In\u2011QoS: ${iface.ingressQosId}`);
+                if (iface.egressQosId) qosParts.push(`Out\u2011QoS: ${iface.egressQosId}`);
+
+                if (qosParts.length > 0) {
+                    const qosLabelContent = qosParts.join('<br/>');
+                    const qosLabel = `<div class='qos-label'>${qosLabelContent}</div>`;
+                    lines.push(`${ifId} -->|"${qosLabel}"| ${serviceNodeId}`);
+                } else {
+                    lines.push(`${ifId} --> ${serviceNodeId}`);
+                }
             });
         }
         // BGP (Invisible or Dotted link to ensure layout if no interfaces)

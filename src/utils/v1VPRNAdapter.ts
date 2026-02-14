@@ -79,7 +79,8 @@ function convertL3InterfaceToV1(intf: L3Interface, vprnService: VPRNService): No
         serviceType: `VPRN ${vprnService.serviceId}`,
         serviceDescription: vprnService.description,
         vrrpVip: intf.vrrpBackupIp,
-        vrrpPriority: intf.vrrpPriority
+        vrrpPriority: intf.vrrpPriority,
+        portEthernet: intf.portEthernet,
     };
 }
 
@@ -148,9 +149,11 @@ export function generateVPRNDiagramV1Style(
             });
         } else {
             // 단일 인터페이스: Single Diagram
+            // Title priority: interface description > port description > interface name
             group.items.forEach(item => {
+                const titleSuffix = item.intf.description || item.intf.portDescription || item.intf.name;
                 result.push({
-                    name: `${item.device.hostname} - ${item.intf.name}`,
+                    name: `${item.device.hostname} - ${titleSuffix}`,
                     code: generateSingleInterfaceDiagram(item.device, item.intf, topology),
                     description: item.intf.portDescription || item.intf.description || ''
                 });

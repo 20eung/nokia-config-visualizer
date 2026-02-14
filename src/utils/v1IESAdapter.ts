@@ -77,7 +77,8 @@ function convertL3InterfaceToV1(intf: L3Interface): NokiaInterface {
         serviceType: 'IES 0',
         serviceDescription: 'Global Base Routing Table',
         vrrpVip: intf.vrrpBackupIp,
-        vrrpPriority: intf.vrrpPriority
+        vrrpPriority: intf.vrrpPriority,
+        portEthernet: intf.portEthernet,
     };
 }
 
@@ -146,9 +147,11 @@ export function generateIESDiagramV1Style(
             });
         } else {
             // 단일 인터페이스: Single Diagram
+            // Title priority: interface description > port description > interface name
             group.items.forEach(item => {
+                const titleSuffix = item.intf.description || item.intf.portDescription || item.intf.name;
                 result.push({
-                    name: `${item.device.hostname} - ${item.intf.name}`,
+                    name: `${item.device.hostname} - ${titleSuffix}`,
                     code: generateSingleInterfaceDiagram(item.device, item.intf, topology),
                     description: item.intf.portDescription || item.intf.description || ''
                 });
@@ -287,8 +290,9 @@ export function generateCrossDeviceIESDiagrams(
             });
         } else {
             group.items.forEach(item => {
+                const titleSuffix = item.intf.description || item.intf.portDescription || item.intf.name;
                 result.push({
-                    name: `${item.device.hostname} - ${item.intf.name}`,
+                    name: `${item.device.hostname} - ${titleSuffix}`,
                     code: generateSingleInterfaceDiagram(item.device, item.intf, topology),
                     description: item.intf.portDescription || item.intf.description || ''
                 });

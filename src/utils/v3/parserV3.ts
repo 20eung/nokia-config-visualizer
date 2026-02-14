@@ -14,7 +14,8 @@ import type {
     DeliveryType,
     OSPF,
     OSPFInterface,
-    IESService
+    IESService,
+    PortEthernetConfig
 } from '../../types/v2';
 
 // Use NokiaService from v2 types which now includes IES
@@ -126,6 +127,49 @@ function parseQosPolicy(content: string, direction: 'ingress' | 'egress'): QosPo
 }
 
 /**
+ * 서비스 블록의 adminState 판정
+ *
+ * 서비스 블록 최상위 들여쓰기에 있는 shutdown/no shutdown만 확인합니다.
+ * stp, sap, spoke-sdp 등 하위 블록 내부의 shutdown은 무시합니다.
+ */
+function detectServiceAdminState(content: string): AdminState {
+    const lines = content.split('\n');
+    if (lines.length === 0) return 'up';
+
+    // 첫 번째 비어있지 않은 줄(서비스 선언)의 들여쓰기를 기준으로
+    // 그 다음 레벨(+4 spaces)이 서비스 최상위 속성 레벨
+    let baseIndent = -1;
+    for (const line of lines) {
+        if (line.trim() === '') continue;
+        baseIndent = line.search(/\S/);
+        break;
+    }
+    if (baseIndent < 0) return 'up';
+
+    // 서비스 내부 속성의 들여쓰기 레벨 (서비스 선언 + 4)
+    const propIndent = baseIndent + 4;
+
+    let hasShutdown = false;
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed === '') continue;
+
+        const indent = line.search(/\S/);
+
+        // 서비스 최상위 레벨에서만 shutdown/no shutdown 확인
+        if (indent === propIndent) {
+            if (trimmed === 'shutdown') {
+                hasShutdown = true;
+            } else if (trimmed === 'no shutdown') {
+                hasShutdown = false;
+            }
+        }
+    }
+
+    return hasShutdown ? 'down' : 'up';
+}
+
+/**
  * SAP 파싱
  */
 export function parseSAPs(serviceContent: string): SAP[] {
@@ -153,6 +197,9 @@ export function parseSAPs(serviceContent: string): SAP[] {
         const ingressQos = parseQosPolicy(content, 'ingress');
         const egressQos = parseQosPolicy(content, 'egress');
 
+        // LLF (Link Loss Forwarding) 감지
+        const llf = /ethernet\s[\s\S]*?llf/i.test(content);
+
         // Admin state (기본값: up)
         const adminState: AdminState = content.includes('shutdown') ? 'down' : 'up';
 
@@ -164,6 +211,7 @@ export function parseSAPs(serviceContent: string): SAP[] {
             adminState,
             ingressQos,
             egressQos,
+            ...(llf ? { llf: true } : {}),
         });
     }
 
@@ -244,35 +292,14 @@ export function parseEpipe(
     const mtuMatch = content.match(/service-mtu\s+(\d+)/i);
     const serviceMtu = mtuMatch ? parseInt(mtuMatch[1]) : undefined;
 
-    // Admin state - Check only top-level shutdown (not in sub-blocks like sap/spoke-sdp)
-    // Split by lines and check for 'shutdown' at service level (before any sap/spoke-sdp blocks)
-    const serviceLines = content.split('\n');
-    let hasTopLevelShutdown = false;
-    for (const line of serviceLines) {
-        const trimmed = line.trim();
-        // Stop checking when we hit sub-blocks (sap, spoke-sdp, mesh-sdp)
-        if (trimmed.match(/^(sap|spoke-sdp|mesh-sdp)\s+/)) {
-            break;
-        }
-        // Check for shutdown at service level
-        if (trimmed === 'shutdown') {
-            hasTopLevelShutdown = true;
-        }
-        // If we find 'no shutdown' at top level, service is up
-        if (trimmed === 'no shutdown') {
-            hasTopLevelShutdown = false;
-        }
-    }
-    const adminState: AdminState = hasTopLevelShutdown ? 'down' : 'up';
+    // Admin state - 서비스 최상위 레벨의 shutdown/no shutdown만 확인
+    const adminState = detectServiceAdminState(content);
 
     // SAP 파싱
     const saps = parseSAPs(content);
 
     // Spoke SDP 파싱
     const spokeSdps = parseSpokeSDP(content);
-
-    // Using finalServiceName variable to assign to serviceName property
-    // (In TypeScript, we need to ensure the variable name matches or use assignment)
 
     return {
         serviceType: 'epipe',
@@ -312,22 +339,11 @@ export function parseVPLS(
     const fdbMatch = content.match(/fdb-table-size\s+(\d+)/i);
     const fdbSize = fdbMatch ? parseInt(fdbMatch[1]) : undefined;
 
-    // Admin state - Check only top-level shutdown
-    const serviceLines = content.split('\n');
-    let hasTopLevelShutdown = false;
-    for (const line of serviceLines) {
-        const trimmed = line.trim();
-        if (trimmed.match(/^(sap|spoke-sdp|mesh-sdp)\s+/)) {
-            break;
-        }
-        if (trimmed === 'shutdown') {
-            hasTopLevelShutdown = true;
-        }
-        if (trimmed === 'no shutdown') {
-            hasTopLevelShutdown = false;
-        }
-    }
-    const adminState: AdminState = hasTopLevelShutdown ? 'down' : 'up';
+    // MAC-MOVE 감지
+    const macMoveShutdown = /mac-move\b/i.test(content);
+
+    // Admin state - 서비스 최상위 레벨의 shutdown/no shutdown만 확인
+    const adminState = detectServiceAdminState(content);
 
     // SAP 파싱
     const saps = parseSAPs(content);
@@ -350,6 +366,7 @@ export function parseVPLS(
         saps,
         spokeSdps: spokeSdps.length > 0 ? spokeSdps : undefined,
         meshSdps: meshSdps.length > 0 ? meshSdps : undefined,
+        ...(macMoveShutdown ? { macMoveShutdown: true } : {}),
     };
 }
 
@@ -375,22 +392,8 @@ export function parseVPRN(
     const rdMatch = content.match(/route-distinguisher\s+([\d:.]+)/i);
     const vrfMatch = content.match(/vrf-target\s+(?:target:)?([\d:.]+)/i) || content.match(/vrf-target\s+([^\s]+)/i);
 
-    // Admin state - Check only top-level shutdown
-    const serviceLines = content.split('\n');
-    let hasTopLevelShutdown = false;
-    for (const line of serviceLines) {
-        const trimmed = line.trim();
-        if (trimmed.match(/^(interface|bgp|ospf|static-route)\s+/)) {
-            break;
-        }
-        if (trimmed === 'shutdown') {
-            hasTopLevelShutdown = true;
-        }
-        if (trimmed === 'no shutdown') {
-            hasTopLevelShutdown = false;
-        }
-    }
-    const adminState: AdminState = hasTopLevelShutdown ? 'down' : 'up';
+    // Admin state - 서비스 최상위 레벨의 shutdown/no shutdown만 확인
+    const adminState = detectServiceAdminState(content);
 
     // Interface 파싱
     const interfaces: L3Interface[] = [];
@@ -817,42 +820,130 @@ export function parseL2VPNServices(configText: string): NokiaServiceV3[] {
 }
 
 /**
- * Port Description 추출 (Global)
+ * Port 정보 (Description + Ethernet config) 추출
  */
-export function extractPortDescriptions(configText: string): Map<string, string> {
-    const portMap = new Map<string, string>();
-    // const portSection = extractSection(configText, 'port'); // Not used, removed to fix build error
+export interface PortInfo {
+    description: string;
+    ethernet?: PortEthernetConfig;
+}
 
-    // Config often has top-level "port 1/1/1"
-    // or inside a card/mda context? No, usually top level or just "port X".
-    // Let's iterate lines or regex.
-    // Regex: port <id> ... description "..." ... exit
-
-    // We can use a simpler approach: finding "port <id>" blocks and looking for description inside.
-    // Or scan specific lines:
-    // port 1/1/1
-    //     description "..."
+export function extractPortInfo(configText: string): Map<string, PortInfo> {
+    const portMap = new Map<string, PortInfo>();
 
     const lines = configText.split('\n');
     let currentPort = '';
+    let currentPortIndent = -1;
+    let inEthernet = false;
+    let ethernetIndent = -1;
+    let portDescription = '';
+    let ethernet: PortEthernetConfig | undefined;
+
+    const flushPort = () => {
+        if (currentPort && (portDescription || ethernet)) {
+            portMap.set(currentPort, {
+                description: portDescription,
+                ...(ethernet ? { ethernet } : {}),
+            });
+        }
+        currentPort = '';
+        currentPortIndent = -1;
+        inEthernet = false;
+        ethernetIndent = -1;
+        portDescription = '';
+        ethernet = undefined;
+    };
 
     for (const line of lines) {
         const trimmed = line.trim();
-        if (trimmed.startsWith('port ')) {
-            const match = trimmed.match(/^port\s+([\w\/-]+)/);
-            if (match) {
-                currentPort = match[1];
+        if (!trimmed) continue;
+
+        const indent = line.length - line.trimStart().length;
+
+        // Detect port block start
+        const portMatch = trimmed.match(/^port\s+([\w\/-]+)/);
+        if (portMatch && !currentPort) {
+            currentPort = portMatch[1];
+            currentPortIndent = indent;
+            portDescription = '';
+            ethernet = undefined;
+            inEthernet = false;
+            continue;
+        }
+
+        if (currentPort) {
+            // Exit port block
+            if (trimmed === 'exit' && indent === currentPortIndent) {
+                flushPort();
+                continue;
             }
-        } else if (trimmed === 'exit') {
-            currentPort = ''; // Simple validation, though nested exits might exist, port blocks are usually flat in this view
-        } else if (currentPort && trimmed.startsWith('description ')) {
-            const descMatch = trimmed.match(/^description\s+"([^"]+)"/);
-            if (descMatch) {
-                portMap.set(currentPort, descMatch[1]);
+
+            // Port-level description
+            if (!inEthernet && trimmed.startsWith('description ')) {
+                const descMatch = trimmed.match(/^description\s+"([^"]+)"/);
+                if (descMatch) {
+                    portDescription = descMatch[1];
+                }
+                continue;
+            }
+
+            // Enter ethernet sub-block
+            if (trimmed === 'ethernet' && !inEthernet) {
+                inEthernet = true;
+                ethernetIndent = indent;
+                ethernet = {};
+                continue;
+            }
+
+            // Inside ethernet block
+            if (inEthernet) {
+                if (trimmed === 'exit' && indent === ethernetIndent) {
+                    inEthernet = false;
+                    continue;
+                }
+
+                const modeMatch = trimmed.match(/^mode\s+(\S+)/);
+                if (modeMatch && ethernet) ethernet.mode = modeMatch[1];
+
+                const encapMatch = trimmed.match(/^encap-type\s+(\S+)/);
+                if (encapMatch && ethernet) ethernet.encapType = encapMatch[1];
+
+                const mtuMatch = trimmed.match(/^mtu\s+(\d+)/);
+                if (mtuMatch && ethernet) ethernet.mtu = parseInt(mtuMatch[1]);
+
+                const speedMatch = trimmed.match(/^speed\s+(\S+)/);
+                if (speedMatch && ethernet) ethernet.speed = speedMatch[1];
+
+                const autoMatch = trimmed.match(/^autonegotiate\s+(\S+)/);
+                if (autoMatch && ethernet) ethernet.autonegotiate = autoMatch[1];
+
+                // network sub-block: queue-policy
+                const nqpMatch = trimmed.match(/^queue-policy\s+"?([^"]+)"?/);
+                if (nqpMatch && ethernet) ethernet.networkQueuePolicy = nqpMatch[1];
+
+                // lldp sub-block: admin-status
+                const lldpMatch = trimmed.match(/^admin-status\s+(\S+)/);
+                if (lldpMatch && ethernet) ethernet.lldp = lldpMatch[1];
             }
         }
     }
 
+    // Flush last port if file ends without exit
+    flushPort();
+
+    return portMap;
+}
+
+/**
+ * Port Description 추출 (Global) - backward compatible wrapper
+ */
+export function extractPortDescriptions(configText: string): Map<string, string> {
+    const portInfo = extractPortInfo(configText);
+    const portMap = new Map<string, string>();
+    portInfo.forEach((info, portId) => {
+        if (info.description) {
+            portMap.set(portId, info.description);
+        }
+    });
     return portMap;
 }
 
@@ -908,21 +999,34 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
     const services = parseL2VPNServices(configText);
     const sdps = parseSDPs(configText);
 
-    // Enrich SAPs with Port Descriptions
-    const portDescriptions = extractPortDescriptions(configText);
+    // Enrich SAPs and Interfaces with Port Info (Description + Ethernet config)
+    const portInfoMap = extractPortInfo(configText);
 
     services.forEach(service => {
         if ('saps' in service) {
             service.saps.forEach(sap => {
-                if (portDescriptions.has(sap.portId)) {
-                    sap.portDescription = portDescriptions.get(sap.portId);
+                const info = portInfoMap.get(sap.portId);
+                if (info) {
+                    if (info.description) sap.portDescription = info.description;
+                    if (info.ethernet) sap.portEthernet = info.ethernet;
                 }
             });
         }
 
-        // VPRN Interfaces also map to Ports?
-        if (service.serviceType === 'vprn') {
-            // Logic for VPRN if needed
+        // Enrich L3 Interfaces (VPRN, IES) with Port info
+        if ('interfaces' in service && (service.serviceType === 'vprn' || service.serviceType === 'ies')) {
+            const l3Service = service as VPRNService | IESService;
+            l3Service.interfaces.forEach(intf => {
+                if (intf.portId) {
+                    // portId for L3 interfaces can be "1/1/1:100" (SAP format)
+                    const rawPort = intf.portId.split(':')[0];
+                    const info = portInfoMap.get(rawPort);
+                    if (info) {
+                        if (info.description && !intf.portDescription) intf.portDescription = info.description;
+                        if (info.ethernet) intf.portEthernet = info.ethernet;
+                    }
+                }
+            });
         }
     });
 
@@ -1051,9 +1155,14 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
                 // 이렇게 해야 LAG 멤버, 설정 중인 인터페이스 등도 표시됨
                 const pId = portMatch?.[1];
                 let pDesc = undefined;
+                let pEthernet = undefined;
 
-                if (pId && portDescriptions.has(pId)) {
-                    pDesc = portDescriptions.get(pId);
+                if (pId) {
+                    const pInfo = portInfoMap.get(pId);
+                    if (pInfo) {
+                        pDesc = pInfo.description || undefined;
+                        pEthernet = pInfo.ethernet;
+                    }
                 }
 
                 baseInterfaces.push({
@@ -1062,6 +1171,7 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
                     portId: pId,
                     description: descMatch ? descMatch[1] : undefined,
                     portDescription: pDesc,
+                    portEthernet: pEthernet,
                     ingressQosId: inQos,
                     egressQosId: outQos,
                     adminState: 'up'

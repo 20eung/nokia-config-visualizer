@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { parseL2VPNConfig } from '../utils/v3/parserV3';
 import { generateServiceDiagram } from '../utils/v3/mermaidGeneratorV3';
 import type { ParsedConfigV3 } from '../utils/v3/parserV3';
-import type { NokiaService, IESService, VPRNService } from '../types/v2';
+import type { NokiaService, IESService, VPRNService, EpipeService } from '../types/v2';
 import { ServiceListV3 } from '../components/v3/ServiceListV3';
 import { ServiceDiagram } from '../components/v2/ServiceDiagram'; // Reuse for now or duplicate if needed
 import { FileUpload } from '../components/FileUpload';
@@ -346,48 +346,45 @@ export function V3Page() {
             }));
         }
 
-        if (servicesWithContext.length === 1) {
-            return [{
+        // Epipe: Split by Spoke-SDP so different SDPs get separate diagrams
+        if (representativeService.serviceType === 'epipe') {
+            const sdpSubGroups = new Map<string, typeof servicesWithContext>();
+            servicesWithContext.forEach(ctx => {
+                const epipe = ctx.service as EpipeService;
+                const sdpKey = epipe.spokeSdps && epipe.spokeSdps.length > 0
+                    ? `${epipe.spokeSdps[0].sdpId}:${epipe.spokeSdps[0].vcId}`
+                    : 'no-sdp';
+                if (!sdpSubGroups.has(sdpKey)) sdpSubGroups.set(sdpKey, []);
+                sdpSubGroups.get(sdpKey)!.push(ctx);
+            });
+
+            return Array.from(sdpSubGroups.values()).map(subGroup => ({
                 service: representativeService,
                 diagram: generateServiceDiagram(
-                    representativeService,
-                    servicesWithContext[0].hostname,
-                    servicesWithContext[0].sdps,
+                    subGroup.map(s => s.service),
+                    subGroup.map(s => s.hostname),
+                    subGroup[0].sdps,
                     remoteDeviceMap
                 ),
-                hostname: servicesWithContext[0].hostname,
+                hostname: subGroup.map(s => s.hostname).join(' + '),
                 diagramName: undefined,
                 description: undefined
-            }];
-        } else {
-            if (representativeService.serviceType === 'epipe') {
-                return [{
-                    service: representativeService,
-                    diagram: generateServiceDiagram(
-                        servicesWithContext.map(s => s.service),
-                        servicesWithContext.map(s => s.hostname),
-                        servicesWithContext[0].sdps,
-                        remoteDeviceMap
-                    ),
-                    hostname: servicesWithContext.map(s => s.hostname).join(' + '),
-                    diagramName: undefined,
-                    description: undefined
-                }];
-            } else {
-                return [{
-                    service: representativeService,
-                    diagram: generateServiceDiagram(
-                        servicesWithContext.map(s => s.service),
-                        servicesWithContext.map(s => s.hostname),
-                        servicesWithContext[0].sdps,
-                        remoteDeviceMap
-                    ),
-                    hostname: servicesWithContext.map(s => s.hostname).join(' + '),
-                    diagramName: undefined,
-                    description: undefined
-                }];
-            }
+            }));
         }
+
+        // Other service types (VPLS etc.)
+        return [{
+            service: representativeService,
+            diagram: generateServiceDiagram(
+                servicesWithContext.map(s => s.service),
+                servicesWithContext.map(s => s.hostname),
+                servicesWithContext[0].sdps,
+                remoteDeviceMap
+            ),
+            hostname: servicesWithContext.map(s => s.hostname).join(' + '),
+            diagramName: undefined,
+            description: undefined
+        }];
     });
 
     const diagrams: DiagramItem[] = [...iesDiagrams, ...nonIesDiagrams];
@@ -458,12 +455,13 @@ export function V3Page() {
                                                     </div>
                                                 )}
                                                 <div className="group-items">
-                                                    {group.map(({ service, diagram, hostname }, idx) => (
+                                                    {group.map(({ service, diagram, hostname, diagramName }, idx) => (
                                                         <ServiceDiagram
                                                             key={`${hostname}-${service.serviceId}-${idx}`}
                                                             service={service as any}
                                                             diagram={diagram}
                                                             hostname={hostname}
+                                                            diagramName={diagramName}
                                                         />
                                                     ))}
                                                 </div>

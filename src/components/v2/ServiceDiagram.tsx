@@ -9,9 +9,10 @@ interface ServiceDiagramProps {
     service: L2VPNService;
     diagram: string;
     hostname: string;
+    diagramName?: string;
 }
 
-export function ServiceDiagram({ service, diagram, hostname }: ServiceDiagramProps) {
+export function ServiceDiagram({ service, diagram, hostname, diagramName }: ServiceDiagramProps) {
     const diagramRef = useRef<HTMLDivElement>(null);
     const [showCode, setShowCode] = useState(false);
     const [zoom, setZoom] = useState(1);
@@ -116,10 +117,15 @@ export function ServiceDiagram({ service, diagram, hostname }: ServiceDiagramPro
                     <span className="service-type-badge" data-type={service.serviceType}>
                         {service.serviceType.toUpperCase()}
                     </span>
-                    <h3>{service.serviceType === 'epipe' ? '🔗' : '🌐'} {service.serviceType === 'ies' ? hostname : `${service.serviceType.toUpperCase()} ${service.serviceId}`}</h3>
-                </div>
-                <div className="diagram-description">
-                    {service.description}
+                    <h3>
+                        {service.serviceType === 'epipe' ? '🔗' : '🌐'}{' '}
+                        {diagramName
+                            ? diagramName
+                            : service.serviceType === 'ies'
+                                ? hostname
+                                : `${service.serviceType.toUpperCase()} ${service.serviceId}${service.description ? `: ${service.description}` : ''}`
+                        }
+                    </h3>
                 </div>
             </div>
 

@@ -204,8 +204,22 @@ function buildNodeLabel(device: NokiaDevice, intf: NokiaInterface): string {
   let label = (
     `<div style="text-align: left">` +
     `<b>Host:</b> ${noWrap(device.hostname)}<br/><br/>` +
-    `<b>Port:</b> ${portId}${fmtDesc(portDesc)}<br/><br/>` +
-    `<b>Interface:</b> ${ifName}${fmtDesc(ifDesc)}<br/><br/>` +
+    `<b>Port:</b> ${portId}${fmtDesc(portDesc)}<br/>`
+  );
+
+  // Port Ethernet info
+  if (intf.portEthernet) {
+    const pe = intf.portEthernet;
+    if (pe.mode || pe.encapType) {
+      label += `<b>Ethernet:</b> ${pe.mode || ''}${pe.encapType ? ` /\u00A0encap\u2011type:\u00A0${pe.encapType}` : ''}<br/>`;
+    }
+    if (pe.mtu) {
+      label += `<b>Port\u00A0MTU:</b> ${pe.mtu}<br/>`;
+    }
+  }
+
+  label += (
+    `<br/><b>Interface:</b> ${ifName}${fmtDesc(ifDesc)}<br/><br/>` +
     `<b>IP:</b> ${ipDisplay}<br/>`
   );
 
@@ -256,7 +270,8 @@ export function generateCombinedHaDiagram(group: DiagramGroup, _topology: Networ
   group.items.forEach((item, idx) => {
     const localNode = `L${idx}`;
     const peerNode = `Peer${idx}`;
-    const qosLabel = `In-QoS: ${item.intf.ingressQos || 'Default'}\u003cbr/\u003eOut-QoS: ${item.intf.egressQos || 'Default'}`;
+    const qosLabelContent = `In\u2011QoS: ${item.intf.ingressQos || 'Default'}\u003cbr/\u003eOut\u2011QoS: ${item.intf.egressQos || 'Default'}`;
+    const qosLabel = `\u003cdiv class='qos-label'\u003e${qosLabelContent}\u003c/div\u003e`;
     mermaid.push(`    ${localNode} -->|"${qosLabel}"| ${peerNode}`);
   });
 
@@ -305,7 +320,8 @@ export function generateSingleInterfaceDiagram(device: NokiaDevice, intf: NokiaI
   mermaid.push(`        C["${cLabel}"]`);
   mermaid.push(`    end`);
 
-  const qosLabel = `In-QoS: ${intf.ingressQos || 'Default'}<br/>Out-QoS: ${intf.egressQos || 'Default'}`;
+  const qosLabelContent = `In\u2011QoS: ${intf.ingressQos || 'Default'}<br/>Out\u2011QoS: ${intf.egressQos || 'Default'}`;
+  const qosLabel = `<div class='qos-label'>${qosLabelContent}</div>`;
   mermaid.push(`    A -->|"${qosLabel}"| B`);
   mermaid.push(`    B -.-> C`);
 

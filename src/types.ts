@@ -19,6 +19,7 @@ export interface NokiaInterface {
   egressQos?: string; // Egress QoS policy ID
   vrrpVip?: string; // VRRP Virtual IP
   vrrpPriority?: number; // VRRP Priority (for master detection)
+  portEthernet?: { mode?: string; encapType?: string; mtu?: number; speed?: string; autonegotiate?: string };
 }
 
 export interface NokiaStaticRoute {
