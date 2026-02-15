@@ -1,10 +1,10 @@
 # Nokia Config Visualizer
 
-> 🚀 **v3.1.0** (Latest) - Nokia 7750 SR / Unified Network & Service Visualizer
+> 🚀 **v3.2.0** (Latest) - Nokia 7750 SR / Unified Network & Service Visualizer
 
 ![Application Screenshot](./docs/screenshot.png)
 
-[![GitHub release](https://img.shields.io/github/v/release/20eung/mermaid-web)](https://github.com/20eung/mermaid-web/releases)
+[![GitHub release](https://img.shields.io/github/v/release/20eung/nokia-config-visualizer)](https://github.com/20eung/nokia-config-visualizer/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 📖 프로젝트 개요
@@ -44,12 +44,12 @@
 - **통합 레이아웃**: Host(Left) - Service(Right) 표준화된 구조
 
 ### 🌍 통합 비주얼라이저 (v3.x)
-- **Base Router / IES 통합**:
-  - Global Routing Table 인터페이스 및 Static Route 시각화
-  - "IES 0" 가상 서비스를 통한 관리
-- **Host 기반 그룹핑**: 
-  - IES 서비스를 장비(Hostname) 별로 그룹화하여 표시
-  - 다중 선택 시 고가용성(HA) 다이어그램 자동 생성
+- **Base Router / IES 통합**: Global Routing Table 인터페이스 및 Static Route 시각화
+- **VPRN 라우팅 노드**: BGP / OSPF / STATIC 분리 노드로 라우팅 관계 시각화
+- **QoS 색상 강조**: 녹색 배경 + 흰색 글자로 QoS 시인성 향상 (모든 서비스 타입 통일)
+- **QoS Rate KMG 변환**: 정책 기반 Rate 파싱 (100M, 500M, 1G, Max 표시)
+- **Shutdown 필터링**: adminState='down' 항목 자동 제외
+- **Host 기반 그룹핑**: IES 서비스를 장비별 그룹화, HA 다이어그램 자동 생성
 - **v1/v2 통합**: 물리 토폴로지와 논리 서비스를 단일 플랫폼에서 지원
 ### 🔎 고급 검색 기능
 - **AND 검색**: ` + ` (공백 포함)로 구분
@@ -86,15 +86,15 @@
 
 ### 사전 요구사항
 
-- Node.js (v18 이상 권장)
+- Node.js (v22 이상 권장)
 - npm
 
 ### 설치 및 실행
 
 ```bash
 # 저장소 클론
-git clone https://github.com/20eung/mermaid-web.git
-cd mermaid-web
+git clone https://github.com/20eung/nokia-config-visualizer.git
+cd nokia-config-visualizer
 
 # 패키지 설치
 npm install
@@ -103,7 +103,7 @@ npm install
 npm run dev
 ```
 
-브라우저에서 `http://localhost:5173`으로 접속하여 확인합니다. (기본 V2 UI)
+브라우저에서 `http://localhost:5173`으로 접속하여 확인합니다.
 
 ### 프로덕션 빌드
 
@@ -149,25 +149,24 @@ npm run preview
 ## 📂 프로젝트 구조
 
 ```
-mermaid-web/
-├── docs/                    # 프로젝트 문서
-├── public/
-│   └── docs/                # 데모 config 파일
+nokia-config-visualizer/
+├── public/                      # 정적 자산
+│   ├── config1.txt              # 데모용 Config (nokia-1)
+│   └── config2.txt              # 데모용 Config (nokia-2)
 ├── src/
-│   ├── components/          # UI 컴포넌트
-│   │   ├── ConfigSelector.tsx
-│   │   ├── DiagramViewer.tsx
-│   │   ├── FilePreviewModal.tsx
-│   │   ├── FileUpload.tsx
-│   │   └── InterfaceList.tsx
-│   ├── utils/               # 핵심 로직
-│   │   ├── nokiaParser.ts   # Nokia config 파서
-│   │   ├── mermaidGenerator.ts  # 다이어그램 생성
-│   │   └── TopologyEngine.ts    # HA 감지 엔진
-│   ├── types.ts             # TypeScript 타입 정의
-│   ├── App.tsx              # 메인 애플리케이션
-│   └── main.tsx             # 진입점
-├── CHANGELOG.md             # 변경 이력
+│   ├── components/              # UI 컴포넌트
+│   ├── components/v2/           # V2 전용 컴포넌트
+│   ├── components/v3/           # V3 전용 컴포넌트
+│   ├── pages/                   # 페이지 (V1Page, V2Page, V3Page)
+│   ├── utils/                   # 핵심 로직 (v1 파서, 다이어그램, HA 감지)
+│   ├── utils/v2/                # V2 파서 및 다이어그램
+│   ├── utils/v3/                # V3 파서 및 다이어그램
+│   ├── types.ts                 # TypeScript 타입 정의
+│   ├── App.tsx                  # 메인 애플리케이션 (라우팅)
+│   └── main.tsx                 # 진입점
+├── docs/                        # 프로젝트 문서
+├── CHANGELOG.md                 # 변경 이력
+├── DIAGRAM_RULES.md             # 다이어그램 렌더링 규칙
 └── package.json
 ```
 
@@ -199,22 +198,25 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 - ✅ **표준화된 레이아웃**: 모든 서비스에 대해 Host-Service 구조 통일
 - ✅ **고도화된 파싱**: 복잡한 서비스 설정(Multi-hop, VRF 등) 파싱 지원
 
-### v3.x - Unified Visualizer ✅ 완료 (v3.0.0 released)
+### v3.x - Unified Visualizer ✅ 완료 (v3.2.0 released)
 - ✅ **Base Router 통합**: 물리적 연결(v1)과 서비스(v2) 뷰 통합
 - ✅ **IES 서비스 지원**: Base Router 인터페이스 및 Global Routing Table 시각화
 - ✅ **통합 UI**: 모든 서비스(Epipe, VPLS, VPRN, IES)를 하나의 인터페이스에서 관리
 - ✅ **HA 토폴로지**: IES 서비스에 대한 Local -> Peer -> Network 위상 자동 생성
+- ✅ **VPRN 라우팅 노드**: BGP / OSPF / STATIC 분리 노드로 3단 레이아웃
+- ✅ **QoS 하이라이트**: 녹색 배경 + 흰색 글자, Rate KMG 변환
+- ✅ **Shutdown 필터링**: adminState='down' 항목 다이어그램에서 자동 제외
+- ✅ **SAP 파싱 개선**: Position 기반 추출, VLAN-less SAP 지원
 
-**Latest Release**: v3.1.0 (2026-01-21)
-
-자세한 내용은 [V2_PLANNING.md](./docs/v2/V2_PLANNING.md)를 참조하세요.
+**Latest Release**: v3.2.0 (2026-02-15)
 
 ## 📊 버전 히스토리
 
-- **v3.1.2** (2026-01-22) - IES QoS 시각화 개선
-  - QoS 정보 표시 형식을 Link Label 방식으로 변경 (Epipe/VPLS 스타일 통일)
-  - In-QoS / Out-QoS 분리 및 초록색 라벨 적용
-  - Hostname 복구 및 Port Description 추가
+- **v3.2.0** (2026-02-15) - QoS 하이라이트, VPRN 라우팅 노드, SAP 파싱 개선
+  - VPRN BGP/OSPF/STATIC 분리 라우팅 노드
+  - QoS 녹색 배경 강조 및 Rate KMG 변환 (100M, 500M, 1G, Max)
+  - Shutdown SAP/인터페이스 자동 필터링
+  - SAP 파싱 전면 개선 (position 기반, VLAN-less 지원)
 
 - **v3.1.0** (2026-01-21) - BGP/OSPF 시각화 고도화 및 UI 개선
   - VPRN BGP 정보 (Router ID, Neighbor, AS, RD) 시각화 강화
@@ -249,15 +251,16 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 
 ### 프로덕션
 - **Production (v1.x)**: https://nokia.hub.sk-net.com
+- **Production (v2.x)**: https://nokia2.hub.sk-net.com
+- **Production (v3.x)**: https://nokia3.hub.sk-net.com
 - **Internal (v1.x)**: https://nokia-int.hub.sk-net.com
 
 ### 데모
 - **Demo (v1.x)**: https://demo.hub.sk-net.com (샘플 config 포함)
 
 ### 개발
-- **GitHub Repository**: https://github.com/20eung/mermaid-web
-- **Latest Release**: https://github.com/20eung/mermaid-web/releases/latest
-- **v2 Development Branch**: https://github.com/20eung/mermaid-web/tree/v2-development
+- **GitHub Repository**: https://github.com/20eung/nokia-config-visualizer
+- **Latest Release**: https://github.com/20eung/nokia-config-visualizer/releases/latest
 
 ---
 
