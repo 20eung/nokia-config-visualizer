@@ -78,7 +78,7 @@
 ## [2.0.0] - 2026-01-13
 
 ### 🚀 주요 변경 사항 (Major Changes)
-- **MPLS L2 VPN 서비스 시각화**: Nokia 7750 SR의 L2/L3 VPN 서비스를 완벽하게 지원합니다.
+- **MPLS L2 VPN 서비스 시각화**: Nokia 네트워크 장비의 L2/L3 VPN 서비스를 완벽하게 지원합니다.
   - **Epipe (P2P)**: SAP, Spoke-SDP, Endpoint 구성 시각화
   - **VPLS (Multipoint)**: SAP, Spoke-SDP, Mesh-SDP 풀 메쉬 토폴로지
   - **VPRN (L3 VPN)**: Interface, BGP Neighbor, Static Route 정보가 포함된 전용 레이아웃
