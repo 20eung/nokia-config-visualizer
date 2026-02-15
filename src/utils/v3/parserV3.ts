@@ -490,7 +490,7 @@ export function parseVPRN(
         const [, ifName, ifContent] = match;
 
         const ipMatch = ifContent.match(/address\s+([\d.\/]+)/i);
-        const sapMatch = ifContent.match(/sap\s+([\w\/-]+:\d+)/i);
+        const sapMatch = ifContent.match(/sap\s+([\w\/-]+(?::\d+)?)\s+create/i);
         const portMatch = sapMatch || ifContent.match(/port\s+([\w\/-]+)/i);
         const descMatch = ifContent.match(/description\s+"([^"]+)"/i);
         const mtuMatch = ifContent.match(/mtu\s+(\d+)/i);
@@ -1367,7 +1367,7 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
 
                 // Parsing Regex
                 const ipMatch = ifContent.match(/address\s+([\d.\/]+)/i);
-                const sapMatch = ifContent.match(/sap\s+([\w\/-]+:\d+)/i);
+                const sapMatch = ifContent.match(/sap\s+([\w\/-]+(?::\d+)?)\s+create/i);
                 const portMatch = ifContent.match(/port\s+([\w\/-]+)/i) || sapMatch;
                 const descMatch = ifContent.match(/description\s+"?([^"\n]+)"?/);
                 const mtuMatch = ifContent.match(/mtu\s+(\d+)/i);

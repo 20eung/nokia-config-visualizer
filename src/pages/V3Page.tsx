@@ -216,8 +216,15 @@ export function V3Page() {
         }> = [];
 
         iesGroupEntries.forEach(([, group]) => {
-            const iesService = group[0] as IESService & { _hostname: string };
-            const hostname = iesService._hostname || 'Unknown';
+            const iesServices = group as (IESService & { _hostname: string })[];
+            const hostname = iesServices[0]._hostname || 'Unknown';
+
+            // 같은 호스트의 모든 IES 서비스 인터페이스를 병합
+            const mergedInterfaces = iesServices.flatMap(s => s.interfaces);
+            const mergedService: IESService & { _hostname: string } = {
+                ...iesServices[0],
+                interfaces: mergedInterfaces,
+            };
 
             // 동일 config 내 모든 IES 서비스의 Static Routes 수집
             const parentConfig = configs.find(c => c.hostname === hostname);
@@ -239,14 +246,14 @@ export function V3Page() {
                 });
             }
 
-            console.log(`📊 [V3Page] IES for ${hostname}: Aggregated ${aggregatedStaticRoutes.length} static routes from all IES services`);
+            console.log(`📊 [V3Page] IES for ${hostname}: Aggregated ${aggregatedStaticRoutes.length} static routes, ${mergedInterfaces.length} merged interfaces from ${iesServices.length} IES services`);
 
-            const v1Device = convertIESToV1Format(iesService, hostname, aggregatedStaticRoutes);
+            const v1Device = convertIESToV1Format(mergedService, hostname, aggregatedStaticRoutes);
 
             // 선택된 인터페이스 파싱
             const fullHostKey = `ies-${hostname}`;
             const selectedInterfaceNames = selectedServiceIds.includes(fullHostKey)
-                ? iesService.interfaces.map(i => i.interfaceName)
+                ? mergedInterfaces.map(i => i.interfaceName)
                 : selectedServiceIds
                     .filter(id => id.startsWith(`ies___${hostname}___`))
                     .map(id => id.replace(`ies___${hostname}___`, ''));
@@ -256,7 +263,7 @@ export function V3Page() {
                     v1Device,
                     selectedInterfaceNames,
                     hostname,
-                    representativeService: iesService
+                    representativeService: mergedService
                 });
             }
         });
