@@ -4,7 +4,7 @@
 > 모든 서비스 타입(Epipe, VPLS, VPRN, IES)에 공통적으로 적용되는 규칙과 각 서비스별 고유 규칙을 포함합니다.
 
 **Last Updated**: 2026-02-15
-**적용 버전**: v3.1.x+
+**적용 버전**: v3.2.0+
 
 ---
 
@@ -122,14 +122,15 @@ SAP: 3/1/12
 
 ### 1.5 스타일 클래스
 
-| classDef | 용도 | 스타일 |
+| classDef / CSS | 용도 | 스타일 |
 |---|---|---|
-| `default` | 호스트 노드 | 흰색 배경, 검정 테두리 |
-| `service` | 서비스 노드 | 연한 파란색 배경 (`#e3f2fd`), 파란 테두리 (`#1976d2`) |
-| `qos` | QoS 라벨 (IES) | 녹색 배경 (`#4caf50`), 흰색 텍스트 |
-| `vpls` | VPLS 서비스 | 연한 파란색 배경 (`#e3f2fd`) |
-| `routing` | 라우팅 노드 | 연한 보라색 배경 (`#f3e5f5`), 보라 테두리 (`#7b1fa2`) |
-| `svcinfo` | SDP 정보 (VPLS) | 흰색 배경 (`#fff9c4`) |
+| `classDef default` | 호스트 노드 | 흰색 배경, 검정 테두리 |
+| `classDef service` | 서비스 노드 (Epipe/VPRN) | 연한 파란색 배경 (`#e3f2fd`), 파란 테두리 (`#1976d2`) |
+| `classDef vpls` | VPLS 서비스 | 연한 파란색 배경 (`#e3f2fd`) |
+| `classDef routing` | 라우팅 노드 (VPRN) | 연한 보라색 배경 (`#f3e5f5`), 보라 테두리 (`#7b1fa2`) |
+| `classDef svcinfo` | SDP 정보 (VPLS) | 연한 노란색 배경 (`#fff9c4`) |
+| CSS `.qos-hl` | QoS 하이라이트 (Epipe/VPLS/VPRN) | 녹색 배경 (`#4caf50`), 흰색 텍스트 |
+| CSS `.qos-label` | QoS 라벨 (IES 연결선) | 녹색 배경 (`#4caf50`), 흰색 텍스트 |
 
 ---
 
