@@ -240,17 +240,29 @@ function detectServiceAdminState(content: string): AdminState {
 
 /**
  * SAP 파싱
+ *
+ * 위치 기반 추출 방식:
+ * 1. 모든 `sap ... create` 시작 위치를 찾음
+ * 2. 각 SAP의 내용 = 현재 create ~ 다음 SAP 시작 (또는 문자열 끝)
+ * 이전 lookahead 방식은 마지막 SAP 뒤에 `no shutdown`이 오면 매칭 실패하는 버그가 있었음.
  */
 export function parseSAPs(serviceContent: string): SAP[] {
     const saps: SAP[] = [];
 
-    // SAP 블록 추출: sap <id> create ... exit
-    // Fix: Support SAP ID without colon (e.g., "1/1/2")
-    const sapRegex = /sap\s+([\w\/-]+(?::\d+)?)\s+create([\s\S]*?)(?=\s+(?:sap|spoke-sdp|mesh-sdp|exit\s*$))/gi;
-    const matches = serviceContent.matchAll(sapRegex);
+    // 모든 SAP 시작 위치 수집
+    const sapStartRegex = /\bsap\s+([\w\/-]+(?::\d+)?)\s+create\b/gi;
+    const sapStarts: Array<{ sapId: string; contentStart: number; index: number }> = [];
+    let m;
+    while ((m = sapStartRegex.exec(serviceContent)) !== null) {
+        sapStarts.push({ sapId: m[1], contentStart: m.index + m[0].length, index: m.index });
+    }
 
-    for (const match of matches) {
-        const [, sapId, content] = match;
+    for (let i = 0; i < sapStarts.length; i++) {
+        const { sapId, contentStart } = sapStarts[i];
+
+        // 내용 영역: create 이후 ~ 다음 SAP 시작 (또는 문자열 끝)
+        const regionEnd = (i + 1 < sapStarts.length) ? sapStarts[i + 1].index : serviceContent.length;
+        const content = serviceContent.substring(contentStart, regionEnd);
 
         // SAP ID 파싱 (예: "1/1/1:100" → port: "1/1/1", vlan: 100)
         // If no colon, vlan is 0 or undefined.
@@ -270,7 +282,11 @@ export function parseSAPs(serviceContent: string): SAP[] {
         const llf = /ethernet\s[\s\S]*?llf/i.test(content);
 
         // Admin state (기본값: up)
-        const adminState: AdminState = content.includes('shutdown') ? 'down' : 'up';
+        // SAP 자체의 shutdown/no shutdown만 확인하기 위해 SAP의 exit까지만 검사
+        // (마지막 SAP의 경우 서비스 레벨 "no shutdown"이 content에 포함될 수 있으므로)
+        const exitIdx = content.search(/^\s+exit\b/m);
+        const sapContent = exitIdx !== -1 ? content.substring(0, exitIdx) : content;
+        const adminState: AdminState = sapContent.includes('shutdown') && !sapContent.includes('no shutdown') ? 'down' : 'up';
 
         saps.push({
             sapId,
@@ -1058,8 +1074,8 @@ export function extractPortInfo(configText: string): Map<string, PortInfo> {
 
         const indent = line.length - line.trimStart().length;
 
-        // Detect port block start
-        const portMatch = trimmed.match(/^port\s+([\w\/-]+)/);
+        // Detect physical port block start (slot/mda/port format only)
+        const portMatch = trimmed.match(/^port\s+(\d+\/\d+\/\d+(?:\.\d+)?)/);
         if (portMatch && !currentPort) {
             currentPort = portMatch[1];
             currentPortIndent = indent;

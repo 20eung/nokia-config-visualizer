@@ -50,6 +50,10 @@ function isIpInSubnet(ip: string, cidr: string): boolean {
     return (ipToLong(ip) & mask) === (ipToLong(subnetIp) & mask);
 }
 
+// Helper: QoS 텍스트를 녹색 배경 + 흰색 글자로 강조 (IES와 동일 색상, CSS 클래스 기반)
+const qosHighlight = (text: string): string =>
+    `\u003cspan class='qos-hl'\u003e${text}\u003c/span\u003e`;
+
 // Helper: QoS rate를 KMG 단위로 변환 (kbps → K/M/G)
 // rate 파싱 성공 시: "100M", "2G", "500K", "Max"
 // rate 파싱 실패 시 (정책 정의 없음): policy ID만 표시 "15"
@@ -144,25 +148,25 @@ export function generateEpipeDiagram(
                 let label = `\u003cdiv style=\"text-align: left\"\u003e`;
                 // SAP + QoS (SAP 하위 항목)
                 label += `\u003cb\u003eSAP:\u003c/b\u003e ${sap.sapId}<br/>`;
-                if (sap.ingressQos) label += `\u00A0\u00A0\u2011\u00A0In\u2011QoS:\u00A0${formatRateKMG(sap.ingressQos)}<br/>`;
-                if (sap.egressQos) label += `\u00A0\u00A0\u2011\u00A0Out\u2011QoS:\u00A0${formatRateKMG(sap.egressQos)}<br/>`;
+                if (sap.ingressQos) label += qosHighlight(`\u2011\u00A0In\u2011QoS:\u00A0${formatRateKMG(sap.ingressQos)}`) + `<br/>`;
+                if (sap.egressQos) label += qosHighlight(`\u2011\u00A0Out\u2011QoS:\u00A0${formatRateKMG(sap.egressQos)}`) + `<br/>`;
                 // Port
                 label += `\u003cb\u003ePort:\u003c/b\u003e ${sap.portId}<br/>`;
                 if (sap.portDescription) {
-                    label += `\u003cb\u003ePort\u00A0Desc:\u003c/b\u003e ${noWrap(sap.portDescription)}<br/>`;
+                    label += `\u2011\u00A0\u003cb\u003eDesc:\u003c/b\u003e ${noWrap(sap.portDescription)}<br/>`;
                 }
                 // Ethernet sub-fields (only show fields that have values)
                 const pe = sap.portEthernet;
                 const ethItems: string[] = [];
                 if (pe?.mode) ethItems.push(`\u00A0\u00A0\u2011\u00A0Mode:\u00A0${pe.mode}`);
                 if (pe?.mtu) ethItems.push(`\u00A0\u00A0\u2011\u00A0MTU:\u00A0${pe.mtu}`);
-                if (pe?.speed) ethItems.push(`\u00A0\u00A0\u2011\u00A0SPEED:\u00A0${pe.speed}`);
-                if (pe?.autonegotiate) ethItems.push(`\u00A0\u00A0\u2011\u00A0AUTONEGO:\u00A0${pe.autonegotiate}`);
-                if (pe?.networkQueuePolicy) ethItems.push(`\u00A0\u00A0\u2011\u00A0NETWORK:\u00A0${pe.networkQueuePolicy}`);
+                if (pe?.speed) ethItems.push(`\u00A0\u00A0\u2011\u00A0Speed:\u00A0${pe.speed}`);
+                if (pe?.autonegotiate) ethItems.push(`\u00A0\u00A0\u2011\u00A0AutoNego:\u00A0${pe.autonegotiate}`);
+                if (pe?.networkQueuePolicy) ethItems.push(`\u00A0\u00A0\u2011\u00A0Network:\u00A0${pe.networkQueuePolicy}`);
                 if (sap.llf) ethItems.push(`\u00A0\u00A0\u2011\u00A0LLF:\u00A0On`);
                 if (pe?.lldp) ethItems.push(`\u00A0\u00A0\u2011\u00A0LLDP:\u00A0${pe.lldp}`);
                 if (ethItems.length > 0) {
-                    label += `\u003cb\u003eEthernet:\u003c/b\u003e<br/>`;
+                    label += `\u2011\u00A0\u003cb\u003eEthernet:\u003c/b\u003e<br/>`;
                     label += ethItems.join('<br/>') + '<br/>';
                 }
                 label += `\u003c/div\u003e`;
@@ -172,14 +176,47 @@ export function generateEpipeDiagram(
         });
 
         // Render Service Node
+        // 여러 호스트의 name/description이 다를 수 있으므로 모든 고유값 표시
         let svcLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
         svcLabel += `\u003cb\u003eService:\u003c/b\u003e EPIPE ${first.serviceId}<br/>`;
 
-        if (first.serviceName) {
-            svcLabel += `\u003cb\u003eEPIPE Name:\u003c/b\u003e ${noWrap(first.serviceName)}<br/>`;
+        // Name: 고유값이 1개면 인라인, 여러개면 헤더 + 들여쓰기 목록
+        const nameEntries: {hostname: string, value: string}[] = [];
+        subsetEpipes.forEach((e, idx) => {
+            if (e.serviceName) nameEntries.push({ hostname: subsetHosts[idx], value: e.serviceName });
+        });
+        const uniqueNameValues = new Set(nameEntries.map(e => e.value));
+        if (uniqueNameValues.size === 1) {
+            svcLabel += `\u003cb\u003eEPIPE\u00A0Name:\u003c/b\u003e ${noWrap([...uniqueNameValues][0])}<br/>`;
+        } else if (uniqueNameValues.size > 1) {
+            svcLabel += `\u003cb\u003eEPIPE\u00A0Name:\u003c/b\u003e<br/>`;
+            const seenNames = new Set<string>();
+            nameEntries.forEach(e => {
+                const key = `${e.hostname}:${e.value}`;
+                if (!seenNames.has(key)) {
+                    seenNames.add(key);
+                    svcLabel += `\u2011\u00A0${noWrap(e.hostname)}:\u00A0${noWrap(e.value)}<br/>`;
+                }
+            });
         }
-        if (first.description) {
-            svcLabel += `\u003cb\u003eEPIPE Desc:\u003c/b\u003e ${first.description}<br/>`;
+        // Desc: 고유값이 1개면 인라인, 여러개면 헤더 + 들여쓰기 목록
+        const descEntries: {hostname: string, value: string}[] = [];
+        subsetEpipes.forEach((e, idx) => {
+            if (e.description) descEntries.push({ hostname: subsetHosts[idx], value: e.description });
+        });
+        const uniqueDescValues = new Set(descEntries.map(e => e.value));
+        if (uniqueDescValues.size === 1) {
+            svcLabel += `\u003cb\u003eEPIPE\u00A0Desc:\u003c/b\u003e ${noWrap([...uniqueDescValues][0])}<br/>`;
+        } else if (uniqueDescValues.size > 1) {
+            svcLabel += `\u003cb\u003eEPIPE\u00A0Desc:\u003c/b\u003e<br/>`;
+            const seenDescs = new Set<string>();
+            descEntries.forEach(e => {
+                const key = `${e.hostname}:${e.value}`;
+                if (!seenDescs.has(key)) {
+                    seenDescs.add(key);
+                    svcLabel += `\u2011\u00A0${noWrap(e.hostname)}:\u00A0${noWrap(e.value)}<br/>`;
+                }
+            });
         }
         // Spoke-SDP Info
         if (first.spokeSdps && first.spokeSdps.length > 0) {
@@ -231,10 +268,19 @@ export function generateVPLSDiagram(
     _sdps: SDP[] = [],
     _remoteDeviceMap?: Map<string, string>
 ): string {
-    // 배열로 정규화 + shutdown SAP 필터링
+    // 배열로 정규화 + shutdown SAP 필터링 + 호스트명 정렬
     const rawVplsArray = Array.isArray(vpls) ? vpls : [vpls];
-    const hostnameArray = Array.isArray(hostname) ? hostname : [hostname];
-    const vplsArray = rawVplsArray.map(v => ({ ...v, saps: v.saps.filter(s => s.adminState !== 'down') }));
+    const rawHostnameArray = Array.isArray(hostname) ? hostname : [hostname];
+
+    // 호스트명 기준 오름차순 정렬 (BB3 → BB4 순서 보장)
+    const sortedIndices = rawHostnameArray.map((_, i) => i).sort((a, b) =>
+        rawHostnameArray[a].localeCompare(rawHostnameArray[b])
+    );
+    const hostnameArray = sortedIndices.map(i => rawHostnameArray[i]);
+    const vplsArray = sortedIndices.map(i => ({
+        ...rawVplsArray[i],
+        saps: rawVplsArray[i].saps.filter(s => s.adminState !== 'down')
+    }));
 
     const lines: string[] = [];
     lines.push('graph LR');
@@ -253,12 +299,12 @@ export function generateVPLSDiagram(
         let label = `\u003cdiv style=\"text-align: left\"\u003e`;
         // SAP + QoS (SAP 하위 항목)
         label += `\u003cb\u003eSAP:\u003c/b\u003e ${sap.sapId}<br/>`;
-        if (sap.ingressQos) label += `\u00A0\u00A0\u2011\u00A0In\u2011QoS:\u00A0${formatRateKMG(sap.ingressQos)}<br/>`;
-        if (sap.egressQos) label += `\u00A0\u00A0\u2011\u00A0Out\u2011QoS:\u00A0${formatRateKMG(sap.egressQos)}<br/>`;
+        if (sap.ingressQos) label += qosHighlight(`\u2011\u00A0In\u2011QoS:\u00A0${formatRateKMG(sap.ingressQos)}`) + `<br/>`;
+        if (sap.egressQos) label += qosHighlight(`\u2011\u00A0Out\u2011QoS:\u00A0${formatRateKMG(sap.egressQos)}`) + `<br/>`;
         // Port
         label += `\u003cb\u003ePort:\u003c/b\u003e ${sap.portId}<br/>`;
         if (sap.portDescription) {
-            label += `\u003cb\u003ePort\u00A0Desc:\u003c/b\u003e ${noWrap(sap.portDescription)}<br/>`;
+            label += `\u2011\u00A0\u003cb\u003eDesc:\u003c/b\u003e ${noWrap(sap.portDescription)}<br/>`;
         }
         if (sap.vlanId) {
             label += `\u003cb\u003eVLAN:\u003c/b\u003e ${sap.vlanId}<br/>`;
@@ -268,13 +314,13 @@ export function generateVPLSDiagram(
         const ethItems: string[] = [];
         if (pe?.mode) ethItems.push(`\u00A0\u00A0\u2011\u00A0Mode:\u00A0${pe.mode}`);
         if (pe?.mtu) ethItems.push(`\u00A0\u00A0\u2011\u00A0MTU:\u00A0${pe.mtu}`);
-        if (pe?.speed) ethItems.push(`\u00A0\u00A0\u2011\u00A0SPEED:\u00A0${pe.speed}`);
-        if (pe?.autonegotiate) ethItems.push(`\u00A0\u00A0\u2011\u00A0AUTONEGO:\u00A0${pe.autonegotiate}`);
-        if (pe?.networkQueuePolicy) ethItems.push(`\u00A0\u00A0\u2011\u00A0NETWORK:\u00A0${pe.networkQueuePolicy}`);
+        if (pe?.speed) ethItems.push(`\u00A0\u00A0\u2011\u00A0Speed:\u00A0${pe.speed}`);
+        if (pe?.autonegotiate) ethItems.push(`\u00A0\u00A0\u2011\u00A0AutoNego:\u00A0${pe.autonegotiate}`);
+        if (pe?.networkQueuePolicy) ethItems.push(`\u00A0\u00A0\u2011\u00A0Network:\u00A0${pe.networkQueuePolicy}`);
         if (sap.llf) ethItems.push(`\u00A0\u00A0\u2011\u00A0LLF:\u00A0On`);
         if (pe?.lldp) ethItems.push(`\u00A0\u00A0\u2011\u00A0LLDP:\u00A0${pe.lldp}`);
         if (ethItems.length > 0) {
-            label += `\u003cb\u003eEthernet:\u003c/b\u003e<br/>`;
+            label += `\u2011\u00A0\u003cb\u003eEthernet:\u003c/b\u003e<br/>`;
             label += ethItems.join('<br/>') + '<br/>';
         }
         label += `\u003c/div\u003e`;
@@ -326,16 +372,51 @@ export function generateVPLSDiagram(
     };
 
     // --- Helper: VPLS 서비스 노드 렌더링 ---
+    // 여러 호스트의 name/description이 다를 수 있으므로 모든 고유값 표시
     const renderServiceNode = () => {
         lines.push('');
         let vplsLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
         vplsLabel += `\u003cb\u003eService:\u003c/b\u003e VPLS ${firstVpls.serviceId}<br/>`;
-        if (firstVpls.serviceName) {
-            vplsLabel += `\u003cb\u003eVPLS\u00A0Name:\u003c/b\u003e ${noWrap(firstVpls.serviceName)}<br/>`;
+
+        // Name: 고유값이 1개면 인라인, 여러개면 헤더 + 들여쓰기 목록
+        const nameEntries: {hostname: string, value: string}[] = [];
+        vplsArray.forEach((v, idx) => {
+            if (v.serviceName) nameEntries.push({ hostname: hostnameArray[idx], value: v.serviceName });
+        });
+        const uniqueNameValues = new Set(nameEntries.map(e => e.value));
+        if (uniqueNameValues.size === 1) {
+            vplsLabel += `\u003cb\u003eVPLS\u00A0Name:\u003c/b\u003e ${noWrap([...uniqueNameValues][0])}<br/>`;
+        } else if (uniqueNameValues.size > 1) {
+            vplsLabel += `\u003cb\u003eVPLS\u00A0Name:\u003c/b\u003e<br/>`;
+            const seenNames = new Set<string>();
+            nameEntries.forEach(e => {
+                const key = `${e.hostname}:${e.value}`;
+                if (!seenNames.has(key)) {
+                    seenNames.add(key);
+                    vplsLabel += `\u2011\u00A0${noWrap(e.hostname)}:\u00A0${noWrap(e.value)}<br/>`;
+                }
+            });
         }
-        if (firstVpls.description) {
-            vplsLabel += `\u003cb\u003eVPLS\u00A0Desc:\u003c/b\u003e ${noWrap(firstVpls.description)}<br/>`;
+        // Desc: 고유값이 1개면 인라인, 여러개면 헤더 + 들여쓰기 목록
+        const descEntries: {hostname: string, value: string}[] = [];
+        vplsArray.forEach((v, idx) => {
+            if (v.description) descEntries.push({ hostname: hostnameArray[idx], value: v.description });
+        });
+        const uniqueDescValues = new Set(descEntries.map(e => e.value));
+        if (uniqueDescValues.size === 1) {
+            vplsLabel += `\u003cb\u003eVPLS\u00A0Desc:\u003c/b\u003e ${noWrap([...uniqueDescValues][0])}<br/>`;
+        } else if (uniqueDescValues.size > 1) {
+            vplsLabel += `\u003cb\u003eVPLS\u00A0Desc:\u003c/b\u003e<br/>`;
+            const seenDescs = new Set<string>();
+            descEntries.forEach(e => {
+                const key = `${e.hostname}:${e.value}`;
+                if (!seenDescs.has(key)) {
+                    seenDescs.add(key);
+                    vplsLabel += `\u2011\u00A0${noWrap(e.hostname)}:\u00A0${noWrap(e.value)}<br/>`;
+                }
+            });
         }
+
         vplsLabel += `\u003c/div\u003e`;
         lines.push(`${vplsNodeId}["${vplsLabel}"]`);
         lines.push(`class ${vplsNodeId} vpls;`);
@@ -611,61 +692,78 @@ export function generateVPRNDiagram(
                 // Interface (최상위 헤더)
                 label += `\u003cb\u003eInterface:\u003c/b\u003e ${noWrap(iface.interfaceName)}<br/>`;
 
-                // Int Desc
+                // Desc
                 if (iface.description) {
-                    label += `\u00A0\u00A0\u2011\u00A0Int\u00A0Desc:\u00A0${noWrap(iface.description)}<br/>`;
+                    label += `\u2011\u00A0Desc:\u00A0${noWrap(iface.description)}<br/>`;
                 }
 
                 // IP
                 if (iface.ipAddress) {
-                    label += `\u00A0\u00A0\u2011\u00A0IP:\u00A0${iface.ipAddress}<br/>`;
+                    label += `\u2011\u00A0IP:\u00A0${iface.ipAddress}<br/>`;
                 }
 
                 // VRRP: priority >= 100 → MASTER, < 100 → BACKUP
                 if (iface.vrrpBackupIp) {
                     const role = (iface.vrrpPriority !== undefined && iface.vrrpPriority >= 100) ? 'MASTER' : 'BACKUP';
-                    label += `\u00A0\u00A0\u2011\u00A0VRRP:\u00A0${iface.vrrpBackupIp}\u00A0(${role})<br/>`;
+                    label += `\u2011\u00A0VRRP:\u00A0${iface.vrrpBackupIp}\u00A0(${role})<br/>`;
                 }
 
                 // VPLS binding
                 if (iface.vplsName) {
-                    label += `\u00A0\u00A0\u2011\u00A0VPLS:\u00A0${noWrap(iface.vplsName)}<br/>`;
+                    label += `\u2011\u00A0VPLS:\u00A0${noWrap(iface.vplsName)}<br/>`;
                 }
 
                 // SAP + QoS (하위 항목)
                 if (iface.portId) {
-                    label += `\u003cb\u003eSAP:\u003c/b\u003e ${iface.portId}<br/>`;
+                    label += `\u2011\u00A0\u003cb\u003eSAP:\u003c/b\u003e ${iface.portId}<br/>`;
                     // In-QoS
                     const inRate = formatL3QosRate(iface, 'ingress');
                     if (inRate) {
-                        label += `\u00A0\u00A0\u2011\u00A0In\u2011QoS:\u00A0${inRate}<br/>`;
+                        label += qosHighlight(`\u00A0\u00A0\u2011\u00A0In\u2011QoS:\u00A0${inRate}`) + `<br/>`;
                     }
                     // Out-QoS
                     const outRate = formatL3QosRate(iface, 'egress');
                     if (outRate) {
-                        label += `\u00A0\u00A0\u2011\u00A0Out\u2011QoS:\u00A0${outRate}<br/>`;
+                        label += qosHighlight(`\u00A0\u00A0\u2011\u00A0Out\u2011QoS:\u00A0${outRate}`) + `<br/>`;
                     }
                 }
 
                 // Port (sapId에서 ':' 이전 부분)
                 if (iface.portId) {
                     const portOnly = iface.portId.split(':')[0];
-                    label += `\u003cb\u003ePort:\u003c/b\u003e ${portOnly}<br/>`;
-                }
+                    label += `\u2011\u00A0\u003cb\u003ePort:\u003c/b\u003e ${portOnly}<br/>`;
 
-                // Port Desc
-                if (iface.portDescription) {
-                    label += `\u003cb\u003ePort\u00A0Desc:\u003c/b\u003e ${noWrap(iface.portDescription)}<br/>`;
+                    // Port Desc
+                    if (iface.portDescription) {
+                        label += `\u00A0\u00A0\u2011\u00A0\u003cb\u003eDesc:\u003c/b\u003e ${noWrap(iface.portDescription)}<br/>`;
+                    }
+
+                    // Ethernet sub-fields
+                    const pe = iface.portEthernet;
+                    const ethItems: string[] = [];
+                    if (pe?.mode) ethItems.push(`\u00A0\u00A0\u00A0\u00A0\u2011\u00A0Mode:\u00A0${pe.mode}`);
+                    if (pe?.mtu) ethItems.push(`\u00A0\u00A0\u00A0\u00A0\u2011\u00A0MTU:\u00A0${pe.mtu}`);
+                    if (pe?.speed) ethItems.push(`\u00A0\u00A0\u00A0\u00A0\u2011\u00A0Speed:\u00A0${pe.speed}`);
+                    if (pe?.autonegotiate) ethItems.push(`\u00A0\u00A0\u00A0\u00A0\u2011\u00A0AutoNego:\u00A0${pe.autonegotiate.toUpperCase()}`);
+                    if (pe?.networkQueuePolicy) ethItems.push(`\u00A0\u00A0\u00A0\u00A0\u2011\u00A0Network:\u00A0${noWrap(pe.networkQueuePolicy)}`);
+                    if (pe?.lldp) ethItems.push(`\u00A0\u00A0\u00A0\u00A0\u2011\u00A0LLDP:\u00A0${pe.lldp}`);
+                    if (ethItems.length > 0) {
+                        label += `\u00A0\u00A0\u2011\u00A0\u003cb\u003eEthernet:\u003c/b\u003e<br/>`;
+                        label += ethItems.join('<br/>') + '<br/>';
+                    }
+                } else if (iface.portDescription) {
+                    // Port Desc without portId (fallback)
+                    label += `\u2011\u00A0\u003cb\u003eDesc:\u003c/b\u003e ${noWrap(iface.portDescription)}<br/>`;
                 }
 
                 // IP-MTU
                 if (iface.mtu) {
-                    label += `\u003cb\u003eIP\u2011MTU:\u003c/b\u003e ${iface.mtu}<br/>`;
+                    label += `\u2011\u00A0\u003cb\u003eIP\u2011MTU:\u003c/b\u003e ${iface.mtu}<br/>`;
                 }
 
                 // Spoke-Sdp
                 if (iface.spokeSdpId) {
-                    label += `\u003cb\u003eSpoke\u2011Sdp:\u003c/b\u003e ${iface.spokeSdpId}<br/>`;
+                    label += `\u2011\u00A0\u003cb\u003eSpoke\u2011Sdp:\u003c/b\u003e ${iface.spokeSdpId}<br/>`;
                 }
 
                 label += `\u003c/div\u003e`;
@@ -686,25 +784,25 @@ export function generateVPRNDiagram(
         let bgpLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
         bgpLabel += `\u003cb\u003eBGP:\u003c/b\u003e<br/>`;
         if (bgpRouterId) {
-            bgpLabel += `\u00A0\u00A0\u2011\u00A0Router\u2011ID:\u00A0${bgpRouterId}<br/>`;
+            bgpLabel += `\u2011\u00A0Router\u2011ID:\u00A0${bgpRouterId}<br/>`;
         }
         if (bgpSplitHorizon) {
-            bgpLabel += `\u00A0\u00A0\u2011\u00A0Split\u2011Horizon:\u00A0On<br/>`;
+            bgpLabel += `\u2011\u00A0Split\u2011Horizon:\u00A0On<br/>`;
         }
         if (allBgpGroups.length > 0) {
             allBgpGroups.forEach(g => {
-                bgpLabel += `\u00A0\u00A0\u2011\u00A0GROUP:\u00A0${noWrap(g.groupName)}<br/>`;
+                bgpLabel += `\u2011\u00A0Group:\u00A0${noWrap(g.groupName)}<br/>`;
                 g.neighbors.forEach(n => {
                     const peerAs = n.peerAs || g.peerAs;
-                    bgpLabel += `\u00A0\u00A0\u00A0\u00A0\u2011\u00A0Peer:\u00A0${n.neighborIp}<br/>`;
+                    bgpLabel += `\u00A0\u00A0\u2011\u00A0Peer:\u00A0${n.neighborIp}<br/>`;
                     if (peerAs) {
-                        bgpLabel += `\u00A0\u00A0\u00A0\u00A0\u2011\u00A0Peer\u2011AS:\u00A0${peerAs}<br/>`;
+                        bgpLabel += `\u00A0\u00A0\u2011\u00A0Peer\u2011AS:\u00A0${peerAs}<br/>`;
                     }
                 });
             });
         } else if (allBgpNeighbors.length > 0) {
             allBgpNeighbors.forEach(n => {
-                bgpLabel += `\u00A0\u00A0\u2011\u00A0Peer:\u00A0${n.neighborIp}`;
+                bgpLabel += `\u2011\u00A0Peer:\u00A0${n.neighborIp}`;
                 if (n.autonomousSystem) bgpLabel += `\u00A0(AS\u00A0${n.autonomousSystem})`;
                 bgpLabel += `<br/>`;
             });
@@ -719,12 +817,12 @@ export function generateVPRNDiagram(
         let ospfLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
         ospfLabel += `\u003cb\u003eOSPF:\u003c/b\u003e<br/>`;
         allOspfAreas.forEach(a => {
-            ospfLabel += `\u00A0\u00A0\u2011\u00A0AREA:\u00A0${a.areaId}<br/>`;
+            ospfLabel += `\u2011\u00A0Area:\u00A0${a.areaId}<br/>`;
             if (a.interfaces.length > 0) {
-                ospfLabel += `\u00A0\u00A0\u00A0\u00A0\u2011\u00A0Interface:<br/>`;
+                ospfLabel += `\u00A0\u00A0\u2011\u00A0Interface:<br/>`;
                 a.interfaces.forEach(i => {
                     const typeStr = i.interfaceType ? `:\u00A0${i.interfaceType}` : '';
-                    ospfLabel += `\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u2011\u00A0${noWrap(i.interfaceName)}${typeStr}<br/>`;
+                    ospfLabel += `\u00A0\u00A0\u00A0\u00A0\u2011\u00A0${noWrap(i.interfaceName)}${typeStr}<br/>`;
                 });
             }
         });
@@ -741,10 +839,10 @@ export function generateVPRNDiagram(
             const nodeId = `ROUTING_STATIC_${firstVprn.serviceId}_${staticCounter}`;
             staticNodeIds.set(nextHop, nodeId);
             let staticLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
-            staticLabel += `\u003cb\u003eSTATIC:\u003c/b\u003e<br/>`;
-            staticLabel += `Next\u2011Hop:\u00A0${nextHop}<br/>`;
+            staticLabel += `\u003cb\u003eSTATIC:\u003c/b\u003e ${allStaticRoutes.length}개<br/>`;
+            staticLabel += `\u003cb\u003eNext\u2011Hop:\u003c/b\u003e\u00A0${nextHop}<br/>`;
             prefixes.forEach(p => {
-                staticLabel += `\u00A0\u00A0\u2011\u00A0${p}<br/>`;
+                staticLabel += `\u2011\u00A0${p}<br/>`;
             });
             staticLabel += `\u003c/div\u003e`;
             lines.push(`${nodeId}["${staticLabel}"]`);

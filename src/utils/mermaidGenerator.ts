@@ -210,8 +210,9 @@ function buildQosEdgeLabel(intf: NokiaInterface): string {
 function buildNodeLabel(device: NokiaDevice, intf: NokiaInterface): string {
   const nbsp = '\u00A0';
   const nbhy = '\u2011';
-  const indent1 = `${nbsp}${nbsp}${nbhy}${nbsp}`;
-  const indent2 = `${nbsp}${nbsp}${nbsp}${nbsp}${nbhy}${nbsp}`;
+  const indent1 = `${nbhy}${nbsp}`;
+  const indent2 = `${nbsp}${nbsp}${nbhy}${nbsp}`;
+  const indent3 = `${nbsp}${nbsp}${nbsp}${nbsp}${nbhy}${nbsp}`;
 
   let label = `<div style="text-align: left">`;
   label += `<b>Host:</b>${nbsp}${noWrap(device.hostname)}<br/><br/>`;
@@ -260,12 +261,12 @@ function buildNodeLabel(device: NokiaDevice, intf: NokiaInterface): string {
     if (intf.portEthernet) {
       const pe = intf.portEthernet;
       const ethFields: string[] = [];
-      if (pe.mode) ethFields.push(`${indent2}<b>Mode:</b>${nbsp}${pe.mode}`);
-      if (pe.mtu) ethFields.push(`${indent2}<b>MTU:</b>${nbsp}${pe.mtu}`);
-      if (pe.speed) ethFields.push(`${indent2}<b>SPEED:</b>${nbsp}${pe.speed}`);
-      if (pe.autonegotiate) ethFields.push(`${indent2}<b>AUTONEGO:</b>${nbsp}${pe.autonegotiate.toUpperCase()}`);
-      if (pe.networkQueuePolicy) ethFields.push(`${indent2}<b>NETWORK:</b>${nbsp}${noWrap(pe.networkQueuePolicy)}`);
-      if (pe.lldp) ethFields.push(`${indent2}<b>LLDP:</b>${nbsp}${pe.lldp}`);
+      if (pe.mode) ethFields.push(`${indent3}<b>Mode:</b>${nbsp}${pe.mode}`);
+      if (pe.mtu) ethFields.push(`${indent3}<b>MTU:</b>${nbsp}${pe.mtu}`);
+      if (pe.speed) ethFields.push(`${indent3}<b>Speed:</b>${nbsp}${pe.speed}`);
+      if (pe.autonegotiate) ethFields.push(`${indent3}<b>AutoNego:</b>${nbsp}${pe.autonegotiate.toUpperCase()}`);
+      if (pe.networkQueuePolicy) ethFields.push(`${indent3}<b>Network:</b>${nbsp}${noWrap(pe.networkQueuePolicy)}`);
+      if (pe.lldp) ethFields.push(`${indent3}<b>LLDP:</b>${nbsp}${pe.lldp}`);
 
       if (ethFields.length > 0) {
         label += `${indent2}<b>Ethernet:</b><br/>`;

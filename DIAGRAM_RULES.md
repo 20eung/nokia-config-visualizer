@@ -26,9 +26,10 @@
 | **3** | **[VPLS 다이어그램](#3-vpls-다이어그램)** | Multipoint L2 VPN |
 | 3.1 | 호스트 노드 (SAP Node) | SAP + QoS + Port + VLAN + Ethernet |
 | 3.2 | SDP 정보 노드 | Mesh-Sdp, Spoke-Sdp, MAC-MOVE |
-| 3.3 | 서비스 노드 | Service ID, Name, Description |
-| 3.4 | Hub-Spoke 레이아웃 | SDP 합산 기반 Hub 자동 감지 |
-| 3.5 | QoS 표시 | SAP 하위 항목으로 표시 |
+| 3.3 | 서비스 노드 | Service ID, Name, Description (멀티호스트 고유값) |
+| 3.4 | 호스트 정렬 및 멀티 SAP | hostname 정렬, SAP별 개별 노드 |
+| 3.5 | Hub-Spoke 레이아웃 | SDP 합산 기반 Hub 자동 감지 |
+| 3.6 | QoS 표시 | SAP 하위 항목으로 표시 |
 | **4** | **[VPRN 다이어그램](#4-vprn-다이어그램)** | L3 VPN (3단 레이아웃) |
 | 4.1 | 전체 레이아웃 | Interface → Routing Nodes → Service |
 | 4.2 | 호스트 노드 (Interface 중심) | Interface + SAP + QoS + Port |
@@ -69,6 +70,7 @@
 | **VPLS** | `VPLS {serviceId}: {description}` | `VPLS 5000: OFFICE-LAN` |
 | **VPRN** | `VPRN {serviceId}: {description}` | `VPRN 3093: VPN-CustomerB` |
 | **IES** | `{hostname}: {interfaceDesc}` | `PE-Router-1: TO-CE-Switch` |
+| **IES (이중화)** | `이중화: {hostname1}: {intfDesc} & {hostname2}: {intfDesc}` | `이중화: BB3: To-CustomerA & BB4: To-CustomerA` |
 
 - 구분자는 `: ` (콜론 + 공백)을 사용한다. (` - ` 아님)
 - description이 없으면 서비스 ID만 표시한다. (예: `EPIPE 2043`)
@@ -76,6 +78,7 @@
   1. Interface Description
   2. Port Description
   3. Interface Name (fallback)
+- IES 이중화 타이틀도 동일한 Description 우선순위를 적용한다.
 
 ### 1.2 QoS 표시 규칙
 
@@ -85,11 +88,15 @@
 - **IES**: 연결선(edge label)에 표시 (V1 어댑터 방식)
 - Nokia config에서 QoS는 `sap` 블록 안의 `ingress qos` / `egress qos`에 설정됨
 
+**QoS 색상 강조 (시인성 향상):**
+- **Epipe/VPLS/VPRN**: QoS 텍스트를 녹색 배경(`#4caf50`) + 흰색 글자로 강조 표시. CSS 클래스 `.qos-hl` 사용 (`<span class='qos-hl'>`)
+- **IES**: 연결선 라벨에 `.qos-label` 클래스 사용 (동일 색상)
+- CSS 정의: `src/index.css`
 
 ```
 SAP: 3/1/12
-  - In‑QoS: 100M
-  - Out‑QoS: 100M
+  - In‑QoS: 100M    ← 녹색 배경 + 흰색 글자
+  - Out‑QoS: 100M   ← 녹색 배경 + 흰색 글자
 ```
 
 ### 1.3 텍스트 표시 규칙
@@ -141,16 +148,16 @@ SAP 노드에 표시하는 정보와 순서:
 
 ```
 SAP: 3/1/12
-  - In‑QoS: 100M
-  - Out‑QoS: 100M
+- In‑QoS: 100M
+- Out‑QoS: 100M
 Port: 3/1/12
-Port Desc: TO-CUSTOMER-SW
-Ethernet:
+- Desc: TO-CUSTOMER-SW
+- Ethernet:
   - Mode: access
   - MTU: 9212
-  - SPEED: 100
-  - AUTONEGO: NO
-  - NETWORK: queue-policy-name
+  - Speed: 100
+  - AutoNego: NO
+  - Network: queue-policy-name
   - LLF: On
   - LLDP: admin-status
 ```
@@ -173,7 +180,20 @@ EPIPE Desc: description
 Spoke‑Sdp: 1005:2043
 ```
 
+**멀티호스트 Name/Desc가 다를 경우:**
+```
+Service: EPIPE 2043
+EPIPE Name:
+‑ hostname1: service-name-A
+‑ hostname2: service-name-B
+EPIPE Desc:
+‑ hostname1: description-A
+‑ hostname2: description-B
+Spoke‑Sdp: 1005:2043
+```
+
 - Service ID, Name, Description, Spoke-SDP 정보 표시
+- **멀티호스트 고유값 표시**: 동일 serviceId를 가진 여러 호스트의 Name/Description이 다를 경우, 헤더(`EPIPE Name:`) 아래에 `‑ hostname: value` 형식의 들여쓰기 목록으로 표시한다. 고유값이 1개면 인라인(`EPIPE Name: value`)으로 표시. (중복값은 1회만 표시)
 - 값이 있는 것만 표시
 - Spoke-SDP는 SAP 노드가 아닌 **서비스 노드에만** 표시 (동일 데이터의 중복 방지)
 
@@ -183,9 +203,9 @@ Spoke‑Sdp: 1005:2043
 |---|---|---|
 | Mode | `port > ethernet > mode` | `mode access` |
 | MTU | `port > ethernet > mtu` | `mtu 9212` |
-| SPEED | `port > ethernet > speed` | `speed 10000` |
-| AUTONEGO | `port > ethernet` | `no autonegotiate` |
-| NETWORK | `port > ethernet > network > queue-policy` | `queue-policy "voice_qos"` |
+| Speed | `port > ethernet > speed` | `speed 10000` |
+| AutoNego | `port > ethernet` | `no autonegotiate` |
+| Network | `port > ethernet > network > queue-policy` | `queue-policy "voice_qos"` |
 | LLF | `service > sap > ethernet > llf` | `llf` (키워드 존재 여부) |
 | LLDP | `port > ethernet > lldp > dest-mac > admin-status` | `admin-status tx-rx` |
 
@@ -222,14 +242,36 @@ MAC-MOVE: Detected
 
 ```
 Service: VPLS 5000
-VPLS Name: office-lan
-VPLS Desc: Office LAN Service
+VPLS Name: office-lan-sw1
+VPLS Desc: Office LAN
 ```
 
-- Service ID, Name, Description만 표시
+**멀티호스트 Name/Desc가 다를 경우:**
+```
+Service: VPLS 5000
+VPLS Name:
+‑ hostname1: office-lan-sw1
+‑ hostname2: office-lan-sw2
+VPLS Desc:
+‑ hostname1: Office LAN Host-A
+‑ hostname2: Office LAN Host-B
+```
+
+- Service ID, Name, Description 표시
+- **멀티호스트 고유값 표시**: 동일 serviceId를 가진 여러 호스트의 Name/Description이 다를 경우, 헤더(`VPLS Name:`) 아래에 `‑ hostname: value` 형식의 들여쓰기 목록으로 표시한다. 고유값이 1개면 인라인(`VPLS Name: value`)으로 표시. (중복값은 1회만 표시)
 - Spoke-Sdp, Mesh-Sdp, MAC-MOVE는 호스트 종속이므로 서비스 노드에 표시하지 않음
 
-### 3.4 Hub-Spoke 레이아웃
+### 3.4 호스트 정렬 및 멀티 SAP
+
+**호스트 정렬:**
+- 여러 호스트(config 파일)가 동일 VPLS에 참여할 경우, **hostname 기준 오름차순 정렬**하여 렌더링한다. (예: BB3 → BB4)
+
+**멀티 SAP:**
+- 하나의 호스트에 여러 SAP이 설정된 경우, **각 SAP이 개별 노드(박스)**로 표시된다.
+- 각 SAP 노드에는 해당 SAP의 고유 정보(SAP ID, QoS, Port, Ethernet)가 표시된다.
+- 예: VPLS에 SAP `3/1/24:1049` (인터링크)와 SAP `3/2/4` (고객 포트)가 있으면, 같은 호스트 서브그래프 안에 2개의 SAP 노드가 생성된다.
+
+### 3.5 Hub-Spoke 레이아웃
 
 VPLS에 여러 호스트가 참여할 때, **SDP(Mesh + Spoke) 합산 개수가 가장 많은 호스트를 Hub(코어 장비)**로 자동 감지하여 레이아웃을 최적화한다.
 
@@ -258,7 +300,7 @@ VPLS에 여러 호스트가 참여할 때, **SDP(Mesh + Spoke) 합산 개수가 
 [Host C] -->
 ```
 
-### 3.5 QoS 표시
+### 3.6 QoS 표시
 
 → 1.2 QoS 표시 규칙 참조 (Epipe/VPLS 공통)
 
@@ -292,17 +334,25 @@ Interface를 최상위 헤더로, SAP+QoS를 하위 항목으로 표시한다.
 
 ```
 Interface: p4/2/13
-  - Desc: To_FG60E_2
-  - IP: 192.168.123.2/30
-  - VRRP: 10.230.62.89 (MASTER)
-  - VPLS: vpls-name
-  - SAP: 4/2/13:0
-    - In‑QoS: 100M
-    - Out‑QoS: 100M
-  - Port: 4/2/13
-    - Desc: TO-CUSTOMER
-  - IP‑MTU: 1504
-  - Spoke‑Sdp: 9990:4019
+- Desc: To_FG60E_2
+- IP: 192.168.123.2/30
+- VRRP: 10.230.62.89 (MASTER)
+- VPLS: vpls-name
+- SAP: 4/2/13:0
+  - In‑QoS: 100M
+  - Out‑QoS: 100M
+- Port: 4/2/13
+  - Desc: TO-CUSTOMER
+  - Ethernet:
+    - Mode: access
+    - MTU: 9212
+    - Speed: 100
+    - AutoNego: NO
+    - Network: queue-policy-name
+    - LLF: On
+    - LLDP: admin-status
+- IP‑MTU: 1504
+- Spoke‑Sdp: 9990:4019
 ```
 
 **규칙:**
@@ -323,11 +373,11 @@ BGP/OSPF/STATIC 정보를 서비스 노드에서 분리하여 **별도 중간 �
 
 ```
 BGP:
-  - Router‑ID: 192.168.25.1
-  - Split‑Horizon: On
-  - GROUP: group-name
-    - Peer: 10.0.0.1
-    - Peer‑AS: 65001
+- Router‑ID: 192.168.25.1
+- Split‑Horizon: On
+- Group: group-name
+  - Peer: 10.0.0.1
+  - Peer‑AS: 65001
 ```
 
 **매칭 규칙**: BGP Peer IP → 인터페이스의 `ipAddress` 서브넷에 포함 여부 (`isIpInSubnet`)
@@ -338,10 +388,10 @@ BGP:
 
 ```
 OSPF:
-  - AREA: 0.0.0.0
-    - Interface:
-      - p3/2/23: point-to-point
-      - system_vrf
+- Area: 0.0.0.0
+  - Interface:
+    - p3/2/23: point-to-point
+    - system_vrf
 ```
 
 **매칭 규칙**: OSPF Area의 interface name → L3Interface의 `interfaceName` 직접 비교
@@ -352,8 +402,8 @@ OSPF:
 ```
 STATIC: 20개
 Next‑Hop: 192.168.100.1
-  - 10.1.0.0/24
-  - 10.2.0.0/24
+- 10.1.0.0/24
+- 10.2.0.0/24
 ```
 
 **매칭 규칙**: Static Route의 Next-Hop → 인터페이스의 `ipAddress` 서브넷에 포함 여부 (`isIpInSubnet`)
@@ -422,23 +472,23 @@ IES는 V1 어댑터를 통해 다이어그램을 생성한다.
 Host: PE-Router-1
 
 Interface: p4/2/13
-  - Desc: To_FG60E_2
-  - IP: 192.168.123.2/30
-  - VRRP: 10.230.62.89 (MASTER)
-  - VPLS: vpls-name
-  - SAP: 4/2/13:0
-  - Port: 4/2/13
-    - Desc: TO-CUSTOMER
-    - Ethernet:
-      - Mode: access
-      - MTU: 9212
-      - SPEED: 100
-      - AUTONEGO: NO
-      - NETWORK: queue-policy-name
-      - LLF: On
-      - LLDP: admin-status
-  - IP‑MTU: 1504
-  - Spoke‑Sdp: 9990:4019
+- Desc: To_FG60E_2
+- IP: 192.168.123.2/30
+- VRRP: 10.230.62.89 (MASTER)
+- VPLS: vpls-name
+- SAP: 4/2/13
+- Port: 4/2/13
+  - Desc: TO-CUSTOMER
+  - Ethernet:
+    - Mode: access
+    - MTU: 9212
+    - Speed: 100
+    - AutoNego: NO
+    - Network: queue-policy-name
+    - LLF: On
+    - LLDP: admin-status
+- IP‑MTU: 1504
+- Spoke‑Sdp: 9990:4019
 ```
 
 **규칙:**
@@ -491,6 +541,26 @@ Interface: p4/2/13
 ---
 
 ## 6. 파싱 규칙 (Parser)
+
+### 6.0 SAP 블록 추출
+
+파일: `src/utils/v3/parserV3.ts` → `parseSAPs()`
+
+서비스 블록 내 모든 SAP을 **위치 기반**으로 추출한다.
+
+**추출 방식:**
+1. `sap <id> create` 키워드로 모든 SAP 시작 위치를 수집
+2. 각 SAP의 내용 = 현재 `create` 이후 ~ 다음 SAP 시작 위치 (또는 서비스 블록 끝)
+
+**adminState 판정:**
+- SAP 내용에서 SAP 자체의 첫 번째 `exit` 이전 텍스트만 검사
+- `shutdown` 포함 && `no shutdown` 미포함 → `'down'`
+- 그 외 → `'up'` (기본값)
+- 서비스 레벨의 `no shutdown`이 마지막 SAP 내용에 혼입되는 것을 방지하기 위해, SAP의 `exit` 이전까지만 검사
+
+**SAP ID 형식:**
+- VLAN 포함: `3/1/24:1049` → portId: `3/1/24`, vlanId: `1049`
+- VLAN 없음: `3/2/4` → portId: `3/2/4`, vlanId: `0`
 
 ### 6.1 Port Ethernet Config
 

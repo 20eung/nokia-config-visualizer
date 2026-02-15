@@ -146,7 +146,10 @@ export function generateIESDiagramV1Style(
             // HA 페어: Combined Diagram
             // 호스트명들을 정렬하여 일관된 이름 생성
             group.items.sort((a, b) => a.device.hostname.localeCompare(b.device.hostname));
-            const title = group.items.map(i => `${i.device.hostname}:${i.intf.name}`).join(' & ');
+            const title = group.items.map(i => {
+                const desc = i.intf.description || i.intf.portDescription || i.intf.name;
+                return `${i.device.hostname}: ${desc}`;
+            }).join(' & ');
 
             result.push({
                 name: `이중화: ${title}`,
@@ -159,7 +162,7 @@ export function generateIESDiagramV1Style(
             group.items.forEach(item => {
                 const titleSuffix = item.intf.description || item.intf.portDescription || item.intf.name;
                 result.push({
-                    name: `${item.device.hostname} - ${titleSuffix}`,
+                    name: `${item.device.hostname}: ${titleSuffix}`,
                     code: generateSingleInterfaceDiagram(item.device, item.intf, topology),
                     description: item.intf.portDescription || item.intf.description || ''
                 });
@@ -289,7 +292,10 @@ export function generateCrossDeviceIESDiagrams(
     groups.forEach(group => {
         if (group.haPair) {
             group.items.sort((a, b) => a.device.hostname.localeCompare(b.device.hostname));
-            const title = group.items.map(i => `${i.device.hostname}:${i.intf.name}`).join(' & ');
+            const title = group.items.map(i => {
+                const desc = i.intf.description || i.intf.portDescription || i.intf.name;
+                return `${i.device.hostname}: ${desc}`;
+            }).join(' & ');
 
             result.push({
                 name: `이중화: ${title}`,
@@ -300,7 +306,7 @@ export function generateCrossDeviceIESDiagrams(
             group.items.forEach(item => {
                 const titleSuffix = item.intf.description || item.intf.portDescription || item.intf.name;
                 result.push({
-                    name: `${item.device.hostname} - ${titleSuffix}`,
+                    name: `${item.device.hostname}: ${titleSuffix}`,
                     code: generateSingleInterfaceDiagram(item.device, item.intf, topology),
                     description: item.intf.portDescription || item.intf.description || ''
                 });

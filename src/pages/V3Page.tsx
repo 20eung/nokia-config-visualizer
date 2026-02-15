@@ -419,7 +419,7 @@ export function V3Page() {
                                         const firstService = group[0].service;
                                         return (
                                             <div key={groupKey} className={`service-group ${group.length > 1 ? 'redundant-group' : ''}`}>
-                                                {group.length > 1 && (
+                                                {group.length > 1 && firstService.serviceType !== 'ies' && (
                                                     <div className="group-header">
                                                         <h3>🔗 Service Group (ID: {firstService.serviceId})</h3>
                                                     </div>
