@@ -11,8 +11,34 @@ services:
     environment:
       - NODE_ENV=production
       - TZ=Asia/Seoul
+    depends_on:
+      - nokia-api
     networks:
       - npm-network
+
+  nokia-api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: nokia-api
+    hostname: nokia-api
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Seoul
+      - AWS_REGION=${AWS_REGION:-ap-northeast-2}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-northeast-2}
+      - AWS_PROFILE=${AWS_PROFILE:-}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-apac.anthropic.claude-sonnet-4-20250514-v1:0}
+    volumes:
+      - ${HOME}/.aws:/root/.aws:ro
+      - dict-data:/app/data
+    expose:
+      - "3000"
+    networks:
+      - npm-network
+
+volumes:
+  dict-data:
 
 networks:
   npm-network:

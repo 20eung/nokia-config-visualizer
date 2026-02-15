@@ -39,6 +39,20 @@ Nokia Parser (nokiaParser.ts / v3/parserV3.ts)
     ↓
 Structured Data (Interface, Service, Route 등)
     ↓
+┌─────────────────────────────────────────┐
+│  (A) 수동 선택                           │
+│  ServiceListV3 → 체크박스/검색/HA 필터   │
+├─────────────────────────────────────────┤
+│  (B) AI 챗봇 검색 (v3.3)                │
+│  AIChatPanel → configSummaryBuilder     │
+│       ↓                                  │
+│  POST /api/chat → Express → Bedrock     │
+│       ↓                                  │
+│  Claude 응답: selectedKeys              │
+└─────────────────────────────────────────┘
+    ↓
+onSetSelected(selectedKeys)
+    ↓
 Topology Engine (HA Detection, Grouping)
     ↓
 Mermaid Generator (mermaidGenerator.ts / v3/mermaidGeneratorV3.ts)
@@ -64,7 +78,12 @@ src/
 │   │   ├── ServiceDiagram.tsx  # v2 서비스 다이어그램
 │   │   └── ServiceList.tsx     # v2 서비스 목록
 │   └── v3/                  # v3 전용 컴포넌트
-│       └── ServiceListV3.tsx   # v3 서비스 목록
+│       ├── ServiceListV3.tsx   # v3 서비스 목록
+│       ├── AIChatPanel.tsx     # AI 챗봇 UI (토글, 입력, 응답)
+│       └── AIChatPanel.css     # AI 챗봇 스타일
+│
+├── services/                # API 클라이언트
+│   └── chatApi.ts           # AI 채팅 API (fetch /api/chat)
 │
 ├── pages/                   # 페이지 컴포넌트
 │   ├── V1Page.tsx / .css    # 물리 토폴로지 페이지
@@ -77,6 +96,7 @@ src/
 │   ├── TopologyEngine.ts    # HA 감지 및 토폴로지 분석
 │   ├── v1IESAdapter.ts      # IES 서비스 → v1 다이어그램 어댑터
 │   ├── v1VPRNAdapter.ts     # VPRN 서비스 → v1 다이어그램 어댑터
+│   ├── configSummaryBuilder.ts # ParsedConfigV3 → AI용 축약 JSON
 │   ├── v2/                  # v2 전용 유틸리티
 │   │   ├── index.ts         # v2 유틸리티 export
 │   │   ├── l2vpnParser.ts   # L2/L3 VPN 파서
@@ -98,6 +118,20 @@ public/
 ├── favicon.svg              # 사이트 파비콘
 ├── config1.txt              # 데모용 Config (nokia-1)
 └── config2.txt              # 데모용 Config (nokia-2)
+
+server/                      # Express 백엔드 (AI API)
+├── package.json             # express, @aws-sdk/client-bedrock-runtime
+├── tsconfig.json            # Node.js 타겟 TypeScript 설정
+├── Dockerfile               # node:22-alpine 멀티 스테이지 빌드
+└── src/
+    ├── index.ts             # Express 앱 (CORS, rate-limit, 라우트)
+    ├── routes/
+    │   └── chat.ts          # POST /api/chat 핸들러
+    ├── services/
+    │   └── claudeClient.ts  # AWS Bedrock Converse API 래퍼
+    ├── prompts/
+    │   └── systemPrompt.ts  # Nokia config 분석 시스템 프롬프트
+    └── types.ts             # ChatRequest, ChatResponse 타입
 ```
 
 ## 핵심 파일 설명
@@ -191,7 +225,74 @@ public/
   4. VRRP 정보로 Master/Backup 결정
   ```
 
-### 5. React 컴포넌트
+### 5. AI 채팅 계열 (v3.3)
+
+#### `server/src/services/claudeClient.ts`
+- **목적**: AWS Bedrock Converse API를 통한 Claude 호출
+- **주요 함수**:
+  - `askClaude()`: ConfigSummary + 질문 → Claude 호출 → selectedKeys 반환
+  - `checkBedrockAccess()`: Bedrock 연결 확인
+- **특징**:
+  - AWS credential chain (env vars → ~/.aws/credentials → IAM Role)
+  - 응답 JSON 파싱 및 selectionKey 유효성 검증
+  - 모델 ID: `BEDROCK_MODEL_ID` 환경변수로 변경 가능
+
+#### `src/utils/configSummaryBuilder.ts`
+- **목적**: ParsedConfigV3[]를 AI에 전달할 축약 JSON으로 변환
+- **주요 함수**: `buildConfigSummary(configs: ParsedConfigV3[]): ConfigSummary`
+- **특징**:
+  - QoS Rate KMG 변환 (kbps → 100M, 1G 등)
+  - adminState='down' 서비스/인터페이스 자동 제외
+  - selectionKey 사전 계산 (ServiceListV3와 동일한 키 형식)
+
+#### `src/components/v3/AIChatPanel.tsx`
+- **목적**: AI 토글 + 자연어 입력 + 응답 표시 UI
+- **기능**:
+  - AI 토글 버튼 (Bot 아이콘)
+  - 입력 필드 (Enter 전송)
+  - 로딩 스피너, 응답 패널 (confidence 배지), 에러 표시
+  - AbortController로 요청 취소 지원
+
+#### `src/services/chatApi.ts`
+- **목적**: 프론트엔드 → Express 백엔드 API 클라이언트
+- **주요 함수**:
+  - `sendChatMessage()`: POST /api/chat (60초 타임아웃)
+  - `checkApiHealth()`: GET /api/health
+
+### 5-1. 이름 사전 계열 (v4.1)
+
+#### `server/src/services/dictionaryStore.ts`
+- **목적**: 이름 사전 JSON 파일 읽기/쓰기
+- **주요 함수**:
+  - `loadDictionary(fingerprint)`: 파일에서 사전 로드 (없으면 null)
+  - `saveDictionary(fingerprint, data)`: JSON 파일 저장
+- **특징**:
+  - 저장 경로: `DICT_DATA_DIR` 환경변수 또는 `/app/data/dictionaries`
+  - fingerprint 검증: `/^[a-z0-9-]+$/` (path traversal 방지)
+
+#### `server/src/services/dictionaryGenerator.ts`
+- **목적**: AWS Bedrock를 통한 이름 사전 AI 자동 생성
+- **주요 함수**: `generateDictionaryEntries(descriptions)`: description 목록 → 엔트리 배열
+
+#### `src/utils/dictionaryStorage.ts`
+- **목적**: config fingerprint 생성 및 사전 변환 유틸리티
+- **주요 함수**:
+  - `getConfigFingerprint(configs)`: hostname + serviceId 기반 해시
+  - `createEmptyDictionary(fingerprint)`: 빈 사전 생성
+  - `toDictionaryCompact(dict)`: AI 전송용 압축 변환
+
+#### `src/services/dictionaryApi.ts`
+- **목적**: 사전 관련 API 클라이언트
+- **주요 함수**:
+  - `generateDictionary(descriptions, signal)`: AI 자동 생성 요청
+  - `loadDictionaryFromServer(fingerprint)`: 서버에서 사전 로드
+  - `saveDictionaryToServer(fingerprint, dictionary)`: 서버에 사전 저장
+
+#### `src/components/v3/DictionaryEditor.tsx`
+- **목적**: 이름 사전 편집 모달 UI
+- **기능**: AI 자동 생성, 항목 추가/수정/삭제, 카테고리 분류, 별칭 관리
+
+### 6. React 컴포넌트
 
 #### `src/pages/V3Page.tsx`
 - **목적**: v3 통합 시각화 메인 페이지
@@ -199,6 +300,14 @@ public/
   - 서비스 타입별 다이어그램 렌더링 (Epipe, VPLS, VPRN, IES)
   - Service Group 헤더 표시 (IES 제외)
   - 선택된 인터페이스/서비스에 따라 동적 다이어그램 생성
+
+#### `src/components/v3/ServiceListV3.tsx`
+- **목적**: 서비스 목록 + AI 채팅 통합
+- **AI 관련 기능**:
+  - `aiEnabled` 상태로 AI/기존검색 토글
+  - `configSummary` useMemo 메모이제이션
+  - `handleAIResponse()`: AI 응답의 selectedKeys → onSetSelected 연동
+  - AI 토글 OFF 시 기존 검색 input 표시
 
 #### `src/components/InterfaceList.tsx`
 - **목적**: 좌측 사이드바 인터페이스 리스트
@@ -254,7 +363,13 @@ public/
 - **OR 검색**: 띄어쓰기 구분 (예: `nokia-1 172.16`)
 - **검색 필드**: hostname, port, portDescription, interfaceName, interfaceDescription, ipAddress, serviceDescription
 
-### 6. Grafana 호환성
+### 6. AI 챗봇 검색 (v3.3)
+- **프론트엔드**: `AIChatPanel.tsx` → `configSummaryBuilder.ts` → `chatApi.ts`
+- **백엔드**: `server/src/routes/chat.ts` → `claudeClient.ts` → AWS Bedrock
+- **연동**: AI 응답의 `selectedKeys` → `onSetSelected()` → 기존 다이어그램 자동 생성
+- **토글**: AI 토글 OFF 시 기존 텍스트 검색 그대로 동작
+
+### 7. Grafana 호환성
 - **위치**: `v3/mermaidGeneratorV3.ts`
 - **보장 사항**:
   - Mermaid 문법 호환 (특수문자 이스케이프)
@@ -270,7 +385,7 @@ public/
 3. **컴포넌트**: React 함수형 컴포넌트 + Hooks (useState, useEffect, useMemo 등)
 4. **스타일**: Vanilla CSS (CSS-in-JS 사용 안 함)
 5. **모듈화**: 컴포넌트는 작고 집중적으로. 파싱 로직(`utils/`)과 UI 컴포넌트(`components/`)를 분리.
-6. **빌드 제약**: 최종 빌드는 정적 자산(static assets)만 생성. 서버 사이드 런타임(Node.js) 기능 사용 불가. 모든 로직은 클라이언트 사이드.
+6. **빌드 제약**: 프론트엔드 빌드는 정적 자산(static assets)만 생성. AI 챗봇 기능은 별도 Express 백엔드(`server/`)에서 처리. 프론트엔드는 `/api/*` 경로로 백엔드와 통신.
 
 ### 디자인 & UX 원칙
 
@@ -417,22 +532,28 @@ const bad = (text: string) => `<span style='color:red'>${text}</span>`;
 - `main`: 프로덕션 코드 (v1.x)
 - `v1-development`: v1 유지보수 개발
 - `v2-development`: v2 개발
-- `v3-development`: v3 개발 (현재 활성)
+- `v3-development`: v3 개발
+- `v4-development`: v4 개발 (현재 활성)
 
 ### 빌드 및 배포
 ```bash
-# 개발 서버
+# 개발 서버 (프론트엔드)
 npm run dev
+
+# 개발 서버 (백엔드)
+cd server && npm run dev
 
 # 프로덕션 빌드
 npm run build
 
-# 빌드 미리보기
-npm run preview
+# Docker Compose 빌드 및 실행 (프론트엔드 + 백엔드)
+docker compose up -d --build
 
-# Docker 빌드 및 실행
-docker build -t nokia-visualizer .
-docker run -d -p 3301:80 --name nokia-visualizer nokia-visualizer
+# 컨테이너 로그 확인
+docker compose logs -f
+
+# Health check
+curl http://localhost:3301/api/health
 ```
 
 ## 작업 시 체크리스트
@@ -458,11 +579,13 @@ docker run -d -p 3301:80 --name nokia-visualizer nokia-visualizer
 | v3.0.0 | 2026-01-21 | Unified Visualizer (Base/IES 통합) |
 | v3.1.0 | 2026-01-21 | BGP/OSPF 고급 시각화, UI 개선 |
 | v3.2.0 | 2026-02-15 | QoS 하이라이트, VPRN 라우팅 노드, SAP 파싱 개선 |
+| v4.0.0 | 2026-02-15 | AI 챗봇 서비스 검색, Express 백엔드 (AWS Bedrock) |
+| v4.1.0 | 2026-02-15 | 이름 사전 (Name Dictionary), 서버 파일 저장소 |
 
 상세 변경 이력은 `CHANGELOG.md` 참조.
 
 ---
 
 **Last Updated**: 2026-02-15
-**Current Version**: v3.2.0
-**Branch**: v3-development
+**Current Version**: v4.1.0
+**Branch**: v4-development

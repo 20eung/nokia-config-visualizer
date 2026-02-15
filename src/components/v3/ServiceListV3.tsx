@@ -1,10 +1,17 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { ParsedConfigV3, NokiaServiceV3 } from '../../utils/v3/parserV3';
 import type { IESService, VPRNService, L3Interface } from '../../types/v2';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import type { NameDictionary } from '../../types/dictionary';
+import { ChevronDown, ChevronRight, BookOpen } from 'lucide-react';
 import { findPeerAndRoutes } from '../../utils/mermaidGenerator';
 import { convertIESToV1Format } from '../../utils/v1IESAdapter';
 import { convertVPRNToV1Format } from '../../utils/v1VPRNAdapter';
+import { AIChatPanel } from './AIChatPanel';
+import { DictionaryEditor } from './DictionaryEditor';
+import { buildConfigSummary, type ConfigSummary } from '../../utils/configSummaryBuilder';
+import { getConfigFingerprint, toDictionaryCompact } from '../../utils/dictionaryStorage';
+import { loadDictionaryFromServer } from '../../services/dictionaryApi';
+import type { ChatResponse } from '../../services/chatApi';
 import '../v2/ServiceList.css';
 
 interface ServiceListProps {
@@ -24,6 +31,43 @@ export function ServiceListV3({
 }: ServiceListProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'epipe' | 'vpls' | 'vprn' | 'ies'>('all');
+    const [aiEnabled, setAiEnabled] = useState(false);
+    const [showDictionaryEditor, setShowDictionaryEditor] = useState(false);
+    const [dictionary, setDictionary] = useState<NameDictionary | null>(null);
+
+    // ConfigSummary 메모이제이션 (AI 패널용)
+    const configSummary = useMemo<ConfigSummary | null>(() => {
+        if (configs.length === 0) return null;
+        return buildConfigSummary(configs);
+    }, [configs]);
+
+    // Config fingerprint + localStorage에서 dictionary 로드
+    const configFingerprint = useMemo(() => {
+        if (configs.length === 0) return '';
+        return getConfigFingerprint(configs);
+    }, [configs]);
+
+    // configs 변경 시 서버에서 dictionary 로드
+    useEffect(() => {
+        if (!configFingerprint) return;
+        let cancelled = false;
+        loadDictionaryFromServer(configFingerprint).then(loaded => {
+            if (!cancelled && loaded) {
+                setDictionary(loaded);
+            }
+        });
+        return () => { cancelled = true; };
+    }, [configFingerprint]);
+
+    // AI 전송용 compact dictionary
+    const dictionaryCompact = useMemo(() => toDictionaryCompact(dictionary), [dictionary]);
+
+    const handleAIResponse = useCallback((response: ChatResponse) => {
+        onSetSelected(response.selectedKeys);
+        if (response.filterType && response.filterType !== 'all') {
+            setFilterType(response.filterType);
+        }
+    }, [onSetSelected]);
 
     // 필터링된 서비스
     const filteredServices = services.filter(service => {
@@ -385,16 +429,48 @@ export function ServiceListV3({
                 </div>
             </div>
 
-            {/* 검색 */}
-            <div className="service-search">
-                <input
-                    type="text"
-                    placeholder="🔍 Search services..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="search-input"
-                />
-            </div>
+            {/* AI 채팅 / 검색 */}
+            <AIChatPanel
+                configSummary={configSummary}
+                onAIResponse={handleAIResponse}
+                aiEnabled={aiEnabled}
+                onToggleAI={() => setAiEnabled(prev => !prev)}
+                dictionary={dictionaryCompact}
+            />
+            {aiEnabled && configs.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px 4px' }}>
+                    <button
+                        onClick={() => setShowDictionaryEditor(true)}
+                        title="이름 사전 편집"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 10px',
+                            background: dictionary && dictionary.entries.length > 0 ? '#eff6ff' : 'white',
+                            border: `1px solid ${dictionary && dictionary.entries.length > 0 ? '#93c5fd' : '#d1d5db'}`,
+                            borderRadius: '6px',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            color: dictionary && dictionary.entries.length > 0 ? '#1d4ed8' : '#6b7280',
+                        }}
+                    >
+                        <BookOpen size={14} />
+                        이름 사전{dictionary && dictionary.entries.length > 0 ? ` (${dictionary.entries.length})` : ''}
+                    </button>
+                </div>
+            )}
+            {!aiEnabled && (
+                <div className="service-search">
+                    <input
+                        type="text"
+                        placeholder="Search services..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="search-input"
+                    />
+                </div>
+            )}
 
             {/* 필터 */}
             <div className="service-filters">
@@ -936,6 +1012,17 @@ export function ServiceListV3({
                     </div>
                 )}
             </div>
+
+            {/* Dictionary Editor 모달 */}
+            {showDictionaryEditor && (
+                <DictionaryEditor
+                    configs={configs}
+                    configFingerprint={configFingerprint}
+                    dictionary={dictionary}
+                    onSave={(dict) => setDictionary(dict)}
+                    onClose={() => setShowDictionaryEditor(false)}
+                />
+            )}
         </div>
     );
 }
