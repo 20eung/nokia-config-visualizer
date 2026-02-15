@@ -21,11 +21,13 @@ export function V3Page() {
         const isDemoEnvironment = window.location.hostname.includes('demo') || window.location.hostname.includes('beta');
 
         if (isDemoEnvironment && configs.length === 0) {
-            fetch('/pe-router-1-l2vpn.cfg')
-                .then(r => r.text())
-                .then(text => {
-                    handleConfigLoaded([text]);
-                    console.log('✅ Demo/Beta environment: Auto-loaded pe-router-1-l2vpn.cfg');
+            Promise.all([
+                fetch('/config1.txt').then(r => r.text()),
+                fetch('/config2.txt').then(r => r.text())
+            ])
+                .then(texts => {
+                    handleConfigLoaded(texts);
+                    console.log('✅ Demo/Beta environment: Auto-loaded config1.txt & config2.txt');
                 })
                 .catch(error => {
                     console.warn('⚠️ Demo/Beta environment: Could not auto-load sample config:', error);

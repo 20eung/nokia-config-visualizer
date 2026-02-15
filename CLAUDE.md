@@ -97,8 +97,7 @@ src/
 public/
 ├── favicon.svg              # 사이트 파비콘
 ├── config1.txt              # 데모용 Config (nokia-1)
-├── config2.txt              # 데모용 Config (nokia-2)
-└── pe-router-1-l2vpn.cfg   # V2 전용 데모 Config
+└── config2.txt              # 데모용 Config (nokia-2)
 ```
 
 ## 핵심 파일 설명
