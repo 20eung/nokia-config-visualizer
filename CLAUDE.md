@@ -269,10 +269,18 @@ public/
 
 ### 코드 작성 규칙
 
-1. **TypeScript 사용**: 모든 파일은 `.ts` 또는 `.tsx`
+1. **TypeScript Strict**: 모든 파일은 `.ts` 또는 `.tsx`. `any` 사용 금지. 모든 데이터 구조에 상세 인터페이스 정의.
 2. **타입 정의**: `types.ts`에 중앙 집중화 (v2 전용은 `types/v2.ts`)
-3. **컴포넌트**: 함수형 컴포넌트 + Hooks
+3. **컴포넌트**: React 함수형 컴포넌트 + Hooks (useState, useEffect, useMemo 등)
 4. **스타일**: Vanilla CSS (CSS-in-JS 사용 안 함)
+5. **모듈화**: 컴포넌트는 작고 집중적으로. 파싱 로직(`utils/`)과 UI 컴포넌트(`components/`)를 분리.
+6. **빌드 제약**: 최종 빌드는 정적 자산(static assets)만 생성. 서버 사이드 런타임(Node.js) 기능 사용 불가. 모든 로직은 클라이언트 사이드.
+
+### 디자인 & UX 원칙
+
+- **UI 스타일**: 깔끔하고 전문적인 인터페이스. 미묘한 그림자, 둥근 모서리, 부드러운 전환 효과 사용.
+- **데스크톱 우선**: 복잡한 다이어그램을 다루므로 데스크톱이 주요 타겟. 반응형 레이아웃 지원.
+- **사용자 피드백**: 업로드, 에러, 로딩 상태에 대한 명확한 시각적 피드백 제공.
 
 ### 파서 작성 시 주의사항
 
@@ -378,6 +386,18 @@ const bad = (text: string) => `<span style='color:red'>${text}</span>`;
    ```
 3. **TopologyEngine 로그**: `detectHAPairs()` 함수에 로그 추가
 
+## 테스트
+
+### 표준 테스트 파일
+- 기능 검증 시 `public/docs/config1.txt` 및 `public/docs/config2.txt` 파일을 사용한다.
+- 테스트 수행 시 사용자 입력을 기다리지 않고, 해당 파일로 즉시 검증을 진행한다.
+
+## 응답 스타일
+
+- **언어**: 한국어 (Korean)
+- **톤**: 전문적이고 기술적인 어조
+- **코드 변경 시**: 변경 이유를 먼저 설명한 후 코드를 제시
+
 ## 참고 문서
 
 ### 프로젝트 내부 문서
@@ -436,6 +456,21 @@ docker run -d -p 3301:80 --name nokia-visualizer nokia-visualizer
 - [ ] DIAGRAM_RULES.md 업데이트
 - [ ] CHANGELOG.md 업데이트
 - [ ] Grafana 호환성 확인
+
+## 버전 히스토리
+
+| 버전 | 날짜 | 주요 내용 |
+|---|---|---|
+| v1.4.0 | 2025-12-15 | Dynamic HA 감지 |
+| v1.5.0 | 2025-12-15 | Mermaid Code Viewer UX |
+| v1.6.0 | 2025-12-15 | Interface 목록 계층 구조 |
+| v1.7.0 | 2025-12-15 | VRRP VIP, Master 표시 |
+| v1.8.0 | 2025-12-17 | VRRP 기반 HA 감지 |
+| v3.0.0 | 2026-01-21 | Unified Visualizer (Base/IES 통합) |
+| v3.1.0 | 2026-01-21 | BGP/OSPF 고급 시각화, UI 개선 |
+| v3.2.0 | 2026-02-15 | QoS 하이라이트, VPRN 라우팅 노드, SAP 파싱 개선 |
+
+상세 변경 이력은 `CHANGELOG.md` 참조.
 
 ---
 
