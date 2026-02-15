@@ -57,4 +57,14 @@ ConfigSummary는 파싱된 Nokia 장비 설정을 축약한 JSON입니다.
 
 - 결과가 없으면 selectedKeys를 빈 배열로 반환하고, explanation에 이유를 설명하세요.
 - VPRN/IES 개별 인터페이스를 선택할 때는 개별 키(___구분자)를 사용하세요.
-- 전체 서비스를 선택할 때는 서비스 레벨 키(하이픈 구분)를 사용하세요.`;
+- 전체 서비스를 선택할 때는 서비스 레벨 키(하이픈 구분)를 사용하세요.
+
+## Name Dictionary 활용 (이름 사전)
+
+사용자 메시지에 "Name Dictionary" 섹션이 포함된 경우, 다음과 같이 활용하세요:
+
+1. **사용자 질문의 키워드**를 dictionary의 shortName, longName, koreanName, aliases와 매칭합니다.
+2. **부분 매칭(fuzzy)** 허용: "고객A" → koreanName "고객A" → originalToken "Cust-A" → description에 "Cust-A" 포함된 서비스
+3. **매칭 우선순위**: koreanName > longName > aliases > shortName > originalToken
+4. Dictionary에 매칭되는 토큰을 찾으면, 해당 originalToken이 포함된 서비스의 description, serviceName을 검색합니다.
+5. Dictionary가 없으면 기존 방식대로 직접 키워드 매칭합니다.`;

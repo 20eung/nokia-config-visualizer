@@ -3,26 +3,32 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import chatRouter from './routes/chat';
+import dictionaryRouter from './routes/dictionary';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
+
+// nginx 프록시 뒤에서 동작하므로 trust proxy 설정
+app.set('trust proxy', 1);
 
 // 미들웨어
 app.use(helmet());
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
 }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '2mb' }));
 
 // Rate limiting (분당 30회)
 app.use('/api/', rateLimit({
   windowMs: 60 * 1000,
   max: 30,
   message: { error: '요청이 너무 많습니다. 1분 후 다시 시도해주세요.' },
+  validate: { xForwardedForHeader: false },
 }));
 
 // 라우트
 app.use('/api', chatRouter);
+app.use('/api', dictionaryRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {

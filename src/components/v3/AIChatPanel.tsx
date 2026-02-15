@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { Bot, X } from 'lucide-react';
 import { sendChatMessage, type ChatResponse } from '../../services/chatApi';
 import type { ConfigSummary } from '../../utils/configSummaryBuilder';
+import type { DictionaryCompact } from '../../types/dictionary';
 import './AIChatPanel.css';
 
 interface AIChatPanelProps {
@@ -9,6 +10,7 @@ interface AIChatPanelProps {
   onAIResponse: (response: ChatResponse) => void;
   aiEnabled: boolean;
   onToggleAI: () => void;
+  dictionary?: DictionaryCompact;
 }
 
 export function AIChatPanel({
@@ -16,6 +18,7 @@ export function AIChatPanel({
   onAIResponse,
   aiEnabled,
   onToggleAI,
+  dictionary,
 }: AIChatPanelProps) {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,7 +40,7 @@ export function AIChatPanel({
     setResponse(null);
 
     try {
-      const result = await sendChatMessage(trimmed, configSummary, controller.signal);
+      const result = await sendChatMessage(trimmed, configSummary, controller.signal, dictionary);
       setResponse(result);
       onAIResponse(result);
     } catch (err: unknown) {
@@ -46,7 +49,7 @@ export function AIChatPanel({
     } finally {
       setLoading(false);
     }
-  }, [query, configSummary, loading, onAIResponse]);
+  }, [query, configSummary, loading, onAIResponse, dictionary]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

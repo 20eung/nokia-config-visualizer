@@ -31,10 +31,14 @@ services:
       - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-apac.anthropic.claude-sonnet-4-20250514-v1:0}
     volumes:
       - ${HOME}/.aws:/root/.aws:ro
+      - dict-data:/app/data
     expose:
       - "3000"
     networks:
       - npm-network
+
+volumes:
+  dict-data:
 
 networks:
   npm-network:

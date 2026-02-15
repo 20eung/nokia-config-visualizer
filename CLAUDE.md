@@ -259,6 +259,39 @@ server/                      # Express 백엔드 (AI API)
   - `sendChatMessage()`: POST /api/chat (60초 타임아웃)
   - `checkApiHealth()`: GET /api/health
 
+### 5-1. 이름 사전 계열 (v4.1)
+
+#### `server/src/services/dictionaryStore.ts`
+- **목적**: 이름 사전 JSON 파일 읽기/쓰기
+- **주요 함수**:
+  - `loadDictionary(fingerprint)`: 파일에서 사전 로드 (없으면 null)
+  - `saveDictionary(fingerprint, data)`: JSON 파일 저장
+- **특징**:
+  - 저장 경로: `DICT_DATA_DIR` 환경변수 또는 `/app/data/dictionaries`
+  - fingerprint 검증: `/^[a-z0-9-]+$/` (path traversal 방지)
+
+#### `server/src/services/dictionaryGenerator.ts`
+- **목적**: AWS Bedrock를 통한 이름 사전 AI 자동 생성
+- **주요 함수**: `generateDictionaryEntries(descriptions)`: description 목록 → 엔트리 배열
+
+#### `src/utils/dictionaryStorage.ts`
+- **목적**: config fingerprint 생성 및 사전 변환 유틸리티
+- **주요 함수**:
+  - `getConfigFingerprint(configs)`: hostname + serviceId 기반 해시
+  - `createEmptyDictionary(fingerprint)`: 빈 사전 생성
+  - `toDictionaryCompact(dict)`: AI 전송용 압축 변환
+
+#### `src/services/dictionaryApi.ts`
+- **목적**: 사전 관련 API 클라이언트
+- **주요 함수**:
+  - `generateDictionary(descriptions, signal)`: AI 자동 생성 요청
+  - `loadDictionaryFromServer(fingerprint)`: 서버에서 사전 로드
+  - `saveDictionaryToServer(fingerprint, dictionary)`: 서버에 사전 저장
+
+#### `src/components/v3/DictionaryEditor.tsx`
+- **목적**: 이름 사전 편집 모달 UI
+- **기능**: AI 자동 생성, 항목 추가/수정/삭제, 카테고리 분류, 별칭 관리
+
 ### 6. React 컴포넌트
 
 #### `src/pages/V3Page.tsx`
@@ -499,7 +532,8 @@ const bad = (text: string) => `<span style='color:red'>${text}</span>`;
 - `main`: 프로덕션 코드 (v1.x)
 - `v1-development`: v1 유지보수 개발
 - `v2-development`: v2 개발
-- `v3-development`: v3 개발 (현재 활성)
+- `v3-development`: v3 개발
+- `v4-development`: v4 개발 (현재 활성)
 
 ### 빌드 및 배포
 ```bash
@@ -545,12 +579,13 @@ curl http://localhost:3301/api/health
 | v3.0.0 | 2026-01-21 | Unified Visualizer (Base/IES 통합) |
 | v3.1.0 | 2026-01-21 | BGP/OSPF 고급 시각화, UI 개선 |
 | v3.2.0 | 2026-02-15 | QoS 하이라이트, VPRN 라우팅 노드, SAP 파싱 개선 |
-| v3.3.0 | 2026-02-15 | AI 챗봇 서비스 검색, Express 백엔드 (AWS Bedrock) |
+| v4.0.0 | 2026-02-15 | AI 챗봇 서비스 검색, Express 백엔드 (AWS Bedrock) |
+| v4.1.0 | 2026-02-15 | 이름 사전 (Name Dictionary), 서버 파일 저장소 |
 
 상세 변경 이력은 `CHANGELOG.md` 참조.
 
 ---
 
 **Last Updated**: 2026-02-15
-**Current Version**: v3.3.0
-**Branch**: v3-development
+**Current Version**: v4.1.0
+**Branch**: v4-development

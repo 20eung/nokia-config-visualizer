@@ -22,7 +22,7 @@ router.post('/chat', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const result = await askClaude(body.message, body.configSummary);
+    const result = await askClaude(body.message, body.configSummary, body.dictionary);
     res.json(result);
   } catch (err: unknown) {
     const error = err as Error;

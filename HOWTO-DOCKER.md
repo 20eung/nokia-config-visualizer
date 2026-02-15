@@ -219,10 +219,14 @@ services:
       - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-apac.anthropic.claude-sonnet-4-20250514-v1:0}
     volumes:
       - ${HOME}/.aws:/root/.aws:ro
+      - dict-data:/app/data
     expose:
       - "3000"
     networks:
       - npm-network
+
+volumes:
+  dict-data:
 
 networks:
   npm-network:
@@ -232,6 +236,8 @@ networks:
 > **참고**: NPM과 동일한 Docker 네트워크를 사용하려면 `driver: bridge`를 `external: true`로 변경하세요.
 >
 > **AI 기능**: `nokia-api` 컨테이너는 AWS Bedrock을 통해 Claude AI를 호출합니다. `~/.aws/credentials` 파일이 read-only로 마운트됩니다. AI 기능이 불필요하면 `nokia-api` 서비스를 제거해도 프론트엔드는 정상 동작합니다.
+>
+> **이름 사전 데이터**: `dict-data` named volume에 이름 사전 JSON 파일이 저장됩니다. 컨테이너를 재빌드해도 데이터가 유지됩니다.
 
 ---
 
@@ -1088,6 +1094,6 @@ jobs:
 ---
 
 **작성일**: 2026-02-15
-**버전**: v3.3.0
+**버전**: v4.1.0
 **대상**: 프로덕션 서버 배포
 **작성자**: Network Engineers

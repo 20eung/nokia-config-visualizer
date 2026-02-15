@@ -1,4 +1,5 @@
 import type { ConfigSummary } from '../utils/configSummaryBuilder';
+import type { DictionaryCompact } from '../types/dictionary';
 
 export interface ChatResponse {
   selectedKeys: string[];
@@ -17,6 +18,7 @@ export async function sendChatMessage(
   message: string,
   configSummary: ConfigSummary,
   signal?: AbortSignal,
+  dictionary?: DictionaryCompact,
 ): Promise<ChatResponse> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT_MS);
@@ -30,7 +32,7 @@ export async function sendChatMessage(
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, configSummary }),
+      body: JSON.stringify({ message, configSummary, dictionary }),
       signal: controller.signal,
     });
 

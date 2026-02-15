@@ -12,6 +12,7 @@ interface SapSummary {
   sapId: string;
   description: string;
   portId: string;
+  portDescription?: string;
   ingressRate?: string;
   egressRate?: string;
 }
@@ -21,6 +22,7 @@ interface InterfaceSummary {
   description?: string;
   ipAddress?: string;
   portId?: string;
+  portDescription?: string;
   ingressRate?: string;
   egressRate?: string;
   vrrpBackupIp?: string;
@@ -83,6 +85,7 @@ export function buildConfigSummary(configs: ParsedConfigV3[]): ConfigSummary {
               sapId: s.sapId,
               description: s.description,
               portId: s.portId,
+              portDescription: s.portDescription,
               ingressRate: formatRate(s.ingressQos?.rate, s.ingressQos?.rateMax),
               egressRate: formatRate(s.egressQos?.rate, s.egressQos?.rateMax),
             })),
@@ -101,6 +104,7 @@ export function buildConfigSummary(configs: ParsedConfigV3[]): ConfigSummary {
               sapId: s.sapId,
               description: s.description,
               portId: s.portId,
+              portDescription: s.portDescription,
               ingressRate: formatRate(s.ingressQos?.rate, s.ingressQos?.rateMax),
               egressRate: formatRate(s.egressQos?.rate, s.egressQos?.rateMax),
             })),
@@ -120,6 +124,7 @@ export function buildConfigSummary(configs: ParsedConfigV3[]): ConfigSummary {
               description: i.description,
               ipAddress: i.ipAddress,
               portId: i.portId,
+              portDescription: i.portDescription,
               ingressRate: formatRate(i.ingressQosRate, i.ingressQosRateMax),
               egressRate: formatRate(i.egressQosRate, i.egressQosRateMax),
               vrrpBackupIp: i.vrrpBackupIp,
@@ -149,6 +154,7 @@ export function buildConfigSummary(configs: ParsedConfigV3[]): ConfigSummary {
               description: i.description,
               ipAddress: i.ipAddress,
               portId: i.portId,
+              portDescription: i.portDescription,
               ingressRate: formatRate(i.ingressQosRate, i.ingressQosRateMax),
               egressRate: formatRate(i.egressQosRate, i.egressQosRateMax),
               vrrpBackupIp: i.vrrpBackupIp,

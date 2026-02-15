@@ -5,7 +5,7 @@ import {
   type ContentBlock,
 } from '@aws-sdk/client-bedrock-runtime';
 import { SYSTEM_PROMPT } from '../prompts/systemPrompt';
-import type { ConfigSummary, ChatResponse } from '../types';
+import type { ConfigSummary, ChatResponse, DictionaryCompact } from '../types';
 
 // AWS Bedrock 클라이언트 (credential chain: env vars → ~/.aws/credentials → IAM Role)
 const client = new BedrockRuntimeClient({
@@ -22,12 +22,23 @@ const MODEL_ID = process.env.BEDROCK_MODEL_ID
 export async function askClaude(
   message: string,
   configSummary: ConfigSummary,
+  dictionary?: DictionaryCompact,
 ): Promise<ChatResponse> {
+  let dictionarySection = '';
+  if (dictionary && dictionary.entries.length > 0) {
+    const lines = dictionary.entries.map(e => {
+      const aliases = e.a.length > 0 ? `, 별칭: ${e.a.join(', ')}` : '';
+      return `- "${e.t}" → 짧은이름: ${e.s}, 정식: ${e.l}, 한국어: ${e.k}${aliases}`;
+    });
+    dictionarySection = `\n\n## Name Dictionary (이름 사전)\n\n${lines.join('\n')}`;
+  }
+
   const userContent = `## ConfigSummary (파싱된 네트워크 설정 축약 데이터)
 
 \`\`\`json
 ${JSON.stringify(configSummary, null, 2)}
 \`\`\`
+${dictionarySection}
 
 ## 사용자 질문
 

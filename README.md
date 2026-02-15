@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v3.3.0** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇
+> 🚀 **v4.1.0** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전
 
 ![Application Screenshot](./docs/screenshot.png)
 
@@ -51,12 +51,18 @@
 - **Shutdown 필터링**: adminState='down' 항목 자동 제외
 - **Host 기반 그룹핑**: IES 서비스를 장비별 그룹화, HA 다이어그램 자동 생성
 - **v1/v2 통합**: 물리 토폴로지와 논리 서비스를 단일 플랫폼에서 지원
-### 🤖 AI 챗봇 검색 (v3.3)
+### 🤖 AI 챗봇 검색 (v4.0)
 - **자연어 질문**: "Epipe 서비스 보여줘", "Customer-A 관련 서비스", "QoS 1G 이상 서비스 찾아줘" 등
 - **AWS Bedrock (Claude)**: 파싱된 설정 데이터를 AI가 분석하여 관련 서비스 자동 선택
 - **AI 토글**: AI 검색과 기존 텍스트 검색을 자유롭게 전환
 - **응답 패널**: 검색 결과 설명, 정확도 배지, 선택된 서비스 수 표시
 - **기존 다이어그램 100% 호환**: AI가 selectionKey를 반환하면 기존 다이어그램 로직 자동 연동
+
+### 📖 이름 사전 (v4.1)
+- **AI 자동 생성**: Config description에서 엔티티(고객명, 지역, 서비스 등)를 AI가 자동 추출
+- **수동 편집**: 사전 항목의 추가, 수정, 삭제 지원 (카테고리별 분류)
+- **서버 저장**: 서버 파일 시스템에 저장하여 브라우저 간 공유 가능
+- **AI 검색 정확도 향상**: 사전 데이터를 AI 챗봇에 함께 전달하여 검색 품질 개선
 
 ### 🔎 고급 검색 기능
 - **AND 검색**: ` + ` (공백 포함)로 구분
@@ -155,6 +161,98 @@ npm run preview
 - **Mermaid 코드 복사**: `<>` 버튼 클릭 → 복사 버튼
 - **Grafana 연동**: 복사한 Mermaid 코드를 Grafana Diagram 패널에 붙여넣기하여 실시간 모니터링 대시보드 구축
 
+### 6. AI 챗봇 사용하기 (v3.3+)
+
+#### 사전 준비: AWS Bedrock 설정
+
+1. **AWS 자격 증명 설정**:
+   ```bash
+   # ~/.aws/credentials 파일 생성 또는 편집
+   mkdir -p ~/.aws
+   cat > ~/.aws/credentials << EOF
+   [default]
+   aws_access_key_id = YOUR_ACCESS_KEY_ID
+   aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
+   EOF
+   ```
+
+2. **필요한 IAM 권한**:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": ["bedrock:InvokeModel"],
+         "Resource": "arn:aws:bedrock:ap-northeast-2::foundation-model/apac.anthropic.claude-sonnet-4-*"
+       }
+     ]
+   }
+   ```
+
+3. **환경변수 설정** (선택사항):
+   ```bash
+   # .env 파일 생성 (또는 .env.example 참고)
+   cp .env.example .env
+   # 필요시 AWS_REGION, AWS_PROFILE, BEDROCK_MODEL_ID 수정
+   ```
+
+4. **Docker Compose로 실행**:
+   ```bash
+   docker-compose up -d
+   ```
+
+5. **브라우저 접속**:
+   - http://localhost:3301
+
+#### AI 검색 사용법
+
+1. **Config 파일 업로드** (위의 1번 참고)
+
+2. **AI 모드 활성화**:
+   - 좌측 사이드바 상단의 **🤖 Bot 아이콘** 클릭
+   - AI 입력창이 나타남
+
+3. **자연어로 질문**:
+   - 예시:
+     - "172.16으로 시작하는 VPRN 서비스 보여줘"
+     - "nokia-1의 모든 서비스 찾아줘"
+     - "BGP를 사용하는 서비스 검색"
+     - "QoS가 1G 이상인 인터페이스"
+     - "Customer-A 관련 서비스"
+
+4. **AI 응답 확인**:
+   - **정확도 배지**: 높음/보통/낮음
+   - **선택된 개수**: N개 선택
+   - **설명**: AI가 찾은 서비스에 대한 설명
+
+5. **다이어그램 자동 표시**:
+   - AI가 선택한 서비스의 다이어그램이 자동으로 표시됨
+   - 기존 수동 검색과 동일한 방식으로 확대/축소/내보내기 가능
+
+6. **초기화**:
+   - AI 응답 패널 우측 상단의 **X** 버튼 클릭
+   - 또는 Bot 아이콘을 다시 클릭하여 수동 검색 모드로 전환
+
+#### 문제 해결
+
+**오류: "AWS 자격 증명을 확인해주세요"**
+- `~/.aws/credentials` 파일이 존재하는지 확인
+- AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY가 올바른지 확인
+- Docker 실행 시 ~/.aws가 마운트되었는지 확인
+
+**오류: "AWS Bedrock 접근 권한이 없습니다"**
+- IAM 사용자/역할에 `bedrock:InvokeModel` 권한이 있는지 확인
+- 리전이 올바른지 확인 (기본값: ap-northeast-2)
+
+**오류: "요청이 너무 많습니다"**
+- 1분당 30회 제한 (Rate Limit)
+- 1분 후 다시 시도
+
+**상세 문서**:
+- `.env.example` 파일 참고
+- `docs/02-design/features/ai-chat-search.design.md` 참고
+
 ## 📂 프로젝트 구조
 
 ```
@@ -213,7 +311,7 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 - ✅ **표준화된 레이아웃**: 모든 서비스에 대해 Host-Service 구조 통일
 - ✅ **고도화된 파싱**: 복잡한 서비스 설정(Multi-hop, VRF 등) 파싱 지원
 
-### v3.x - Unified Visualizer ✅ 완료 (v3.3.0 released)
+### v3.x - Unified Visualizer ✅ 완료
 - ✅ **Base Router 통합**: 물리적 연결(v1)과 서비스(v2) 뷰 통합
 - ✅ **IES 서비스 지원**: Base Router 인터페이스 및 Global Routing Table 시각화
 - ✅ **통합 UI**: 모든 서비스(Epipe, VPLS, VPRN, IES)를 하나의 인터페이스에서 관리
@@ -222,14 +320,23 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 - ✅ **QoS 하이라이트**: 녹색 배경 + 흰색 글자, Rate KMG 변환
 - ✅ **Shutdown 필터링**: adminState='down' 항목 다이어그램에서 자동 제외
 - ✅ **SAP 파싱 개선**: Position 기반 추출, VLAN-less SAP 지원
+
+### v4.x - AI Visualizer ✅ 완료 (v4.1.0 released)
 - ✅ **AI 챗봇 검색**: AWS Bedrock (Claude) 기반 자연어 서비스 검색
 - ✅ **Express 백엔드**: AI API를 위한 별도 컨테이너 (nginx 프록시)
+- ✅ **이름 사전**: AI 자동 생성 + 수동 편집, 서버 파일 저장
+- ✅ **사전 서버 저장소**: Docker named volume으로 컨테이너 재빌드에도 유지
 
-**Latest Release**: v3.3.0 (2026-02-15)
+**Latest Release**: v4.1.0 (2026-02-15)
 
 ## 📊 버전 히스토리
 
-- **v3.3.0** (2026-02-15) - AI 챗봇 서비스 검색, Express 백엔드 추가
+- **v4.1.0** (2026-02-15) - 이름 사전 (Name Dictionary)
+  - AI 자동 생성: Config description에서 엔티티 추출
+  - 수동 편집: 사전 항목 추가/수정/삭제
+  - 서버 파일 저장: Docker volume으로 브라우저 간 공유
+
+- **v4.0.0** (2026-02-15) - AI 챗봇 서비스 검색, Express 백엔드 추가
   - AWS Bedrock (Claude) 기반 자연어 서비스 검색
   - Express 백엔드 별도 Docker 컨테이너 구성
   - AI 토글 UI (기존 검색과 전환 가능)

@@ -6,7 +6,39 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
-## [3.3.0] - 2026-02-15
+## [4.1.0] - 2026-02-15
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **이름 사전 (Name Dictionary)**: Config description에서 엔티티(고객명, 지역, 서비스 등)를 AI가 추출하여 이름 사전을 자동 생성하는 기능 추가
+  - AI 자동 생성: AWS Bedrock (Claude)를 통해 description에서 엔티티 추출 및 이름 변형 생성
+  - 수동 편집: 사전 항목의 추가, 수정, 삭제 지원
+  - AI 챗봇 검색 시 사전 데이터를 함께 전달하여 검색 정확도 향상
+- **사전 서버 파일 저장**: 이름 사전을 서버 파일 시스템(`/app/data/dictionaries/`)에 JSON 파일로 저장
+  - 브라우저 간 사전 공유 가능 (동일 config fingerprint 기반)
+  - Docker named volume(`dict-data`)으로 컨테이너 재빌드에도 데이터 유지
+
+### ✨ 새로운 기능 (New Features)
+- **Dictionary Editor UI**: 모달 기반 사전 편집기
+  - AI 자동 생성 버튼 (Sparkles 아이콘)
+  - 카테고리별 분류 (customer, location, service, device, other)
+  - 원본 토큰, 짧은 이름, 긴 이름, 한국어, 별칭 필드
+  - 사용자 편집 항목 보존 (AI 재생성 시 userEdited 항목 유지)
+- **Dictionary API 엔드포인트**:
+  - `POST /api/dictionary/generate`: AI 사전 자동 생성
+  - `GET /api/dictionary/:fingerprint`: 사전 로드
+  - `PUT /api/dictionary/:fingerprint`: 사전 저장
+- **Config Fingerprint**: hostname + serviceId 기반 해시로 config 세트를 고유 식별
+
+### 🐛 버그 수정 (Bug Fixes)
+- **사전 생성 토큰 초과**: AI 응답이 잘려 JSON 파싱 실패하던 문제 수정 (maxTokens 4096 → 8192)
+
+### 🔧 기술적 변경 (Technical Changes)
+- **서버 파일 저장 서비스** (`dictionaryStore.ts`): fingerprint 검증(`/^[a-z0-9-]+$/`)으로 path traversal 방지
+- **Docker Compose**: `dict-data:/app/data` named volume 추가
+- **server/Dockerfile**: `/app/data/dictionaries` 디렉토리 생성 추가
+- **프론트엔드**: localStorage 의존 제거, 서버 API 기반 load/save로 전환
+
+## [4.0.0] - 2026-02-15
 
 ### 🚀 주요 변경 사항 (Major Changes)
 - **AI 챗봇 서비스 검색**: 자연어 질문으로 네트워크 서비스를 검색하고 다이어그램을 자동 표시하는 AI 기능 추가
