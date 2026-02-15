@@ -6,6 +6,44 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [3.3.0] - 2026-02-15
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **AI 챗봇 서비스 검색**: 자연어 질문으로 네트워크 서비스를 검색하고 다이어그램을 자동 표시하는 AI 기능 추가
+  - AWS Bedrock (Claude) 기반 자연어 처리
+  - "Epipe 서비스 보여줘", "Customer-A 관련 서비스", "QoS 1G 이상 서비스 찾아줘" 등 한국어/영어 질문 지원
+  - 기존 다이어그램 생성 로직 100% 재사용 (AI가 selectionKey를 반환하면 기존 onSetSelected()로 연동)
+- **Express 백엔드 추가**: AI 기능을 위한 Node.js Express 서버를 별도 Docker 컨테이너로 추가
+  - nginx에서 `/api/*` 요청을 Express 서버로 프록시
+  - 백엔드 장애 시에도 프론트엔드(다이어그램 기능) 정상 동작
+
+### ✨ 새로운 기능 (New Features)
+- **AI 토글 검색**: 서비스 목록의 검색창에 AI 토글 버튼 추가 (Bot 아이콘)
+  - AI ON: 자연어 질문 입력 → Claude가 관련 서비스 selectionKey 반환 → 다이어그램 자동 표시
+  - AI OFF: 기존 텍스트 검색 그대로 유지
+- **AI 응답 패널**: 검색 결과 설명, 정확도(높음/보통/낮음) 배지, 선택된 서비스 수 표시
+- **ConfigSummary 빌더**: ParsedConfigV3를 AI에 전달할 축약 JSON으로 변환 (10-30KB)
+  - QoS Rate KMG 변환 (1G, 500M 등)
+  - adminState='down' 서비스 자동 제외
+- **API Health Check**: `GET /api/health` 엔드포인트로 백엔드 상태 확인
+- **요청 Rate Limiting**: 분당 30회 제한으로 API 남용 방지
+
+### 🔧 기술적 변경 (Technical Changes)
+- **아키텍처**: nginx + Express 별도 컨테이너 구조 (docker-compose)
+  - `nokia-visualizer`: 프론트엔드 (nginx, 정적 파일)
+  - `nokia-api`: 백엔드 (Express, AWS Bedrock API)
+- **AWS Bedrock 연동**: `@aws-sdk/client-bedrock-runtime` Converse API 사용
+  - AWS 자격 증명: `~/.aws/credentials` (read-only 마운트), 환경변수, IAM Role 순서로 탐지
+  - 모델 ID: `BEDROCK_MODEL_ID` 환경변수로 변경 가능
+  - 리전: `AWS_REGION` 환경변수 지원 (기본: ap-northeast-2)
+- **nginx.conf**: `/api/*` 리버스 프록시 추가 (proxy_read_timeout 120s)
+- **새로운 파일 구조**:
+  - `server/`: Express 백엔드 (TypeScript, 멀티 스테이지 Docker 빌드)
+  - `src/utils/configSummaryBuilder.ts`: ConfigSummary 변환
+  - `src/services/chatApi.ts`: 프론트엔드 API 클라이언트
+  - `src/components/v3/AIChatPanel.tsx`: AI 채팅 UI
+- **에러 처리**: AWS 자격 증명 오류, Bedrock 접근 권한 오류, 스로틀링 등 상세 에러 분류
+
 ## [3.2.0] - 2026-02-15
 
 ### 🚀 주요 변경 사항 (Major Changes)

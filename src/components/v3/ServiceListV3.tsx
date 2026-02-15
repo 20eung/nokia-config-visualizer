@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import type { ParsedConfigV3, NokiaServiceV3 } from '../../utils/v3/parserV3';
 import type { IESService, VPRNService, L3Interface } from '../../types/v2';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { findPeerAndRoutes } from '../../utils/mermaidGenerator';
 import { convertIESToV1Format } from '../../utils/v1IESAdapter';
 import { convertVPRNToV1Format } from '../../utils/v1VPRNAdapter';
+import { AIChatPanel } from './AIChatPanel';
+import { buildConfigSummary, type ConfigSummary } from '../../utils/configSummaryBuilder';
+import type { ChatResponse } from '../../services/chatApi';
 import '../v2/ServiceList.css';
 
 interface ServiceListProps {
@@ -24,6 +27,20 @@ export function ServiceListV3({
 }: ServiceListProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'epipe' | 'vpls' | 'vprn' | 'ies'>('all');
+    const [aiEnabled, setAiEnabled] = useState(false);
+
+    // ConfigSummary 메모이제이션 (AI 패널용)
+    const configSummary = useMemo<ConfigSummary | null>(() => {
+        if (configs.length === 0) return null;
+        return buildConfigSummary(configs);
+    }, [configs]);
+
+    const handleAIResponse = useCallback((response: ChatResponse) => {
+        onSetSelected(response.selectedKeys);
+        if (response.filterType && response.filterType !== 'all') {
+            setFilterType(response.filterType);
+        }
+    }, [onSetSelected]);
 
     // 필터링된 서비스
     const filteredServices = services.filter(service => {
@@ -385,16 +402,24 @@ export function ServiceListV3({
                 </div>
             </div>
 
-            {/* 검색 */}
-            <div className="service-search">
-                <input
-                    type="text"
-                    placeholder="🔍 Search services..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="search-input"
-                />
-            </div>
+            {/* AI 채팅 / 검색 */}
+            <AIChatPanel
+                configSummary={configSummary}
+                onAIResponse={handleAIResponse}
+                aiEnabled={aiEnabled}
+                onToggleAI={() => setAiEnabled(prev => !prev)}
+            />
+            {!aiEnabled && (
+                <div className="service-search">
+                    <input
+                        type="text"
+                        placeholder="Search services..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="search-input"
+                    />
+                </div>
+            )}
 
             {/* 필터 */}
             <div className="service-filters">

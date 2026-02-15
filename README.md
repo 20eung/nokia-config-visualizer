@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v3.2.0** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer
+> 🚀 **v3.3.0** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇
 
 ![Application Screenshot](./docs/screenshot.png)
 
@@ -51,6 +51,13 @@
 - **Shutdown 필터링**: adminState='down' 항목 자동 제외
 - **Host 기반 그룹핑**: IES 서비스를 장비별 그룹화, HA 다이어그램 자동 생성
 - **v1/v2 통합**: 물리 토폴로지와 논리 서비스를 단일 플랫폼에서 지원
+### 🤖 AI 챗봇 검색 (v3.3)
+- **자연어 질문**: "Epipe 서비스 보여줘", "Customer-A 관련 서비스", "QoS 1G 이상 서비스 찾아줘" 등
+- **AWS Bedrock (Claude)**: 파싱된 설정 데이터를 AI가 분석하여 관련 서비스 자동 선택
+- **AI 토글**: AI 검색과 기존 텍스트 검색을 자유롭게 전환
+- **응답 패널**: 검색 결과 설명, 정확도 배지, 선택된 서비스 수 표시
+- **기존 다이어그램 100% 호환**: AI가 selectionKey를 반환하면 기존 다이어그램 로직 자동 연동
+
 ### 🔎 고급 검색 기능
 - **AND 검색**: ` + ` (공백 포함)로 구분
 - **OR 검색**: 띄어쓰기로 구분
@@ -75,12 +82,14 @@
 ## 🛠 기술 스택
 
 - **Frontend**: [React](https://react.dev/) 19 + [TypeScript](https://www.typescriptlang.org/)
+- **Backend**: [Express](https://expressjs.com/) + [AWS Bedrock](https://aws.amazon.com/bedrock/) (Claude AI)
 - **Build Tool**: [Vite](https://vitejs.dev/)
 - **Visualization**: [Mermaid.js](https://mermaid.js.org/)
 - **Integration**: [Grafana](https://grafana.com/) Diagram Panel 호환
 - **Styling**: Vanilla CSS
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Image Export**: [html-to-image](https://github.com/bubkoo/html-to-image)
+- **Infra**: Docker Compose (nginx + Express 별도 컨테이너)
 
 ## 🚀 시작하기
 
@@ -156,17 +165,23 @@ nokia-config-visualizer/
 ├── src/
 │   ├── components/              # UI 컴포넌트
 │   ├── components/v2/           # V2 전용 컴포넌트
-│   ├── components/v3/           # V3 전용 컴포넌트
+│   ├── components/v3/           # V3 전용 컴포넌트 (AIChatPanel 포함)
 │   ├── pages/                   # 페이지 (V1Page, V2Page, V3Page)
+│   ├── services/                # API 클라이언트 (chatApi)
 │   ├── utils/                   # 핵심 로직 (v1 파서, 다이어그램, HA 감지)
 │   ├── utils/v2/                # V2 파서 및 다이어그램
 │   ├── utils/v3/                # V3 파서 및 다이어그램
 │   ├── types.ts                 # TypeScript 타입 정의
 │   ├── App.tsx                  # 메인 애플리케이션 (라우팅)
 │   └── main.tsx                 # 진입점
+├── server/                      # Express 백엔드 (AI API)
+│   ├── src/                     # 서버 소스 (routes, services, prompts)
+│   ├── Dockerfile               # 백엔드 Docker 이미지
+│   └── package.json             # 백엔드 의존성
 ├── docs/                        # 프로젝트 문서
 ├── CHANGELOG.md                 # 변경 이력
 ├── DIAGRAM_RULES.md             # 다이어그램 렌더링 규칙
+├── docker-compose.yml           # 멀티 컨테이너 구성
 └── package.json
 ```
 
@@ -198,7 +213,7 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 - ✅ **표준화된 레이아웃**: 모든 서비스에 대해 Host-Service 구조 통일
 - ✅ **고도화된 파싱**: 복잡한 서비스 설정(Multi-hop, VRF 등) 파싱 지원
 
-### v3.x - Unified Visualizer ✅ 완료 (v3.2.0 released)
+### v3.x - Unified Visualizer ✅ 완료 (v3.3.0 released)
 - ✅ **Base Router 통합**: 물리적 연결(v1)과 서비스(v2) 뷰 통합
 - ✅ **IES 서비스 지원**: Base Router 인터페이스 및 Global Routing Table 시각화
 - ✅ **통합 UI**: 모든 서비스(Epipe, VPLS, VPRN, IES)를 하나의 인터페이스에서 관리
@@ -207,10 +222,17 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 - ✅ **QoS 하이라이트**: 녹색 배경 + 흰색 글자, Rate KMG 변환
 - ✅ **Shutdown 필터링**: adminState='down' 항목 다이어그램에서 자동 제외
 - ✅ **SAP 파싱 개선**: Position 기반 추출, VLAN-less SAP 지원
+- ✅ **AI 챗봇 검색**: AWS Bedrock (Claude) 기반 자연어 서비스 검색
+- ✅ **Express 백엔드**: AI API를 위한 별도 컨테이너 (nginx 프록시)
 
-**Latest Release**: v3.2.0 (2026-02-15)
+**Latest Release**: v3.3.0 (2026-02-15)
 
 ## 📊 버전 히스토리
+
+- **v3.3.0** (2026-02-15) - AI 챗봇 서비스 검색, Express 백엔드 추가
+  - AWS Bedrock (Claude) 기반 자연어 서비스 검색
+  - Express 백엔드 별도 Docker 컨테이너 구성
+  - AI 토글 UI (기존 검색과 전환 가능)
 
 - **v3.2.0** (2026-02-15) - QoS 하이라이트, VPRN 라우팅 노드, SAP 파싱 개선
   - VPRN BGP/OSPF/STATIC 분리 라우팅 노드
