@@ -19,6 +19,9 @@ config/
 docs/202*
 docs/*.zip
 
+# Screenshots (sensitive info)
+screenshot/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
