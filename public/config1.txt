@@ -1,0 +1,367 @@
+A:nokia-1# admin display-config
+# TiMOS-C-20.10.R13 cpm/hops64 Nokia 7750 SR Copyright (c) 2000-2022 Nokia.
+# All rights reserved. All use subject to applicable license agreements.
+# Built on Thu Dec 1 16:54:41 PST 2022 by builder in /builds/c/2010B/R13/panos/main/sros
+
+# Generated SAT FEB 15 09:00:00 2026 UTC
+
+exit all
+configure
+#--------------------------------------------------
+echo "System Configuration"
+#--------------------------------------------------
+    system
+        name "nokia-1"
+        chassis-mode d
+        dns
+        exit
+        snmp
+            streaming
+                no shutdown
+            exit
+            packet-size 9216
+        exit
+        time
+            ntp
+                no shutdown
+            exit
+            zone KST 09
+        exit
+    exit
+#--------------------------------------------------
+echo "Port Configuration"
+#--------------------------------------------------
+    port 1/1/1
+        description "Cust-A_HQ_1G"
+        ethernet
+            mode access
+            encap-type dot1q
+        exit
+        no shutdown
+    exit
+    port 1/1/2
+        description "Cust-B_Site1_500M"
+        ethernet
+            mode access
+            encap-type dot1q
+            mtu 9212
+        exit
+        no shutdown
+    exit
+    port 1/1/3
+        description "Cust-B_Site2_500M"
+        ethernet
+            mode access
+            encap-type dot1q
+        exit
+        no shutdown
+    exit
+    port 1/1/4
+        description "Cust-C_HQ_1G"
+        ethernet
+            mode access
+            encap-type dot1q
+        exit
+        no shutdown
+    exit
+    port 1/1/5
+        description "Cust-C_Branch_500M"
+        ethernet
+            mode access
+            encap-type dot1q
+        exit
+        no shutdown
+    exit
+    port 1/1/6
+        description "Cust-B_Spare"
+        ethernet
+            mode access
+            encap-type dot1q
+        exit
+        no shutdown
+    exit
+    port 2/1/1
+        description "Internet_GW_Link_1"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 2/1/2
+        description "Cust-D_Direct_100M"
+        ethernet
+            mode access
+            encap-type dot1q
+            no autonegotiate
+        exit
+        no shutdown
+    exit
+    port 2/1/3
+        description "Cust-E_Link_1"
+        ethernet
+            mode access
+        exit
+        no shutdown
+    exit
+    port 3/1/1
+        description "To-nokia-2_Uplink"
+        ethernet
+            mode network
+        exit
+        no shutdown
+    exit
+#--------------------------------------------------
+echo "QoS Policy Configuration"
+#--------------------------------------------------
+    qos
+        sap-ingress 100 create
+            queue 1 create
+                rate 100000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-ingress 500 create
+            queue 1 create
+                rate 500000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-ingress 1000 create
+            queue 1 create
+                rate 1000000
+            exit
+            queue 11 multipoint create
+            exit
+        exit
+        sap-egress 100 create
+            queue 1 create
+                rate 100000
+            exit
+        exit
+        sap-egress 500 create
+            queue 1 create
+                rate 500000
+            exit
+        exit
+        sap-egress 1000 create
+            queue 1 create
+                rate 1000000
+            exit
+        exit
+    exit
+#--------------------------------------------------
+echo "Router (Network Side) Configuration"
+#--------------------------------------------------
+    router Base
+        interface "system"
+            address 10.0.0.1/32
+            no shutdown
+        exit
+        autonomous-system 65000
+#--------------------------------------------------
+echo "Static Route Configuration"
+#--------------------------------------------------
+        static-route 10.10.40.0/24 next-hop 10.10.10.4 description "Internet-Traffic"
+        static-route 10.10.50.0/24 next-hop 10.10.20.2 description "Cust-D-LAN"
+        static-route 10.10.60.0/24 next-hop 10.10.30.2 description "Cust-E-Network"
+#--------------------------------------------------
+echo "OSPFv2 Configuration"
+#--------------------------------------------------
+        ospf 0
+            area 0.0.0.0
+                interface "system"
+                    no shutdown
+                exit
+            exit
+            no shutdown
+        exit
+    exit
+#--------------------------------------------------
+echo "Service Configuration"
+#--------------------------------------------------
+    service
+        customer 1 create
+            description "Default customer"
+        exit
+#--------------------------------------------------
+echo "Epipe Service Configuration"
+#--------------------------------------------------
+        epipe 100 customer 1 create
+            description "Cust-A P2P Link"
+            service-name "Cust-A-P2P"
+            service-mtu 1514
+            sap 1/1/1:100 create
+                description "Cust-A HQ Side"
+                ingress
+                    qos 1000
+                exit
+                egress
+                    qos 1000
+                exit
+            exit
+            no shutdown
+        exit
+#--------------------------------------------------
+echo "VPLS Service Configuration"
+#--------------------------------------------------
+        vpls 200 customer 1 create
+            description "Cust-B Multi-Site LAN"
+            service-name "Cust-B-LAN"
+            stp
+                shutdown
+            exit
+            sap 1/1/2:200 create
+                description "Cust-B Site1"
+                ingress
+                    qos 500
+                exit
+                egress
+                    qos 500
+                exit
+            exit
+            sap 1/1/3:200 create
+                description "Cust-B Site2"
+                ingress
+                    qos 500
+                exit
+                egress
+                    qos 500
+                exit
+            exit
+            sap 1/1/6:200 create
+                description "Cust-B Spare (Disabled)"
+                shutdown
+            exit
+            no shutdown
+        exit
+#--------------------------------------------------
+echo "VPRN Service Configuration"
+#--------------------------------------------------
+        vprn 300 customer 1 create
+            description "Cust-C L3 VPN"
+            service-name "Cust-C-L3VPN"
+            route-distinguisher 65000:300
+            autonomous-system 65000
+            interface "to-cust-c-hq" create
+            exit
+            interface "to-cust-c-branch" create
+            exit
+            no shutdown
+        exit
+        vprn 300 customer 1 create
+            interface "to-cust-c-hq" create
+                address 172.16.1.1/30
+                description "Cust-C HQ Connection"
+                sap 1/1/4:300 create
+                    ingress
+                        qos 1000
+                    exit
+                    egress
+                        qos 1000
+                    exit
+                exit
+            exit
+            interface "to-cust-c-branch" create
+                address 172.16.2.1/30
+                description "Cust-C Branch Connection"
+                sap 1/1/5:300 create
+                    ingress
+                        qos 500
+                    exit
+                    egress
+                        qos 500
+                    exit
+                exit
+            exit
+            bgp
+                router-id 10.0.0.1
+                split-horizon
+                group "CUST-C-PEERS"
+                    peer-as 65100
+                    neighbor 172.16.1.2
+                        description "Cust-C-HQ-Router"
+                    exit
+                exit
+            exit
+            ospf 0
+                area 0.0.0.0
+                    interface "to-cust-c-branch"
+                        no shutdown
+                    exit
+                exit
+            exit
+            static-route-entry 192.168.10.0/24
+                next-hop 172.16.1.2
+                    description "Cust-C-HQ-LAN"
+                    no shutdown
+                exit
+            exit
+            static-route-entry 192.168.20.0/24
+                next-hop 172.16.2.2
+                    description "Cust-C-Branch-LAN"
+                    no shutdown
+                exit
+            exit
+        exit
+#--------------------------------------------------
+echo "IES Service Configuration"
+#--------------------------------------------------
+        ies 10 customer 1 create
+            interface "to-internet-gw" create
+            exit
+            interface "to-cust-d" create
+            exit
+            interface "to-cust-e" create
+            exit
+        exit
+        ies 10 customer 1 create
+            interface "to-internet-gw" create
+                description "Internet Gateway"
+                address 10.10.10.1/29
+                sap 2/1/1 create
+                exit
+                vrrp 10
+                    backup 10.10.10.3
+                    priority 110
+                    ping-reply
+                    traceroute-reply
+                exit
+            exit
+            interface "to-cust-d" create
+                description "Cust-D Direct Link"
+                address 10.10.20.1/30
+                sap 2/1/2:400 create
+                    ingress
+                        qos 100
+                    exit
+                    egress
+                        qos 100
+                    exit
+                exit
+            exit
+            interface "to-cust-e" create
+                description "Cust-E Backup Link"
+                address 10.10.30.1/30
+                sap 2/1/3 create
+                exit
+            exit
+            no shutdown
+        exit
+    exit
+#--------------------------------------------------
+echo "Router (Service Side) Configuration"
+#--------------------------------------------------
+    router Base
+        ospf 0
+            area 0.0.0.0
+                interface "system"
+                    no shutdown
+                exit
+            exit
+            no shutdown
+        exit
+    exit
+
+exit all

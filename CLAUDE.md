@@ -389,7 +389,7 @@ const bad = (text: string) => `<span style='color:red'>${text}</span>`;
 ## 테스트
 
 ### 표준 테스트 파일
-- 기능 검증 시 `public/docs/config1.txt` 및 `public/docs/config2.txt` 파일을 사용한다.
+- 기능 검증 시 `public/config1.txt` 및 `public/config2.txt` 파일을 사용한다.
 - 테스트 수행 시 사용자 입력을 기다리지 않고, 해당 파일로 즉시 검증을 진행한다.
 
 ## 응답 스타일

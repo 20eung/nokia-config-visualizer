@@ -52,8 +52,8 @@ export function V1Page() {
     if (isBetaEnvironment && topology.devices.length === 0) {
       // Load both config1 and config2 for HA testing
       Promise.all([
-        fetch('/docs/config1.txt').then(r => r.text()),
-        fetch('/docs/config2.txt').then(r => r.text())
+        fetch('/config1.txt').then(r => r.text()),
+        fetch('/config2.txt').then(r => r.text())
       ])
         .then(texts => {
           handleConfigLoaded(texts);

@@ -8,9 +8,9 @@ interface ConfigSelectorProps {
 
 const DEMO_CONFIGS = [
     { id: 'custom', name: 'Select Config', paths: [] },
-    { id: 'both', name: 'Demo Config 1&2 (HA)', paths: ['/docs/config1.txt', '/docs/config2.txt'] },
-    { id: 'conf1', name: 'Demo Config 1 (BB3)', paths: ['/docs/config1.txt'] },
-    { id: 'conf2', name: 'Demo Config 2 (BB4)', paths: ['/docs/config2.txt'] },
+    { id: 'both', name: 'Demo Config 1&2 (HA)', paths: ['/config1.txt', '/config2.txt'] },
+    { id: 'conf1', name: 'Demo Config 1 (nokia-1)', paths: ['/config1.txt'] },
+    { id: 'conf2', name: 'Demo Config 2 (nokia-2)', paths: ['/config2.txt'] },
 ];
 
 export const ConfigSelector: React.FC<ConfigSelectorProps> = ({ onConfigLoaded }) => {

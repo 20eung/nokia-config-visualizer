@@ -18,7 +18,7 @@ export function V2Page() {
         const isDemoEnvironment = window.location.hostname.includes('demo') || window.location.hostname.includes('beta');
 
         if (isDemoEnvironment && configs.length === 0) {
-            fetch('/docs/v2/pe-router-1-l2vpn.cfg')
+            fetch('/pe-router-1-l2vpn.cfg')
                 .then(r => r.text())
                 .then(text => {
                     handleConfigLoaded([text]);
