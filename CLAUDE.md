@@ -405,9 +405,9 @@ const bad = (text: string) => `<span style='color:red'>${text}</span>`;
 - `CHANGELOG.md`: 버전별 변경 이력
 - `DIAGRAM_RULES.md`: 다이어그램 렌더링 규칙 (템플릿, 들여쓰기, QoS 색상 등)
 - `HOWTO-DOCKER.md`: Docker 빌드 및 배포 가이드
-- `V2_PLANNING.md`: v2 개발 계획
-- `V2_TECHNICAL_SPEC.md`: v2 기술 명세
-- `RELEASE_NOTES_*.md`: 버전별 릴리즈 노트
+- `docs/v2/V2_PLANNING.md`: v2 개발 계획
+- `docs/v2/V2_TECHNICAL_SPEC.md`: v2 기술 명세
+- `docs/release-notes/`: 버전별 릴리즈 노트
 
 ### 외부 참고
 - [Mermaid.js 공식 문서](https://mermaid.js.org/)
