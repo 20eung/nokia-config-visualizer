@@ -24,7 +24,7 @@
 - **전환 목표**: Docker 컨테이너 + NPM 프록시
 
 **배포 환경:**
-- **포트**: 3300 (컨테이너 외부 포트)
+- **포트**: 3301 (컨테이너 외부 포트)
 - **도메인**: 메인 도메인 (서브도메인 아님)
 - **프록시**: Nginx Proxy Manager (NPM)
 - **SSL**: NPM에서 자동 처리
@@ -50,10 +50,10 @@
 cd /data  # 또는 원하는 디렉토리
 
 # 2. GitHub에서 클론
-git clone https://github.com/20eung/mermaid-web.git nokia-visualizer
+git clone https://github.com/20eung/nokia-config-visualizer.git
 
 # 3. 프로젝트 디렉토리로 이동
-cd nokia-visualizer
+cd nokia-config-visualizer
 
 # 4. 현재 버전 확인
 git log --oneline -1
@@ -71,7 +71,7 @@ git log --oneline -1
 
 ```dockerfile
 # 멀티 스테이지 빌드 - 빌드 단계
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -108,7 +108,7 @@ CMD ["nginx", "-g", "daemon off;"]
 node_modules
 
 # 빌드 결과물
-dist
+# dist
 
 # Git 관련
 .git
@@ -149,11 +149,11 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
-    # 실제 클라이언트 IP 전달 (NPM 프록시 사용 시)
+    # 실제 클라이언트 IP 전달 (프록시 사용 시)
     real_ip_header X-Forwarded-For;
     set_real_ip_from 0.0.0.0/0;
 
-    # SPA 라우팅 지원 - 모든 요청을 index.html로 리다이렉트
+    # SPA 라우팅 지원
     location / {
         try_files $uri $uri/ /index.html;
     }
@@ -176,7 +176,7 @@ server {
     gzip_min_length 1024;
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
 
-    # 보안 헤더 (NPM에서도 설정 가능)
+    # 보안 헤더
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
@@ -188,8 +188,6 @@ server {
 #### 📄 4. docker-compose.yml
 
 ```yaml
-version: '3.8'
-
 services:
   nokia-visualizer:
     build:
@@ -199,7 +197,7 @@ services:
     hostname: nokia-visualizer
     restart: unless-stopped
     ports:
-      - "3300:80"
+      - "3301:80"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Seoul
@@ -208,10 +206,10 @@ services:
 
 networks:
   npm-network:
-    external: true
+    driver: bridge
 ```
 
-> **참고**: `npm-network`는 Nginx Proxy Manager와 동일한 네트워크입니다. NPM이 다른 네트워크를 사용한다면 해당 네트워크 이름으로 변경하세요.
+> **참고**: NPM과 동일한 Docker 네트워크를 사용하려면 `driver: bridge`를 `external: true`로 변경하세요.
 
 ---
 
@@ -242,7 +240,7 @@ docker-compose ps
 # 예상 출력:
 #       Name                     Command               State           Ports
 # ---------------------------------------------------------------------------------
-# nokia-visualizer   /docker-entrypoint.sh ngin ...   Up      0.0.0.0:3300->80/tcp
+# nokia-visualizer   /docker-entrypoint.sh ngin ...   Up      0.0.0.0:3301->80/tcp
 ```
 
 ---
@@ -251,13 +249,13 @@ docker-compose ps
 
 ```bash
 # 1. 서버 내부에서 테스트
-curl http://localhost:3300
+curl http://localhost:3301
 
 # 2. 외부에서 테스트 (방화벽 오픈 시)
-curl http://서버IP:3300
+curl http://서버IP:3301
 
 # 3. 브라우저 테스트
-# http://서버IP:3300 접속하여 정상 작동 확인
+# http://서버IP:3301 접속하여 정상 작동 확인
 ```
 
 ---
@@ -286,7 +284,7 @@ curl http://서버IP:3300
 | **Domain Names** | `your-domain.com` (메인 도메인) |
 | **Scheme** | `http` |
 | **Forward Hostname / IP** | `nokia-visualizer` (컨테이너 이름) 또는 `서버IP` |
-| **Forward Port** | `3300` |
+| **Forward Port** | `3301` |
 | **Cache Assets** | ✅ 체크 |
 | **Block Common Exploits** | ✅ 체크 |
 | **Websockets Support** | ☐ 체크 안 함 (필요 없음) |
@@ -487,8 +485,6 @@ server {
 SSL 인증서를 컨테이너에 마운트하고 HTTPS 포트를 노출합니다.
 
 ```yaml
-version: '3.8'
-
 services:
   nokia-visualizer:
     build:
@@ -498,7 +494,7 @@ services:
     hostname: nokia-visualizer
     restart: unless-stopped
     ports:
-      - "3300:80"    # HTTP (HTTPS로 리다이렉트됨)
+      - "3301:80"    # HTTP (HTTPS로 리다이렉트됨)
       - "3443:443"   # HTTPS
     volumes:
       - ./ssl:/etc/nginx/ssl:ro  # SSL 인증서 마운트 (읽기 전용)
@@ -548,8 +544,8 @@ docker exec nokia-visualizer nginx -t
 ### Step 5: 방화벽 설정 (필요 시)
 
 ```bash
-# 포트 3300 (HTTP) 오픈
-sudo ufw allow 3300/tcp
+# 포트 3301 (HTTP) 오픈
+sudo ufw allow 3301/tcp
 
 # 포트 3443 (HTTPS) 오픈
 sudo ufw allow 3443/tcp
@@ -564,7 +560,7 @@ sudo ufw status
 
 ```bash
 # HTTP 접속 (HTTPS로 리다이렉트되어야 함)
-curl -I http://서버IP:3300
+curl -I http://서버IP:3301
 
 # 예상 응답:
 # HTTP/1.1 301 Moved Permanently
@@ -574,7 +570,7 @@ curl -I http://서버IP:3300
 curl -k https://서버IP:3443
 
 # 브라우저 테스트
-# http://서버IP:3300 → https://서버IP:3443 (자동 리다이렉트)
+# http://서버IP:3301 → https://서버IP:3443 (자동 리다이렉트)
 # https://서버IP:3443 (직접 접속)
 ```
 
@@ -584,12 +580,12 @@ curl -k https://서버IP:3443
 
 | 외부 포트 | 내부 포트 | 프로토콜 | 용도 |
 |-----------|-----------|----------|------|
-| 3300 | 80 | HTTP | HTTPS로 리다이렉트 |
+| 3301 | 80 | HTTP | HTTPS로 리다이렉트 |
 | 3443 | 443 | HTTPS | 실제 서비스 |
 
 **리다이렉트 흐름:**
-1. 사용자가 `http://서버IP:3300` 접속
-2. Docker가 3300 → 80 포트로 전달
+1. 사용자가 `http://서버IP:3301` 접속
+2. Docker가 3301 → 80 포트로 전달
 3. Nginx가 HTTPS로 리다이렉트: `https://서버IP:3443`
 4. Docker가 3443 → 443 포트로 전달
 5. Nginx가 HTTPS로 응답
@@ -600,7 +596,7 @@ curl -k https://서버IP:3443
 
 #### 1. 리다이렉트 URL이 잘못된 경우
 
-**증상:** `http://서버IP:3300` 접속 시 `https://서버IP:3000`으로 리다이렉트됨
+**증상:** `http://서버IP:3301` 접속 시 `https://서버IP:3000`으로 리다이렉트됨
 
 **원인:** nginx.conf에서 포트를 명시하지 않음
 
@@ -720,11 +716,11 @@ docker exec nokia-visualizer nginx -s reload
 docker-compose logs
 
 # 포트 충돌 확인
-sudo lsof -i :3300
+sudo lsof -i :3301
 
 # 포트 변경이 필요한 경우 docker-compose.yml 수정
 # ports:
-#   - "3301:80"  # 3300 대신 3301 사용
+#   - "3302:80"  # 3301 대신 3302 사용
 ```
 
 ---
@@ -875,11 +871,11 @@ Docker Hub에 이미지를 업로드하면 다른 서버에서 쉽게 배포할 
 docker login
 
 # 2. 이미지 태그 지정
-docker tag mermaid-web-nokia-visualizer:latest yourusername/nokia-visualizer:v1.8.0
-docker tag mermaid-web-nokia-visualizer:latest yourusername/nokia-visualizer:latest
+docker tag nokia-visualizer:latest yourusername/nokia-visualizer:v3.2.0
+docker tag nokia-visualizer:latest yourusername/nokia-visualizer:latest
 
 # 3. Docker Hub에 푸시
-docker push yourusername/nokia-visualizer:v1.8.0
+docker push yourusername/nokia-visualizer:v3.2.0
 docker push yourusername/nokia-visualizer:latest
 
 # 4. 다른 서버에서 사용
@@ -1010,7 +1006,7 @@ jobs:
 ### 배포 실행
 - [ ] GitHub에서 소스 클론
 - [ ] Docker Compose 빌드 및 실행
-- [ ] 로컬 접속 테스트 (http://서버IP:3300)
+- [ ] 로컬 접속 테스트 (http://서버IP:3301)
 - [ ] NPM 프록시 호스트 추가
 - [ ] SSL 인증서 발급 확인
 - [ ] 도메인 접속 테스트 (https://your-domain.com)
@@ -1037,15 +1033,8 @@ jobs:
 
 1. **GitHub에서 소스 받기**
    ```bash
-   git clone https://github.com/20eung/mermaid-web.git nokia-visualizer
-   cd nokia-visualizer
-   ```
-   
-   또는
-
-   ```bash
-   git clone https://github.com/20eung/mermaid-web.git
-   cd mermaid-web
+   git clone https://github.com/20eung/nokia-config-visualizer.git
+   cd nokia-config-visualizer
    ```
 
 2. **Docker 설정 파일 생성** (4개 파일)
@@ -1057,7 +1046,7 @@ jobs:
 
 4. **NPM 프록시 호스트 설정**
    - Domain: `your-domain.com`
-   - Forward: `nokia-visualizer:3300` 또는 `서버IP:3300`
+   - Forward: `nokia-visualizer:3301` 또는 `서버IP:3301`
    - SSL: Let's Encrypt 자동 발급
 
 5. **접속 확인**
@@ -1066,7 +1055,7 @@ jobs:
    ```
 
 **특징:**
-- ✅ 포트 3300 사용 (충돌 최소화)
+- ✅ 포트 3301 사용 (충돌 최소화)
 - ✅ Docker Compose 기본 사용 (간편한 관리)
 - ✅ NPM 프록시로 SSL 자동 처리
 - ✅ 메인 도메인 연결
@@ -1076,7 +1065,7 @@ jobs:
 
 ---
 
-**작성일**: 2026-01-08  
-**버전**: v1.8.0  
-**대상**: 프로덕션 서버 배포  
+**작성일**: 2026-02-15
+**버전**: v3.2.0
+**대상**: 프로덕션 서버 배포
 **작성자**: Network Engineers
