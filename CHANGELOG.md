@@ -6,6 +6,42 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [3.2.0] - 2026-02-15
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **VPRN V3 네이티브 다이어그램**: V1 어댑터 기반에서 V3 네이티브 구현으로 전환. 라우팅 중간 노드(BGP, OSPF, STATIC)를 별도 노드로 분리하여 인터페이스와 서브넷/이름 매칭으로 자동 연결
+- **QoS SAP 노드 내부 표시**: Epipe/VPLS의 QoS를 연결선 라벨에서 SAP 하위 항목으로 이동 (Nokia config 구조와 일치)
+- **QoS Rate KMG 변환**: `sap-ingress`/`sap-egress` 정책 정의에서 rate를 파싱하여 K/M/G 단위로 표시 (7210SAS meter 방식, 7750SR/7450ESS/7705SAR queue 방식 모두 지원)
+
+### ✨ 새로운 기능 (New Features)
+- **QoS 색상 강조**: Epipe/VPLS/VPRN SAP 노드의 QoS 텍스트에 녹색 배경(`#4caf50`) + 흰색 글자 하이라이트 적용 (IES와 동일한 시인성)
+- **VPRN Ethernet 하위 필드**: VPRN 호스트 노드에 Port 하위 Ethernet 정보(Mode, MTU, Speed, AutoNego, Network, LLDP) 렌더링 추가
+- **멀티호스트 Name/Desc 표시 개선**: 여러 호스트의 Name/Description이 다를 경우, 헤더 아래 `‑ hostname: value` 형식의 들여쓰기 목록으로 표시 (Epipe/VPLS 서비스 노드)
+- **VPRN 라우팅 중간 노드**:
+  - BGP 노드: Router-ID, Split-Horizon, Group/Peer 정보 통합. Peer IP → 인터페이스 서브넷 매칭
+  - OSPF 노드: Area/Interface 정보 통합. Interface Name 직접 비교 매칭
+  - STATIC 노드: Next-Hop별 별도 노드 생성. Route 수 표시. Next-Hop → 인터페이스 서브넷 매칭
+- **Shutdown 필터링**: adminState='down'인 SAP/인터페이스를 다이어그램에서 자동 제외 (Epipe, VPLS, VPRN, IES)
+- **VPLS 호스트 정렬**: hostname 기준 오름차순 정렬 (BB3 → BB4 순서 보장)
+- **VPLS 멀티 SAP**: 하나의 호스트에 여러 SAP이 있을 경우 각 SAP을 개별 노드로 표시
+
+### 🐛 버그 수정 (Bug Fixes)
+- **SAP 파싱 누락 수정**: regex 기반 SAP 추출을 위치 기반(position-based) 방식으로 교체하여 마지막 SAP이 누락되는 버그 해결
+- **SAP adminState 오탐 수정**: `no shutdown`이 `shutdown`으로 잘못 판정되는 문제 수정. SAP 자체의 `exit` 이전까지만 검사
+- **VLAN-less SAP 파싱**: `sap 4/2/23 create` (VLAN 없음) 형식도 정상 파싱되도록 regex 수정
+- **멀티 IES 인터페이스 병합**: 동일 hostname의 여러 IES 서비스(IES 0 + IES 10) 인터페이스를 통합하여 다이어그램 생성
+- **IES Service Group 헤더 제거**: IES에 무의미한 "Service Group (ID: 0)" 헤더가 표시되던 문제 수정
+- **IES 카드 타이틀 형식**: 구분자를 ` - `에서 `: `로 수정, Description 우선순위 적용 (DIAGRAM_RULES.md 1.1 준수)
+
+### 🔧 기술적 변경 (Technical Changes)
+- **들여쓰기 레벨 조정**: 모든 다이어그램 템플릿의 들여쓰기를 2단계씩 축소 (DIAGRAM_RULES.md 템플릿 반영)
+  - Level 1: `  ‑ ` → `‑ `, Level 2: `    ‑ ` → `  ‑ `, Level 3: `      ‑ ` → `    ‑ `
+- **라벨 케이싱 변경**: `SPEED` → `Speed`, `AUTONEGO` → `AutoNego`, `NETWORK` → `Network`, `GROUP` → `Group`, `AREA` → `Area`
+- **Port Desc → Desc**: SAP 노드의 `Port Desc:` 라벨을 Port 하위 `Desc:`로 변경
+- **VPRN Int Desc → Desc**: VPRN 호스트 노드의 `Int Desc:` 라벨을 `Desc:`로 변경
+- **V3Page.tsx**: VPRN 다이어그램을 v1VPRNAdapter 대신 네이티브 `generateServiceDiagram()` 사용으로 전환
+- **DIAGRAM_RULES.md**: QoS 색상 강조, 멀티호스트 표시 형식, SAP 파싱 규칙, VPRN Ethernet 추가 등 다수 규칙 업데이트
+
 ## [3.1.0] - 2026-02-14
 
 ### 🚀 주요 변경 사항 (Major Changes)
