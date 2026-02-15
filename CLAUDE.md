@@ -250,8 +250,8 @@ public/
 
 ### 5. 검색 기능
 - **컴포넌트**: `InterfaceList.tsx`
-- **AND 검색**: ` + ` 구분 (예: `BB3 + 210.211`)
-- **OR 검색**: 띄어쓰기 구분 (예: `BB3 210.211`)
+- **AND 검색**: ` + ` 구분 (예: `nokia-1 + 172.16`)
+- **OR 검색**: 띄어쓰기 구분 (예: `nokia-1 172.16`)
 - **검색 필드**: hostname, port, portDescription, interfaceName, interfaceDescription, ipAddress, serviceDescription
 
 ### 6. Grafana 호환성

@@ -70,7 +70,7 @@
 | **VPLS** | `VPLS {serviceId}: {description}` | `VPLS 5000: OFFICE-LAN` |
 | **VPRN** | `VPRN {serviceId}: {description}` | `VPRN 3093: VPN-CustomerB` |
 | **IES** | `{hostname}: {interfaceDesc}` | `PE-Router-1: TO-CE-Switch` |
-| **IES (이중화)** | `이중화: {hostname1}: {intfDesc} & {hostname2}: {intfDesc}` | `이중화: BB3: To-CustomerA & BB4: To-CustomerA` |
+| **IES (이중화)** | `이중화: {hostname1}: {intfDesc} & {hostname2}: {intfDesc}` | `이중화: nokia-1: To-CustomerA & nokia-2: To-CustomerA` |
 
 - 구분자는 `: ` (콜론 + 공백)을 사용한다. (` - ` 아님)
 - description이 없으면 서비스 ID만 표시한다. (예: `EPIPE 2043`)
@@ -265,7 +265,7 @@ VPLS Desc:
 ### 3.4 호스트 정렬 및 멀티 SAP
 
 **호스트 정렬:**
-- 여러 호스트(config 파일)가 동일 VPLS에 참여할 경우, **hostname 기준 오름차순 정렬**하여 렌더링한다. (예: BB3 → BB4)
+- 여러 호스트(config 파일)가 동일 VPLS에 참여할 경우, **hostname 기준 오름차순 정렬**하여 렌더링한다. (예: nokia-1 → nokia-2)
 
 **멀티 SAP:**
 - 하나의 호스트에 여러 SAP이 설정된 경우, **각 SAP이 개별 노드(박스)**로 표시된다.

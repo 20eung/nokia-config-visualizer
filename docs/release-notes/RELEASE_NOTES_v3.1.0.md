@@ -29,4 +29,4 @@ We are excited to announce the release of **v3.1.0**! This update focuses on sig
 
 ---
 
-**Full Changelog**: https://github.com/20eung/mermaid-web/compare/v3.0.0...v3.1.0
+**Full Changelog**: https://github.com/20eung/nokia-config-visualizer/compare/v3.0.0...v3.1.0
