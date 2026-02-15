@@ -14,7 +14,7 @@ VRRP(Virtual Router Redundancy Protocol) 설정이 있는 인터페이스의 VIP
 
 **Master (priority 110)**:
 ```
-Host: AINet_NewYork_Nokia_Equipment_I_BB3
+Host: AINet_NewYork_7750SR_I_BB3
 Port: 3/1/1
 Interface: p3/1/1
 IP: *51.51.34.218/30
@@ -24,7 +24,7 @@ Service: VPRN 100
 
 **Backup (priority 90)**:
 ```
-Host: AINet_NewYork_Nokia_Equipment_I_BB4
+Host: AINet_NewYork_7750SR_I_BB4
 Port: 3/1/1
 Interface: p3/1/1
 IP: 51.51.34.222/30

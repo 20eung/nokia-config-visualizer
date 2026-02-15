@@ -11,7 +11,7 @@
 ### 🚀 주요 변경 사항 (Major Changes)
 - **VPRN V3 네이티브 다이어그램**: V1 어댑터 기반에서 V3 네이티브 구현으로 전환. 라우팅 중간 노드(BGP, OSPF, STATIC)를 별도 노드로 분리하여 인터페이스와 서브넷/이름 매칭으로 자동 연결
 - **QoS SAP 노드 내부 표시**: Epipe/VPLS의 QoS를 연결선 라벨에서 SAP 하위 항목으로 이동 (Nokia config 구조와 일치)
-- **QoS Rate KMG 변환**: `sap-ingress`/`sap-egress` 정책 정의에서 rate를 파싱하여 K/M/G 단위로 표시 (7210SAS meter 방식, Nokia 네트워크 장비/7450ESS/7705SAR queue 방식 모두 지원)
+- **QoS Rate KMG 변환**: `sap-ingress`/`sap-egress` 정책 정의에서 rate를 파싱하여 K/M/G 단위로 표시 (7210SAS meter 방식, 7750SR/7450ESS/7705SAR queue 방식 모두 지원)
 
 ### ✨ 새로운 기능 (New Features)
 - **QoS 색상 강조**: Epipe/VPLS/VPRN SAP 노드의 QoS 텍스트에 녹색 배경(`#4caf50`) + 흰색 글자 하이라이트 적용 (IES와 동일한 시인성)
@@ -78,7 +78,7 @@
 ## [2.0.0] - 2026-01-13
 
 ### 🚀 주요 변경 사항 (Major Changes)
-- **MPLS L2 VPN 서비스 시각화**: Nokia 네트워크 장비의 L2/L3 VPN 서비스를 완벽하게 지원합니다.
+- **MPLS L2 VPN 서비스 시각화**: Nokia 7750 SR의 L2/L3 VPN 서비스를 완벽하게 지원합니다.
   - **Epipe (P2P)**: SAP, Spoke-SDP, Endpoint 구성 시각화
   - **VPLS (Multipoint)**: SAP, Spoke-SDP, Mesh-SDP 풀 메쉬 토폴로지
   - **VPRN (L3 VPN)**: Interface, BGP Neighbor, Static Route 정보가 포함된 전용 레이아웃
