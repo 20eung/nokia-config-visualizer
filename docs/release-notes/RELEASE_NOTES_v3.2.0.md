@@ -19,7 +19,7 @@ This release delivers major improvements across all service types — enhanced Q
 
 ### 📊 QoS Rate KMG 변환
 - **정책 기반 Rate 파싱**: `sap-ingress`/`sap-egress` 정책 정의에서 실제 rate 값을 추출
-- **장비별 문법 지원**: 7210SAS (meter 기반), 7750SR/7450ESS/7705SAR (queue 기반) 모두 지원
+- **장비별 문법 지원**: 7210SAS (meter 기반), Nokia_Equipment/7450ESS/7705SAR (queue 기반) 모두 지원
 - **KMG 단위 표시**: 100,000 kbps → `100M`, 1,000,000 kbps → `1G`, unlimited → `Max`
 - **Fallback**: 정책 정의가 없으면 policy ID 숫자만 표시
 

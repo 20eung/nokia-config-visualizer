@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v3.2.0** (Latest) - Nokia 7750 SR / Unified Network & Service Visualizer
+> 🚀 **v3.2.0** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer
 
 ![Application Screenshot](./docs/screenshot.png)
 

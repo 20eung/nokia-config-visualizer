@@ -55,8 +55,8 @@ TopologyEngine에 상세한 HA 감지 로그 추가:
 **콘솔 로그**:
 ```
 🔗 [HA Detection] Found HA pair via common routes: ['51.51.35.128/27']
-  - AINet_NewYork_7750SR_I_BB3:p3/1/13 (51.51.34.220)
-  - AINet_NewYork_7750SR_I_BB4:p3/2/12 (51.51.34.219)
+  - AINet_NewYork_Nokia_Equipment_I_BB3:p3/1/13 (51.51.34.220)
+  - AINet_NewYork_Nokia_Equipment_I_BB4:p3/2/12 (51.51.34.219)
 ```
 
 ## 📊 버전 히스토리

@@ -15,12 +15,12 @@
 
 **사용 예시**:
 ```
-▼ 📦 AINet_NewYork_7750SR_I_BB3 (25)
+▼ 📦 AINet_NewYork_Nokia_Equipment_I_BB3 (25)
   ☐ p3/1/13
   ☐ p3/2/4
   ...
 
-▶ 📦 AINet_NewYork_7750SR_I_BB4 (28)
+▶ 📦 AINet_NewYork_Nokia_Equipment_I_BB4 (28)
 ```
 
 ## 🔧 개선 사항

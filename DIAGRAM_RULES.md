@@ -651,10 +651,10 @@ Nokia 장비 버전에 따라 `sap-ingress` / `sap-egress` 선언 문법이 다�
 
 | 선언 형식 | 장비 |
 |---|---|
-| `sap-ingress <ID> create` | 전 장비 (7210SAS, 7750SR, 7450ESS, 7705SAR) |
-| `sap-ingress <ID> name "<NAME>" create` | 7750SR |
-| `sap-egress <ID> create` | 7750SR, 7450ESS |
-| `sap-egress <ID> name "<NAME>" create` | 7750SR |
+| `sap-ingress <ID> create` | 전 장비 (7210SAS, Nokia 네트워크 장비, 7450ESS, 7705SAR) |
+| `sap-ingress <ID> name "<NAME>" create` | Nokia 네트워크 장비 |
+| `sap-egress <ID> create` | Nokia 네트워크 장비, 7450ESS |
+| `sap-egress <ID> name "<NAME>" create` | Nokia 네트워크 장비 |
 
 - 파서 정규식: `/sap-(ingress|egress)\s+(\d+)(?:\s+name\s+"[^"]*")?\s+create/`
 - `name` 필드는 선택적(optional)으로 처리
@@ -663,7 +663,7 @@ Nokia 장비 버전에 따라 `sap-ingress` / `sap-egress` 선언 문법이 다�
 
 장비 플랫폼에 따라 QoS 내부 구조(queue vs meter)와 rate 문법이 다르다:
 
-**7750SR / 7450ESS / 7705SAR** — Queue 기반:
+**Nokia 네트워크 장비 / 7450ESS / 7705SAR** — Queue 기반:
 ```
 sap-ingress 10 create
     queue 1 create
@@ -687,16 +687,16 @@ exit
 
 **Unlimited (전 장비)**:
 ```
-rate max cir max                      ← Format 4: 7750SR/7450ESS/7705SAR
+rate max cir max                      ← Format 4: Nokia 네트워크 장비/7450ESS/7705SAR
 rate cir max                          ← Format 5: 7210SAS
 ```
 
 | Rate 형식 | 장비 | 파싱 방법 |
 |---|---|---|
-| `rate 10000` | 7750SR, 7450ESS, 7705SAR | `rate\s+(\d+)` → PIR |
-| `rate 10000 cir 10000` | 7750SR, 7705SAR | `rate\s+(\d+)` → PIR |
+| `rate 10000` | Nokia 네트워크 장비, 7450ESS, 7705SAR | `rate\s+(\d+)` → PIR |
+| `rate 10000 cir 10000` | Nokia 네트워크 장비, 7705SAR | `rate\s+(\d+)` → PIR |
 | `rate cir 2000 pir 2000` | 7210SAS | `pir\s+(\d+)` → PIR |
-| `rate max cir max` | 7750SR, 7450ESS, 7705SAR | `max` 감지 → rateMax |
+| `rate max cir max` | Nokia 네트워크 장비, 7450ESS, 7705SAR | `max` 감지 → rateMax |
 | `rate cir max` | 7210SAS | `max` 감지 → rateMax |
 
 #### 6.4.3 Rate 표시 형식 (KMG 변환)
@@ -726,7 +726,7 @@ rate cir max                          ← Format 5: 7210SAS
 
 #### 6.4.5 sap-egress 참고사항
 
-- `sap-egress` 정의는 7750SR, 7450ESS에서만 발견됨 (전체 config 중 소수)
+- `sap-egress` 정의는 Nokia 네트워크 장비, 7450ESS에서만 발견됨 (전체 config 중 소수)
 - 대부분의 SAP은 `egress` 블록에 `qos` 참조가 없음 → egress QoS 미표시
 - `sap-egress`의 rate는 `rate <number>` (단순 형식)만 사용
 
