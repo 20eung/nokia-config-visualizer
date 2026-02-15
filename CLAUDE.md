@@ -407,7 +407,7 @@ const bad = (text: string) => `<span style='color:red'>${text}</span>`;
 
 ### 외부 참고
 - [Mermaid.js 공식 문서](https://mermaid.js.org/)
-- [Nokia 7750 SR 문서](https://documentation.nokia.com/)
+- [Nokia 네트워크 장비 문서](https://documentation.nokia.com/)
 - [React 공식 문서](https://react.dev/)
 - [TypeScript 공식 문서](https://www.typescriptlang.org/)
 
