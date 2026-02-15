@@ -112,7 +112,7 @@ export function generateEpipeDiagram(
     let serviceLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
     serviceLabel += `\u003cb\u003eService:\u003c/b\u003e EPIPE ${firstEpipe.serviceId}<br/>`;
 
-    // 괄호 안에 Service Name 표시 (사용자 샘플 참조: (SKENS_Pangyo_DDC_1G_1))
+    // 괄호 안에 Service Name 표시 (사용자 샘플 참조: (SERVICE_Example_1G_1))
     // 샘플에는 Service Name이 괄호 안에 있고, 그 아래에 EPIPE Name: ... 이 있음. 중복될 수 있음.
     // 기존 VPLS 로직: Service: ID <br> Name: ... <br> Description: ...
     // 사용자 샘플: Service: EPIPE 7 <br> (Name) <br> EPIPE Name: Name <br> Description: ...
