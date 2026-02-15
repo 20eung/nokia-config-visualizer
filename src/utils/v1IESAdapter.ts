@@ -74,11 +74,17 @@ function convertL3InterfaceToV1(intf: L3Interface): NokiaInterface {
         portDescription: intf.portDescription,
         ingressQos: intf.ingressQosId || 'Default',
         egressQos: intf.egressQosId || 'Default',
-        serviceType: 'IES 0',
-        serviceDescription: 'Global Base Routing Table',
         vrrpVip: intf.vrrpBackupIp,
         vrrpPriority: intf.vrrpPriority,
         portEthernet: intf.portEthernet,
+        mtu: intf.mtu,
+        vplsName: intf.vplsName,
+        spokeSdpId: intf.spokeSdpId,
+        sapId: intf.sapId,
+        ingressQosRate: intf.ingressQosRate,
+        ingressQosRateMax: intf.ingressQosRateMax,
+        egressQosRate: intf.egressQosRate,
+        egressQosRateMax: intf.egressQosRateMax,
     };
 }
 

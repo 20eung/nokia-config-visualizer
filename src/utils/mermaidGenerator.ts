@@ -180,56 +180,111 @@ const noWrap = (text: string): string => {
     .replace(/-/g, '\u2011');
 };
 
-// Helper: Format descriptions
-const fmtDesc = (desc?: string): string => {
-  if (!desc) return '';
-  return `<br/>(${noWrap(desc)})`;
-};
+// Format QoS rate for edge labels (KMG conversion)
+function formatQosEdgeRate(policyIdStr: string, rate?: number, rateMax?: boolean): string {
+  if (rateMax) return 'Max';
+  if (rate) {
+    const kbps = rate;
+    if (kbps >= 1000000) {
+      const g = kbps / 1000000;
+      return `${Number.isInteger(g) ? g : g.toFixed(1)}G`;
+    } else if (kbps >= 1000) {
+      const m = kbps / 1000;
+      return `${Number.isInteger(m) ? m : m.toFixed(1)}M`;
+    } else {
+      return `${kbps}K`;
+    }
+  }
+  return policyIdStr;
+}
 
-// Build node label in original beta format
+// Build QoS edge label for IES diagrams
+function buildQosEdgeLabel(intf: NokiaInterface): string {
+  const inQos = formatQosEdgeRate(intf.ingressQos || 'Default', intf.ingressQosRate, intf.ingressQosRateMax);
+  const outQos = formatQosEdgeRate(intf.egressQos || 'Default', intf.egressQosRate, intf.egressQosRateMax);
+  const content = `In\u2011QoS:\u00A0${inQos}\u003cbr/\u003eOut\u2011QoS:\u00A0${outQos}`;
+  return `\u003cdiv class='qos-label'\u003e${content}\u003c/div\u003e`;
+}
+
+// Build node label per DIAGRAM_RULES.md 5.3
 function buildNodeLabel(device: NokiaDevice, intf: NokiaInterface): string {
-  const portId = intf.portId || 'N/A';
-  const portDesc = intf.portDescription || '';
-  const ifName = intf.name;
-  const ifDesc = intf.description || '';
+  const nbsp = '\u00A0';
+  const nbhy = '\u2011';
+  const indent1 = `${nbsp}${nbsp}${nbhy}${nbsp}`;
+  const indent2 = `${nbsp}${nbsp}${nbsp}${nbsp}${nbhy}${nbsp}`;
 
-  // VRRP Master detection: priority >= 100
-  const isMaster = intf.vrrpPriority && intf.vrrpPriority >= 100;
-  const ipAddr = intf.ipAddress || 'N/A';
-  const ipDisplay = isMaster ? `*${ipAddr}` : ipAddr;
+  let label = `<div style="text-align: left">`;
+  label += `<b>Host:</b>${nbsp}${noWrap(device.hostname)}<br/><br/>`;
 
-  const svcType = intf.serviceType || 'Unknown Svc';
-  const svcDesc = intf.serviceDescription || '';
+  // Interface (top-level)
+  label += `<b>Interface:</b>${nbsp}${noWrap(intf.name)}<br/>`;
 
-  let label = (
-    `<div style="text-align: left">` +
-    `<b>Host:</b> ${noWrap(device.hostname)}<br/><br/>` +
-    `<b>Port:</b> ${portId}${fmtDesc(portDesc)}<br/>`
-  );
-
-  // Port Ethernet info
-  if (intf.portEthernet) {
-    const pe = intf.portEthernet;
-    if (pe.mode || pe.encapType) {
-      label += `<b>Ethernet:</b> ${pe.mode || ''}${pe.encapType ? ` /\u00A0encap\u2011type:\u00A0${pe.encapType}` : ''}<br/>`;
-    }
-    if (pe.mtu) {
-      label += `<b>Port\u00A0MTU:</b> ${pe.mtu}<br/>`;
-    }
+  // Desc
+  if (intf.description) {
+    label += `${indent1}<b>Desc:</b>${nbsp}${noWrap(intf.description)}<br/>`;
   }
 
-  label += (
-    `<br/><b>Interface:</b> ${ifName}${fmtDesc(ifDesc)}<br/><br/>` +
-    `<b>IP:</b> ${ipDisplay}<br/>`
-  );
+  // IP
+  if (intf.ipAddress) {
+    label += `${indent1}<b>IP:</b>${nbsp}${noWrap(intf.ipAddress)}<br/>`;
+  }
 
-  // Add VIP if exists
+  // VRRP
   if (intf.vrrpVip) {
-    label += `(VIP: ${intf.vrrpVip})<br/>`;
+    const role = (intf.vrrpPriority && intf.vrrpPriority >= 100) ? 'MASTER' : 'BACKUP';
+    label += `${indent1}<b>VRRP:</b>${nbsp}${intf.vrrpVip}${nbsp}(${role})<br/>`;
   }
 
-  label += `<br/><b>Service:</b> ${svcType}${fmtDesc(svcDesc)}` + `</div>`;
+  // VPLS
+  if (intf.vplsName) {
+    label += `${indent1}<b>VPLS:</b>${nbsp}${noWrap(intf.vplsName)}<br/>`;
+  }
 
+  // SAP
+  const sapId = intf.sapId || (intf.portId && intf.portId.includes(':') ? intf.portId : undefined);
+  if (sapId) {
+    label += `${indent1}<b>SAP:</b>${nbsp}${noWrap(sapId)}<br/>`;
+  }
+
+  // Port (extract from SAP ID before ":", or use portId)
+  const portId = sapId ? sapId.split(':')[0] : intf.portId;
+  if (portId) {
+    label += `${indent1}<b>Port:</b>${nbsp}${noWrap(portId)}<br/>`;
+
+    // Port Description
+    if (intf.portDescription) {
+      label += `${indent2}<b>Desc:</b>${nbsp}${noWrap(intf.portDescription)}<br/>`;
+    }
+
+    // Ethernet sub-fields
+    if (intf.portEthernet) {
+      const pe = intf.portEthernet;
+      const ethFields: string[] = [];
+      if (pe.mode) ethFields.push(`${indent2}<b>Mode:</b>${nbsp}${pe.mode}`);
+      if (pe.mtu) ethFields.push(`${indent2}<b>MTU:</b>${nbsp}${pe.mtu}`);
+      if (pe.speed) ethFields.push(`${indent2}<b>SPEED:</b>${nbsp}${pe.speed}`);
+      if (pe.autonegotiate) ethFields.push(`${indent2}<b>AUTONEGO:</b>${nbsp}${pe.autonegotiate.toUpperCase()}`);
+      if (pe.networkQueuePolicy) ethFields.push(`${indent2}<b>NETWORK:</b>${nbsp}${noWrap(pe.networkQueuePolicy)}`);
+      if (pe.lldp) ethFields.push(`${indent2}<b>LLDP:</b>${nbsp}${pe.lldp}`);
+
+      if (ethFields.length > 0) {
+        label += `${indent2}<b>Ethernet:</b><br/>`;
+        label += ethFields.join('<br/>') + '<br/>';
+      }
+    }
+  }
+
+  // IP-MTU
+  if (intf.mtu) {
+    label += `${indent1}<b>IP${nbhy}MTU:</b>${nbsp}${intf.mtu}<br/>`;
+  }
+
+  // Spoke-Sdp
+  if (intf.spokeSdpId) {
+    label += `${indent1}<b>Spoke${nbhy}Sdp:</b>${nbsp}${noWrap(intf.spokeSdpId)}<br/>`;
+  }
+
+  label += `</div>`;
   return label;
 }
 
@@ -270,8 +325,7 @@ export function generateCombinedHaDiagram(group: DiagramGroup, _topology: Networ
   group.items.forEach((item, idx) => {
     const localNode = `L${idx}`;
     const peerNode = `Peer${idx}`;
-    const qosLabelContent = `In\u2011QoS: ${item.intf.ingressQos || 'Default'}\u003cbr/\u003eOut\u2011QoS: ${item.intf.egressQos || 'Default'}`;
-    const qosLabel = `\u003cdiv class='qos-label'\u003e${qosLabelContent}\u003c/div\u003e`;
+    const qosLabel = buildQosEdgeLabel(item.intf);
     mermaid.push(`    ${localNode} -->|"${qosLabel}"| ${peerNode}`);
   });
 
@@ -320,8 +374,7 @@ export function generateSingleInterfaceDiagram(device: NokiaDevice, intf: NokiaI
   mermaid.push(`        C["${cLabel}"]`);
   mermaid.push(`    end`);
 
-  const qosLabelContent = `In\u2011QoS: ${intf.ingressQos || 'Default'}<br/>Out\u2011QoS: ${intf.egressQos || 'Default'}`;
-  const qosLabel = `<div class='qos-label'>${qosLabelContent}</div>`;
+  const qosLabel = buildQosEdgeLabel(intf);
   mermaid.push(`    A -->|"${qosLabel}"| B`);
   mermaid.push(`    B -.-> C`);
 

@@ -490,7 +490,8 @@ export function parseVPRN(
         const [, ifName, ifContent] = match;
 
         const ipMatch = ifContent.match(/address\s+([\d.\/]+)/i);
-        const portMatch = ifContent.match(/sap\s+([\w\/-]+:\d+)/i) || ifContent.match(/port\s+([\w\/-]+)/i);
+        const sapMatch = ifContent.match(/sap\s+([\w\/-]+:\d+)/i);
+        const portMatch = sapMatch || ifContent.match(/port\s+([\w\/-]+)/i);
         const descMatch = ifContent.match(/description\s+"([^"]+)"/i);
         const mtuMatch = ifContent.match(/mtu\s+(\d+)/i);
         const vplsMatch = ifContent.match(/vpls\s+"([^"]+)"/i); // Routed VPLS binding
@@ -509,6 +510,7 @@ export function parseVPRN(
             description: descMatch ? descMatch[1] : undefined,
             ipAddress: ipMatch ? ipMatch[1] : undefined,
             portId: portMatch ? portMatch[1] : undefined,
+            sapId: sapMatch ? sapMatch[1] : undefined,
             mtu: mtuMatch ? parseInt(mtuMatch[1]) : undefined,
             vplsName: vplsMatch ? vplsMatch[1] : undefined,
             spokeSdpId: spokeSdpMatch ? spokeSdpMatch[1] : undefined,
@@ -1261,6 +1263,23 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
     });
 
     // ---------------------------------------------------------
+    // Helpers for IP subnet matching (used by IES 0 filtering)
+    // ---------------------------------------------------------
+    function ipToLong(ip: string): number {
+        return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+    }
+
+    function isIpInSubnet(ip: string, cidr: string): boolean {
+        const parts = cidr.split('/');
+        if (parts.length !== 2) return false;
+        const subnetIp = parts[0];
+        const prefixLen = parseInt(parts[1], 10);
+        if (isNaN(prefixLen) || prefixLen < 0 || prefixLen > 32) return false;
+        const mask = prefixLen === 0 ? 0 : (~0 << (32 - prefixLen)) >>> 0;
+        return (ipToLong(ip) & mask) === (ipToLong(subnetIp) & mask);
+    }
+
+    // ---------------------------------------------------------
     // v3 Integration: Extract Base Router as IES Service (ID: 0)
     // ---------------------------------------------------------
     const baseInterfaces: L3Interface[] = [];
@@ -1348,8 +1367,12 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
 
                 // Parsing Regex
                 const ipMatch = ifContent.match(/address\s+([\d.\/]+)/i);
-                const portMatch = ifContent.match(/port\s+([\w\/-]+)/i) || ifContent.match(/sap\s+([\w\/-]+:?\d*)/i);
+                const sapMatch = ifContent.match(/sap\s+([\w\/-]+:\d+)/i);
+                const portMatch = ifContent.match(/port\s+([\w\/-]+)/i) || sapMatch;
                 const descMatch = ifContent.match(/description\s+"?([^"\n]+)"?/);
+                const mtuMatch = ifContent.match(/mtu\s+(\d+)/i);
+                const vplsMatch = ifContent.match(/vpls\s+"([^"]+)"/i);
+                const spokeSdpMatch = ifContent.match(/spoke-sdp\s+(\d+:\d+)/i);
 
                 // QoS Parsing (Ingress/Egress separation)
                 let inQos: string | undefined;
@@ -1399,9 +1422,13 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
                     interfaceName: ifName,
                     ipAddress: ipMatch?.[1],
                     portId: pId,
+                    sapId: sapMatch ? sapMatch[1] : undefined,
                     description: descMatch ? descMatch[1] : undefined,
                     portDescription: pDesc,
                     portEthernet: pEthernet,
+                    mtu: mtuMatch ? parseInt(mtuMatch[1]) : undefined,
+                    vplsName: vplsMatch ? vplsMatch[1] : undefined,
+                    spokeSdpId: spokeSdpMatch ? spokeSdpMatch[1] : undefined,
                     ingressQosId: inQos,
                     egressQosId: outQos,
                     adminState: 'up'
@@ -1411,6 +1438,24 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
             }
         }
     }
+
+    // Enrich Base Router interfaces with QoS rate info from policy definitions
+    baseInterfaces.forEach(intf => {
+        if (intf.ingressQosId) {
+            const p = qosPolicyMap.get(`ingress-${intf.ingressQosId}`);
+            if (p) {
+                intf.ingressQosRate = p.rate;
+                intf.ingressQosRateMax = p.rateMax;
+            }
+        }
+        if (intf.egressQosId) {
+            const p = qosPolicyMap.get(`egress-${intf.egressQosId}`);
+            if (p) {
+                intf.egressQosRate = p.rate;
+                intf.egressQosRateMax = p.rateMax;
+            }
+        }
+    });
 
     // Static Routes (Global)
     const staticRoutes: StaticRoute[] = [];
@@ -1456,7 +1501,53 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
         }
     }
 
-    if (baseInterfaces.length > 0 || staticRoutes.length > 0) {
+    // ---------------------------------------------------------
+    // Rule 1: Filter Base Router interfaces for IES 0
+    // Only include interfaces that:
+    //   1. Name is NOT "system"
+    //   2. Have an IP address
+    //   3. Have at least one static route whose next-hop falls in the interface's subnet
+    // ---------------------------------------------------------
+    const filteredBaseInterfaces = baseInterfaces.filter(intf => {
+        // Exclude "system" interface
+        if (intf.interfaceName.toLowerCase() === 'system') return false;
+        // Must have IP address
+        if (!intf.ipAddress) return false;
+        // Must have at least one associated static route
+        const hasAssociatedRoute = staticRoutes.some(route =>
+            isIpInSubnet(route.nextHop, intf.ipAddress!)
+        );
+        return hasAssociatedRoute;
+    });
+
+    // ---------------------------------------------------------
+    // Rule 2: Propagate global static routes to explicit IES services
+    // If there are explicit IES services (serviceId > 0) in this config,
+    // merge global static routes into them (deduplicated).
+    // ---------------------------------------------------------
+    const explicitIesServices = services.filter(
+        s => s.serviceType === 'ies' && s.serviceId !== 0
+    ) as IESService[];
+
+    if (explicitIesServices.length > 0 && staticRoutes.length > 0) {
+        for (const ies of explicitIesServices) {
+            const existingKeys = new Set(
+                ies.staticRoutes.map(r => `${r.prefix}|${r.nextHop}`)
+            );
+            for (const route of staticRoutes) {
+                const key = `${route.prefix}|${route.nextHop}`;
+                if (!existingKeys.has(key)) {
+                    ies.staticRoutes.push(route);
+                    existingKeys.add(key);
+                }
+            }
+        }
+    }
+
+    // ---------------------------------------------------------
+    // IES 0 creation: only if filtered interfaces remain
+    // ---------------------------------------------------------
+    if (filteredBaseInterfaces.length > 0) {
         const iesService: IESService = {
             serviceType: 'ies',
             serviceId: 0,
@@ -1464,12 +1555,10 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
             customerId: 0,
             description: 'Global Base Routing Table',
             adminState: 'up',
-            interfaces: baseInterfaces,
+            interfaces: filteredBaseInterfaces,
             staticRoutes: staticRoutes,
-            bgpNeighbors: [] // TODO: Extract Global BGP if needed
+            bgpNeighbors: []
         };
-        // Add to services list
-        // Casting to any to allow IES injection if types conflict temporarily
         (services as any[]).push(iesService);
     }
 

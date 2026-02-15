@@ -19,7 +19,15 @@ export interface NokiaInterface {
   egressQos?: string; // Egress QoS policy ID
   vrrpVip?: string; // VRRP Virtual IP
   vrrpPriority?: number; // VRRP Priority (for master detection)
-  portEthernet?: { mode?: string; encapType?: string; mtu?: number; speed?: string; autonegotiate?: string };
+  portEthernet?: { mode?: string; encapType?: string; mtu?: number; speed?: string; autonegotiate?: string; networkQueuePolicy?: string; lldp?: string };
+  mtu?: number;                // IP-MTU
+  vplsName?: string;           // Routed VPLS binding
+  spokeSdpId?: string;         // Spoke-SDP ID
+  sapId?: string;              // SAP ID (e.g., "4/2/13:0")
+  ingressQosRate?: number;     // QoS rate (kbps)
+  ingressQosRateMax?: boolean;
+  egressQosRate?: number;
+  egressQosRateMax?: boolean;
 }
 
 export interface NokiaStaticRoute {
