@@ -14,7 +14,6 @@ export interface NameDictionary {
   version: number;
   createdAt: string;
   updatedAt: string;
-  configFingerprint: string;
   entries: DictionaryEntry[];
 }
 

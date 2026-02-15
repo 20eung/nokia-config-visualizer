@@ -52,11 +52,9 @@ export async function generateDictionary(
   }
 }
 
-export async function loadDictionaryFromServer(
-  fingerprint: string,
-): Promise<NameDictionary | null> {
+export async function loadDictionaryFromServer(): Promise<NameDictionary | null> {
   try {
-    const res = await fetch(`/api/dictionary/${fingerprint}`);
+    const res = await fetch('/api/dictionary');
     if (res.status === 404) return null;
     if (!res.ok) return null;
     return await res.json() as NameDictionary;
@@ -66,11 +64,10 @@ export async function loadDictionaryFromServer(
 }
 
 export async function saveDictionaryToServer(
-  fingerprint: string,
   dictionary: NameDictionary,
 ): Promise<boolean> {
   try {
-    const res = await fetch(`/api/dictionary/${fingerprint}`, {
+    const res = await fetch('/api/dictionary', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dictionary),

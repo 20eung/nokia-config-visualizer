@@ -59,40 +59,25 @@ router.post('/dictionary/generate', async (req: Request, res: Response): Promise
   }
 });
 
-// GET /api/dictionary/:fingerprint — 사전 로드
-router.get('/dictionary/:fingerprint', (req: Request<{ fingerprint: string }>, res: Response): void => {
-  const fingerprint = req.params.fingerprint;
-
-  if (!fingerprint || !/^[a-z0-9-]+$/.test(fingerprint)) {
-    res.status(400).json({ error: '유효하지 않은 fingerprint입니다.' });
-    return;
-  }
-
-  const data = loadDictionary(fingerprint);
+// GET /api/dictionary — 사전 로드
+router.get('/dictionary', (_req: Request, res: Response): void => {
+  const data = loadDictionary();
   if (!data) {
-    res.status(404).json({ error: '사전을 찾을 수 없습니다.' });
+    res.status(404).json({ error: '저장된 사전이 없습니다.' });
     return;
   }
-
   res.json(data);
 });
 
-// PUT /api/dictionary/:fingerprint — 사전 저장
-router.put('/dictionary/:fingerprint', (req: Request<{ fingerprint: string }>, res: Response): void => {
-  const fingerprint = req.params.fingerprint;
-
-  if (!fingerprint || !/^[a-z0-9-]+$/.test(fingerprint)) {
-    res.status(400).json({ error: '유효하지 않은 fingerprint입니다.' });
-    return;
-  }
-
+// PUT /api/dictionary — 사전 저장
+router.put('/dictionary', (req: Request, res: Response): void => {
   const body = req.body as unknown;
   if (!body || typeof body !== 'object') {
     res.status(400).json({ error: '유효하지 않은 요청 본문입니다.' });
     return;
   }
 
-  const ok = saveDictionary(fingerprint, body);
+  const ok = saveDictionary(body);
   if (!ok) {
     res.status(500).json({ error: '사전 저장에 실패했습니다.' });
     return;

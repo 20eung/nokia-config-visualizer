@@ -9,7 +9,7 @@ import { convertVPRNToV1Format } from '../../utils/v1VPRNAdapter';
 import { AIChatPanel } from './AIChatPanel';
 import { DictionaryEditor } from './DictionaryEditor';
 import { buildConfigSummary, type ConfigSummary } from '../../utils/configSummaryBuilder';
-import { getConfigFingerprint, toDictionaryCompact } from '../../utils/dictionaryStorage';
+import { toDictionaryCompact } from '../../utils/dictionaryStorage';
 import { loadDictionaryFromServer } from '../../services/dictionaryApi';
 import type { ChatResponse } from '../../services/chatApi';
 import '../v2/ServiceList.css';
@@ -41,23 +41,17 @@ export function ServiceListV3({
         return buildConfigSummary(configs);
     }, [configs]);
 
-    // Config fingerprint + localStorage에서 dictionary 로드
-    const configFingerprint = useMemo(() => {
-        if (configs.length === 0) return '';
-        return getConfigFingerprint(configs);
-    }, [configs]);
-
-    // configs 변경 시 서버에서 dictionary 로드
+    // 컴포넌트 마운트 시 서버에서 전역 사전 로드
     useEffect(() => {
-        if (!configFingerprint) return;
+        if (configs.length === 0) return;
         let cancelled = false;
-        loadDictionaryFromServer(configFingerprint).then(loaded => {
+        loadDictionaryFromServer().then(loaded => {
             if (!cancelled && loaded) {
                 setDictionary(loaded);
             }
         });
         return () => { cancelled = true; };
-    }, [configFingerprint]);
+    }, [configs]);
 
     // AI 전송용 compact dictionary
     const dictionaryCompact = useMemo(() => toDictionaryCompact(dictionary), [dictionary]);
@@ -1017,7 +1011,6 @@ export function ServiceListV3({
             {showDictionaryEditor && (
                 <DictionaryEditor
                     configs={configs}
-                    configFingerprint={configFingerprint}
                     dictionary={dictionary}
                     onSave={(dict) => setDictionary(dict)}
                     onClose={() => setShowDictionaryEditor(false)}

@@ -1,15 +1,15 @@
-import { useState, useRef } from 'react';
-import { Sparkles, X, Plus, Trash2 } from 'lucide-react';
+import { useState, useRef, useMemo } from 'react';
+import { Sparkles, X, Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import type { ParsedConfigV3 } from '../../utils/v3/parserV3';
 import type { NameDictionary, DictionaryEntry } from '../../types/dictionary';
 import { getUniqueDescriptions } from '../../utils/descriptionExtractor';
 import { createEmptyDictionary } from '../../utils/dictionaryStorage';
 import { generateDictionary, saveDictionaryToServer } from '../../services/dictionaryApi';
+
 import './DictionaryEditor.css';
 
 interface DictionaryEditorProps {
   configs: ParsedConfigV3[];
-  configFingerprint: string;
   dictionary: NameDictionary | null;
   onSave: (dictionary: NameDictionary) => void;
   onClose: () => void;
@@ -24,9 +24,11 @@ function makeId(): string {
 type EntryCategory = DictionaryEntry['category'];
 const CATEGORIES: EntryCategory[] = ['customer', 'location', 'service', 'device', 'other'];
 
+type SortField = 'originalToken' | 'category' | 'shortName' | 'longName' | 'koreanName' | 'aliases';
+type SortDir = 'asc' | 'desc';
+
 export function DictionaryEditor({
   configs,
-  configFingerprint,
   dictionary,
   onSave,
   onClose,
@@ -45,6 +47,34 @@ export function DictionaryEditor({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
+
+  const sortedEntries = useMemo(() => {
+    if (!sortField) return entries;
+    return [...entries].sort((a, b) => {
+      let va: string;
+      let vb: string;
+      if (sortField === 'aliases') {
+        va = (aliasTexts[a.id] ?? a.aliases.join(', ')).toLowerCase();
+        vb = (aliasTexts[b.id] ?? b.aliases.join(', ')).toLowerCase();
+      } else {
+        va = String(a[sortField]).toLowerCase();
+        vb = String(b[sortField]).toLowerCase();
+      }
+      const cmp = va.localeCompare(vb, 'ko');
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [entries, aliasTexts, sortField, sortDir]);
 
   const handleGenerate = async () => {
     const descriptions = getUniqueDescriptions(configs);
@@ -63,12 +93,11 @@ export function DictionaryEditor({
     try {
       const result = await generateDictionary(descriptions, controller.signal);
 
-      // 기존 userEdited 엔트리 보존
-      const userEdited = entries.filter(e => e.userEdited);
-      const userEditedTokens = new Set(userEdited.map(e => e.originalToken));
+      // 기존 항목 모두 보존, 새 토큰만 추가
+      const existingTokens = new Set(entries.map(e => e.originalToken));
 
-      const generated: DictionaryEntry[] = result.entries
-        .filter(e => !userEditedTokens.has(e.originalToken))
+      const newEntries: DictionaryEntry[] = result.entries
+        .filter(e => !existingTokens.has(e.originalToken))
         .map(e => ({
           id: makeId(),
           originalToken: e.originalToken,
@@ -81,12 +110,12 @@ export function DictionaryEditor({
           userEdited: false,
         }));
 
-      const allEntries = [...userEdited, ...generated];
+      const allEntries = [...entries, ...newEntries];
       setEntries(allEntries);
-      // aliasTexts 동기화
-      const newTexts: Record<string, string> = {};
-      for (const e of allEntries) {
-        newTexts[e.id] = aliasTexts[e.id] ?? e.aliases.join(', ');
+      // aliasTexts 동기화 (새 항목만 추가)
+      const newTexts: Record<string, string> = { ...aliasTexts };
+      for (const e of newEntries) {
+        newTexts[e.id] = e.aliases.join(', ');
       }
       setAliasTexts(newTexts);
     } catch (err: unknown) {
@@ -109,9 +138,9 @@ export function DictionaryEditor({
 
     const dict: NameDictionary = dictionary
       ? { ...dictionary, entries: finalEntries, updatedAt: new Date().toISOString() }
-      : { ...createEmptyDictionary(configFingerprint), entries: finalEntries };
+      : { ...createEmptyDictionary(), entries: finalEntries };
 
-    const ok = await saveDictionaryToServer(configFingerprint, dict);
+    const ok = await saveDictionaryToServer(dict);
     if (!ok) {
       setError('사전 저장에 실패했습니다. 서버 연결을 확인해주세요.');
       return;
@@ -195,17 +224,33 @@ export function DictionaryEditor({
             <table className="dict-table">
               <thead>
                 <tr>
-                  <th style={{ width: '15%' }}>원본 토큰</th>
-                  <th style={{ width: '10%' }}>카테고리</th>
-                  <th style={{ width: '14%' }}>짧은 이름</th>
-                  <th style={{ width: '18%' }}>긴 이름</th>
-                  <th style={{ width: '14%' }}>한국어</th>
-                  <th style={{ width: '24%' }}>별칭 (쉼표 구분)</th>
+                  {([
+                    ['originalToken', '15%', '원본 토큰'],
+                    ['category', '10%', '카테고리'],
+                    ['shortName', '14%', '짧은 이름'],
+                    ['longName', '18%', '긴 이름'],
+                    ['koreanName', '14%', '한국어'],
+                    ['aliases', '24%', '별칭 (쉼표 구분)'],
+                  ] as const).map(([field, width, label]) => (
+                    <th
+                      key={field}
+                      style={{ width, cursor: 'pointer' }}
+                      className={sortField === field ? 'dict-th-active' : ''}
+                      onClick={() => toggleSort(field)}
+                    >
+                      <span className="dict-th-content">
+                        {label}
+                        {sortField === field
+                          ? (sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)
+                          : null}
+                      </span>
+                    </th>
+                  ))}
                   <th style={{ width: '5%' }}></th>
                 </tr>
               </thead>
               <tbody>
-                {entries.map(entry => (
+                {sortedEntries.map(entry => (
                   <tr key={entry.id}>
                     <td>
                       <input
