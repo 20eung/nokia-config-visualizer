@@ -78,9 +78,10 @@ export function generateEpipeDiagram(
     _sdps: SDP[] = [],
     _remoteDeviceMap?: Map<string, string>
 ): string {
-    // 배열로 정규화
-    const epipeArray = Array.isArray(epipes) ? epipes : [epipes];
+    // 배열로 정규화 + shutdown SAP 필터링
+    const rawEpipeArray = Array.isArray(epipes) ? epipes : [epipes];
     const hostnameArray = Array.isArray(hostname) ? hostname : [hostname];
+    const epipeArray = rawEpipeArray.map(e => ({ ...e, saps: e.saps.filter(s => s.adminState !== 'down') }));
 
     // SDP 기반 그룹화 로직 (User Request: Verify SDP)
     // 1. SDP Target(ID:VC)별로 서비스를 분류
@@ -230,8 +231,10 @@ export function generateVPLSDiagram(
     _sdps: SDP[] = [],
     _remoteDeviceMap?: Map<string, string>
 ): string {
-    const vplsArray = Array.isArray(vpls) ? vpls : [vpls];
+    // 배열로 정규화 + shutdown SAP 필터링
+    const rawVplsArray = Array.isArray(vpls) ? vpls : [vpls];
     const hostnameArray = Array.isArray(hostname) ? hostname : [hostname];
+    const vplsArray = rawVplsArray.map(v => ({ ...v, saps: v.saps.filter(s => s.adminState !== 'down') }));
 
     const lines: string[] = [];
     lines.push('graph LR');
@@ -446,8 +449,10 @@ export function generateVPRNDiagram(
     vprn: VPRNService | VPRNService[],
     hostname: string | string[]
 ): string {
-    const vprnArray = Array.isArray(vprn) ? vprn : [vprn];
+    // 배열로 정규화 + shutdown 인터페이스 필터링
+    const rawVprnArray = Array.isArray(vprn) ? vprn : [vprn];
     const hostnameArray = Array.isArray(hostname) ? hostname : [hostname];
+    const vprnArray = rawVprnArray.map(v => ({ ...v, interfaces: v.interfaces.filter(i => i.adminState !== 'down') }));
 
     const lines: string[] = [];
 

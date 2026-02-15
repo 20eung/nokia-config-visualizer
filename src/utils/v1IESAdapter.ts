@@ -57,7 +57,9 @@ export function convertIESToV1Format(
     return {
         hostname,
         ports: [],
-        interfaces: iesService.interfaces.map(convertL3InterfaceToV1),
+        interfaces: iesService.interfaces
+            .filter(intf => intf.adminState !== 'down')
+            .map(convertL3InterfaceToV1),
         staticRoutes
     };
 }
