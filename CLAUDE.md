@@ -419,13 +419,6 @@ const bad = (text: string) => `<span style='color:red'>${text}</span>`;
 - `v2-development`: v2 개발
 - `v3-development`: v3 개발 (현재 활성)
 
-### 배포 환경
-- **Production**: nokia.hub.sk-net.com (v1.x)
-- **Production**: nokia2.hub.sk-net.com (v2.x)
-- **Production**: nokia3.hub.sk-net.com (v3.x)
-- **Internal**: nokia-int.hub.sk-net.com (v1.x)
-- **Demo**: demo.hub.sk-net.com (v1.x, 샘플 config 포함)
-
 ### 빌드 및 배포
 ```bash
 # 개발 서버

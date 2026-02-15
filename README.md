@@ -249,15 +249,6 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 
 ## 🔗 링크
 
-### 프로덕션
-- **Production (v1.x)**: https://nokia.hub.sk-net.com
-- **Production (v2.x)**: https://nokia2.hub.sk-net.com
-- **Production (v3.x)**: https://nokia3.hub.sk-net.com
-- **Internal (v1.x)**: https://nokia-int.hub.sk-net.com
-
-### 데모
-- **Demo (v1.x)**: https://demo.hub.sk-net.com (샘플 config 포함)
-
 ### 개발
 - **GitHub Repository**: https://github.com/20eung/nokia-config-visualizer
 - **Latest Release**: https://github.com/20eung/nokia-config-visualizer/releases/latest
