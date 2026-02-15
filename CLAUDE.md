@@ -96,12 +96,9 @@ src/
 
 public/
 ├── favicon.svg              # 사이트 파비콘
-└── docs/                    # 데모용 Config 파일들
-    ├── config1.txt
-    ├── config2.txt
-    └── v2/                  # v2 전용 Config 파일
-        ├── pe-router-1-l2vpn.cfg
-        └── verify-ies.cfg
+├── config1.txt              # 데모용 Config (nokia-1)
+├── config2.txt              # 데모용 Config (nokia-2)
+└── pe-router-1-l2vpn.cfg   # V2 전용 데모 Config
 ```
 
 ## 핵심 파일 설명
