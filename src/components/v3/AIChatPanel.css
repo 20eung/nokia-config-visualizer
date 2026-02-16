@@ -166,3 +166,23 @@
   font-size: 13px;
   color: #991b1b;
 }
+
+/* 매칭된 엔티티 영역 */
+.ai-matched-entries {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #e0e4f0;
+}
+
+.ai-matched-entries-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.ai-matched-entries-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

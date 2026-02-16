@@ -77,16 +77,11 @@ ${descriptions.map((d, i) => `${i + 1}. "${d}"`).join('\n')}`;
     parsed.entries = [];
   }
 
-  // 각 엔트리 기본값 보정
+  // 각 엔트리 기본값 보정 (v5.0)
   parsed.entries = parsed.entries.map(entry => ({
-    originalToken: entry.originalToken || '',
-    category: (['customer', 'location', 'service', 'device', 'other'].includes(entry.category)
-      ? entry.category
-      : 'other') as 'customer' | 'location' | 'service' | 'device' | 'other',
-    shortName: entry.shortName || entry.originalToken || '',
-    longName: entry.longName || entry.originalToken || '',
-    koreanName: entry.koreanName || entry.originalToken || '',
-    aliases: Array.isArray(entry.aliases) ? entry.aliases : [],
+    name: entry.name || '',
+    configKeywords: Array.isArray(entry.configKeywords) ? entry.configKeywords : [],
+    searchAliases: Array.isArray(entry.searchAliases) ? entry.searchAliases : [],
   }));
 
   return parsed;

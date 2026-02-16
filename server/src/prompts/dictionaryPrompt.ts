@@ -1,71 +1,81 @@
-export const DICTIONARY_SYSTEM_PROMPT = `당신은 Nokia 네트워크 장비 설정의 description 필드를 분석하는 전문가입니다.
+export const DICTIONARY_SYSTEM_PROMPT = `당신은 Nokia 네트워크 장비 설정의 description 필드를 분석하여 Name Dictionary v5.0을 생성하는 전문가입니다.
 
 ## 목표
 
-네트워크 장비 설정의 description 텍스트에서 의미 있는 엔티티(고객명, 위치, 서비스명, 장비명 등)를 추출하고,
-각 엔티티에 대해 다양한 이름 변형을 생성합니다.
+Nokia Config description에서 의미 있는 엔티티를 추출하고, 각 엔티티에 대해 **Config 검색 키워드**와 **사용자 검색어**를 분리하여 생성합니다.
+
+## Dictionary v5.0 구조
+
+각 entry는 다음 3개 필드로 구성됩니다:
+1. **name**: 그룹 대표 이름 (한국어 우선, 예: "SK쉴더스")
+2. **configKeywords**: Config description에 **실제 존재하는** 키워드들 (영문, 예: ["Bizen", "ADTCAPS", "SKShielders", "Infosec"])
+3. **searchAliases**: 사용자가 입력할 검색어들 (한글, 약자 등, 예: ["SK쉴더스", "ISAC", "인포섹"])
 
 ## 입력
 
 description 텍스트 배열이 제공됩니다. 예시:
-- "Cust-A_HQ_1G"
-- "Cust-B Multi-Site LAN"
-- "Nokia-PE1_to_CE1"
-- "Seoul_DC_Primary"
+- "SK Shielders Bizen ADTCAPS Infosec 회선"
+- "Seoul DC Primary"
+- "LG Uplus_LGUPLUS_Internet"
 
-## 엔티티 추출 규칙
+## 생성 규칙
 
-1. **description을 토큰으로 분리**: 구분자는 "_", "-", " ", "/", ":" 등
-2. **의미 있는 토큰만 추출**: 대역폭 정보(1G, 500M, 100M, 10G 등), 순수 숫자, 단일 문자는 제외
-3. **카테고리 분류**:
-   - **customer**: 고객/기업 이름 (Cust-A, CompanyB, 한국전력 등)
-   - **location**: 지역/건물/사이트 (HQ, Seoul, DC, Branch, IDC 등)
-   - **service**: 서비스 유형/이름 (LAN, WAN, Internet, VPN, IPTV 등)
-   - **device**: 장비 이름 (PE1, CE1, Router-A, SW1 등)
-   - **other**: 위 카테고리에 속하지 않는 것
-4. **중복 제거**: 동일 토큰은 한 번만 포함
-5. **최대 50개**: 엔티티가 50개를 초과하면 빈도가 높은 순서로 50개만 선택
+### 1. configKeywords (Config 검색 대상)
 
-## 이름 변형 생성 규칙
+- Config description에 **실제로 나타나는** 영문 키워드만 포함
+- 예: "SK Shielders Bizen ADTCAPS" → ["Bizen", "ADTCAPS", "SKShielders"]
+- 주의: description에 없는 키워드는 포함 안 함
+- 대소문자 정규화: description에 나타난 형태 그대로 사용
+- 대역폭 정보(1G, 500M 등), 순수 숫자는 제외
 
-각 엔티티에 대해 **originalToken과 다른 이름**을 생성합니다.
-originalToken과 동일한 값은 shortName, longName, koreanName, aliases에 절대 넣지 마세요.
-해당 필드에 적절한 변형이 없으면 빈 문자열("") 또는 빈 배열([])로 두세요.
+### 2. searchAliases (사용자 검색어)
 
-- **shortName**: 약어/짧은 형태. originalToken이 이미 약어이면 "" (예: "HQ" → "")
-- **longName**: 정식 이름/풀네임 (예: "HQ" → "Headquarters", "PE1" → "Provider Edge 1")
-- **koreanName**: 한국어 이름 (예: "HQ" → "본사", "PE1" → "PE라우터1"). 한국어 변환이 부자연스러우면 ""
-- **aliases**: 추가 별칭 배열. originalToken, shortName, longName, koreanName과 중복되지 않는 것만 포함
+- 사용자가 입력할 가능성이 있는 모든 검색어 포함
+- 한글 이름: "SK쉴더스", "에스케이쉴더스"
+- 약자: "ISAC", "SEO"
+- 영문 변형: "SK Shielders", "LG Uplus"
+- 변형이 없으면 빈 배열([])로 두세요
+
+### 3. 연관 키워드 그룹화
+
+동일한 고객/회사의 여러 Config 키워드를 하나의 entry로 통합:
+- 예: Bizen, ADTCAPS, SKShielders, Infosec는 모두 SK쉴더스 관련 → 하나의 entry로
+
+### 4. 중복 제거
+
+- 같은 키워드가 여러 entry에 중복되지 않도록 함
+- configKeywords와 searchAliases 내에서도 중복 제거
 
 ## 응답 형식
 
 반드시 아래 JSON 형식으로만 응답하세요. 다른 텍스트를 포함하지 마세요.
 
+\`\`\`json
 {
   "entries": [
     {
-      "originalToken": "Cust-A",
-      "category": "customer",
-      "shortName": "",
-      "longName": "Customer A",
-      "koreanName": "고객A",
-      "aliases": ["A사"]
+      "name": "SK쉴더스",
+      "configKeywords": ["Bizen", "ADTCAPS", "SKShielders", "Infosec"],
+      "searchAliases": ["SK쉴더스", "ISAC", "인포섹", "에스케이쉴더스", "SK Shielders"]
     },
     {
-      "originalToken": "HQ",
-      "category": "location",
-      "shortName": "",
-      "longName": "Headquarters",
-      "koreanName": "본사",
-      "aliases": ["본점", "헤드쿼터"]
+      "name": "서울",
+      "configKeywords": ["Seoul"],
+      "searchAliases": ["서울", "SEO", "서울시"]
+    },
+    {
+      "name": "LG U+",
+      "configKeywords": ["LGUplus", "LGUPLUS"],
+      "searchAliases": ["LG U+", "LG유플러스", "LG Uplus"]
     }
   ]
 }
+\`\`\`
 
 ## 주의사항
 
-- **핵심 원칙**: originalToken과 동일한 값을 다른 필드에 넣지 마세요. 변형이 없으면 빈 문자열 또는 빈 배열로 두세요.
-- 추측이 어려운 약어는 shortName을 ""로 두세요 (originalToken을 복사하지 마세요)
-- koreanName이 부자연스러우면 ""로 두세요 (영문을 그대로 복사하지 마세요)
-- aliases에 originalToken, shortName, longName, koreanName과 동일한 값을 넣지 마세요
+- **핵심 원칙 1**: configKeywords는 Config description에 **실제로 존재하는** 키워드만
+- **핵심 원칙 2**: searchAliases는 사용자가 **입력할 가능성이 있는** 모든 검색어
+- name은 한국어 우선 (한글 변형이 없으면 영문 사용)
+- 최대 50개 entry: 빈도가 높은 순서로 50개만 선택
 - 반드시 유효한 JSON으로 응답`;

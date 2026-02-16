@@ -22,7 +22,22 @@ router.post('/chat', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const result = await askClaude(body.message, body.configSummary, body.dictionary);
+    // filterType 검증 및 기본값 설정 (v4.5.0)
+    const filterType = body.filterType || 'all';
+    const validTypes = ['all', 'epipe', 'vpls', 'vprn', 'ies'];
+    if (!validTypes.includes(filterType)) {
+      res.status(400).json({
+        error: `filterType은 ${validTypes.join(', ')} 중 하나여야 합니다.`
+      });
+      return;
+    }
+
+    const result = await askClaude(
+      body.message,
+      body.configSummary,
+      body.dictionary,
+      filterType
+    );
     res.json(result);
   } catch (err: unknown) {
     const error = err as Error;

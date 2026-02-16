@@ -1,13 +1,11 @@
 import type { NameDictionary } from '../types/dictionary';
 
+/** v4.4.0: Server response structure */
 export interface DictionaryGenerateResponse {
   entries: {
-    originalToken: string;
-    category: 'customer' | 'location' | 'service' | 'device' | 'other';
-    shortName: string;
-    longName: string;
-    koreanName: string;
-    aliases: string[];
+    name: string;
+    configKeywords: string[];
+    searchAliases: string[];
   }[];
 }
 

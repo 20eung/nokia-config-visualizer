@@ -5,7 +5,7 @@ import {
   type ContentBlock,
 } from '@aws-sdk/client-bedrock-runtime';
 import { SYSTEM_PROMPT } from '../prompts/systemPrompt';
-import type { ConfigSummary, ChatResponse, DictionaryCompact } from '../types';
+import type { ConfigSummary, ChatResponse, DictionaryCompact, MatchedEntry } from '../types';
 
 // AWS Bedrock 클라이언트 (credential chain: env vars → ~/.aws/credentials → IAM Role)
 const client = new BedrockRuntimeClient({
@@ -19,18 +19,67 @@ const client = new BedrockRuntimeClient({
 const MODEL_ID = process.env.BEDROCK_MODEL_ID
   || 'apac.anthropic.claude-sonnet-4-20250514-v1:0';
 
+/**
+ * MatchedEntry 배열 유효성 검증 (v4.4.0)
+ * Dictionary에 실제 존재하는 항목인지 확인
+ */
+function validateMatchedEntries(
+  entries: MatchedEntry[] | undefined,
+  dictionary?: DictionaryCompact
+): MatchedEntry[] {
+  if (!entries || !dictionary) {
+    return [];
+  }
+
+  // v4.4.0: configKeywords가 dictionary에 존재하는지 검증
+  const validKeywords = new Set<string>();
+  dictionary.entries.forEach(e => {
+    e.k.forEach(keyword => validKeywords.add(keyword));  // k = configKeywords
+  });
+
+  return entries.filter(entry => {
+    // 필수 필드 존재 여부 확인
+    if (!entry.matchedAlias || !Array.isArray(entry.configKeywords) || !entry.groupName) {
+      return false;
+    }
+
+    // configKeywords가 최소 1개 이상 dictionary에 존재하는지 확인
+    const hasValidKeyword = entry.configKeywords.some(kw => validKeywords.has(kw));
+    if (!hasValidKeyword) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
 export async function askClaude(
   message: string,
   configSummary: ConfigSummary,
   dictionary?: DictionaryCompact,
+  filterType?: 'all' | 'epipe' | 'vpls' | 'vprn' | 'ies',
 ): Promise<ChatResponse> {
+  console.log('[askClaude] 요청 정보:');
+  console.log(`  - message: "${message}"`);
+  console.log(`  - filterType: ${filterType || 'none'}`);
+  console.log(`  - dictionary: ${dictionary ? `${dictionary.entries.length}개 항목` : 'none'}`);
+
   let dictionarySection = '';
   if (dictionary && dictionary.entries.length > 0) {
     const lines = dictionary.entries.map(e => {
-      const aliases = e.a.length > 0 ? `, 별칭: ${e.a.join(', ')}` : '';
-      return `- "${e.t}" → 짧은이름: ${e.s}, 정식: ${e.l}, 한국어: ${e.k}${aliases}`;
+      const configKw = e.k.join(', ');  // k = configKeywords
+      const searchAl = e.a.length > 0 ? ` | 검색어: ${e.a.join(', ')}` : '';  // a = searchAliases
+      return `- "${e.n}" → Config: ${configKw}${searchAl}`;  // n = name
     });
     dictionarySection = `\n\n## Name Dictionary (이름 사전)\n\n${lines.join('\n')}`;
+    console.log(`[askClaude] Dictionary 섹션 추가 (${lines.length}개 항목)`);
+  } else {
+    console.log('[askClaude] Dictionary 없음 - matchedEntries 생성 불가');
+  }
+
+  let filterSection = '';
+  if (filterType && filterType !== 'all') {
+    filterSection = `\n\n## 필터 조건\n\n서비스 타입: ${filterType} (이 타입만 검색하세요)`;
   }
 
   const userContent = `## ConfigSummary (파싱된 네트워크 설정 축약 데이터)
@@ -38,7 +87,7 @@ export async function askClaude(
 \`\`\`json
 ${JSON.stringify(configSummary, null, 2)}
 \`\`\`
-${dictionarySection}
+${dictionarySection}${filterSection}
 
 ## 사용자 질문
 
@@ -56,7 +105,7 @@ ${message}`;
     system: [{ text: SYSTEM_PROMPT }],
     messages,
     inferenceConfig: {
-      maxTokens: 1024,
+      maxTokens: 2048,
       temperature: 0.1,
     },
   });
@@ -90,6 +139,13 @@ ${message}`;
     throw new Error(`Claude 응답 JSON 파싱 실패: ${rawText.substring(0, 200)}`);
   }
 
+  console.log('[askClaude] Claude 원본 응답:');
+  console.log(`  - selectedKeys: ${parsed.selectedKeys?.length || 0}개`);
+  console.log(`  - matchedEntries (원본): ${parsed.matchedEntries?.length || 0}개`);
+  if (parsed.matchedEntries && parsed.matchedEntries.length > 0) {
+    console.log('  - matchedEntries 내용:', JSON.stringify(parsed.matchedEntries, null, 2));
+  }
+
   // 응답 구조 검증
   if (!Array.isArray(parsed.selectedKeys)) {
     parsed.selectedKeys = [];
@@ -99,6 +155,21 @@ ${message}`;
   }
   if (!['high', 'medium', 'low'].includes(parsed.confidence)) {
     parsed.confidence = 'medium';
+  }
+
+  // matchedEntries 검증
+  if (parsed.matchedEntries) {
+    const beforeValidation = parsed.matchedEntries.length;
+    parsed.matchedEntries = validateMatchedEntries(parsed.matchedEntries, dictionary);
+    const afterValidation = parsed.matchedEntries.length;
+    console.log(`[askClaude] matchedEntries 검증: ${beforeValidation}개 → ${afterValidation}개`);
+  } else {
+    console.log('[askClaude] matchedEntries 없음 (Claude가 생성하지 않음)');
+  }
+
+  // filterType 검증
+  if (parsed.filterType && !['all', 'epipe', 'vpls', 'vprn', 'ies'].includes(parsed.filterType)) {
+    parsed.filterType = 'all';
   }
 
   // selectedKeys가 configSummary에 실제 존재하는지 검증

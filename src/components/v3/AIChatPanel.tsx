@@ -3,6 +3,7 @@ import { Bot, X } from 'lucide-react';
 import { sendChatMessage, type ChatResponse } from '../../services/chatApi';
 import type { ConfigSummary } from '../../utils/configSummaryBuilder';
 import type { DictionaryCompact } from '../../types/dictionary';
+import { AliasBadge } from './AliasBadge';
 import './AIChatPanel.css';
 
 interface AIChatPanelProps {
@@ -11,6 +12,7 @@ interface AIChatPanelProps {
   aiEnabled: boolean;
   onToggleAI: () => void;
   dictionary?: DictionaryCompact;
+  filterType?: 'all' | 'epipe' | 'vpls' | 'vprn' | 'ies';
 }
 
 export function AIChatPanel({
@@ -19,6 +21,7 @@ export function AIChatPanel({
   aiEnabled,
   onToggleAI,
   dictionary,
+  filterType,
 }: AIChatPanelProps) {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,7 +43,13 @@ export function AIChatPanel({
     setResponse(null);
 
     try {
-      const result = await sendChatMessage(trimmed, configSummary, controller.signal, dictionary);
+      const result = await sendChatMessage(
+        trimmed,
+        configSummary,
+        controller.signal,
+        dictionary,
+        filterType
+      );
       setResponse(result);
       onAIResponse(result);
     } catch (err: unknown) {
@@ -49,7 +58,7 @@ export function AIChatPanel({
     } finally {
       setLoading(false);
     }
-  }, [query, configSummary, loading, onAIResponse, dictionary]);
+  }, [query, configSummary, loading, onAIResponse, dictionary, filterType]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -116,6 +125,18 @@ export function AIChatPanel({
             </button>
           </div>
           <div className="ai-response-text">{response.explanation}</div>
+
+          {/* 매칭된 이름 사전 항목 */}
+          {response.matchedEntries && response.matchedEntries.length > 0 && (
+            <div className="ai-matched-entries">
+              <div className="ai-matched-entries-label">매칭된 엔티티:</div>
+              <div className="ai-matched-entries-list">
+                {response.matchedEntries.map((entry, idx) => (
+                  <AliasBadge key={`${entry.groupName}-${idx}`} entry={entry} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -75,6 +75,42 @@ AI-powered entity extraction from Nokia config descriptions to build a name dict
 
 ---
 
-**Total Archived Features**: 2
+### 3. ai-chatbot-alias-display
+
+**Archive Date**: 2026-02-16
+**Match Rate**: 98%
+**Iteration Count**: 0
+**Duration**: 2026-02-16 ~ 2026-02-16 (1 day)
+
+**Status**: ✅ Production Ready (v4.5.0)
+
+**Summary**:
+AI Chatbot filterType parameter support for filtering services by type (all/epipe/vpls/vprn/ies). Integrated with v4.4.0 dictionary structure (MatchedEntry with groupName). Enables more precise service selection in AI-powered search results.
+
+**Key Achievements**:
+- 14/14 Requirements completed (100%)
+- 100% test pass rate (14/14 tests)
+- Backend filterType validation with user-friendly error messages
+- Frontend filterType reset on AI toggle
+- AliasBadge v4.4.0 compatibility fix
+- Zero performance regression
+- Two architectural improvements (state lifting, button group UI)
+
+**Documents**:
+- [Plan](./ai-chatbot-alias-display/ai-chatbot-alias-display.plan.md)
+- [Design](./ai-chatbot-alias-display/ai-chatbot-alias-display.design.md)
+- [Analysis](./ai-chatbot-alias-display/ai-chatbot-alias-display.analysis.md)
+- [Report](./ai-chatbot-alias-display/ai-chatbot-alias-display.report.md)
+
+**Technology Stack**:
+- Frontend: React 19 + TypeScript
+- Backend: Express + TypeScript
+- AI: AWS Bedrock (Claude Sonnet 4)
+- Infrastructure: Docker Compose
+- Data Model: MatchedEntry interface with groupName
+
+---
+
+**Total Archived Features**: 3
 
 **Last Updated**: 2026-02-16

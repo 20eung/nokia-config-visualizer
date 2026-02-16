@@ -45,19 +45,15 @@ export interface ConfigSummary {
   devices: DeviceSummary[];
 }
 
-/** Dictionary 관련 타입 */
+/** Dictionary 관련 타입 - v4.4.0 */
 
 export interface DictionaryCompact {
   entries: {
-    /** originalToken */
-    t: string;
-    /** shortName */
-    s: string;
-    /** longName */
-    l: string;
-    /** koreanName */
-    k: string;
-    /** aliases */
+    /** name (group representative name) */
+    n: string;
+    /** configKeywords (Config search targets) */
+    k: string[];
+    /** searchAliases (user search terms) */
     a: string[];
   }[];
 }
@@ -68,21 +64,28 @@ export interface DictionaryGenerateRequest {
 
 export interface DictionaryGenerateResponse {
   entries: {
-    originalToken: string;
-    category: 'customer' | 'location' | 'service' | 'device' | 'other';
-    shortName: string;
-    longName: string;
-    koreanName: string;
-    aliases: string[];
+    name: string;
+    configKeywords: string[];
+    searchAliases: string[];
   }[];
 }
 
 /** API 요청/응답 */
 
+export interface MatchedEntry {
+  /** 실제로 매칭된 키워드 (예: "SK쉴더스", "Bizen") */
+  matchedAlias: string;
+  /** Config 검색에 사용될 키워드들 (예: ["Bizen", "ADTCAPS", "SKShielders", "Infosec"]) */
+  configKeywords: string[];
+  /** 그룹 대표 이름 (예: "SK쉴더스") */
+  groupName: string;
+}
+
 export interface ChatRequest {
   message: string;
   configSummary: ConfigSummary;
   dictionary?: DictionaryCompact;
+  filterType?: 'all' | 'epipe' | 'vpls' | 'vprn' | 'ies';
 }
 
 export interface ChatResponse {
@@ -90,4 +93,5 @@ export interface ChatResponse {
   explanation: string;
   confidence: 'high' | 'medium' | 'low';
   filterType?: 'all' | 'epipe' | 'vpls' | 'vprn' | 'ies';
+  matchedEntries?: MatchedEntry[];
 }

@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v4.1.0** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전
+> 🚀 **v4.4.0** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 (3-Field)
 
 ![Application Screenshot](./docs/screenshot.png)
 
@@ -58,11 +58,16 @@
 - **응답 패널**: 검색 결과 설명, 정확도 배지, 선택된 서비스 수 표시
 - **기존 다이어그램 100% 호환**: AI가 selectionKey를 반환하면 기존 다이어그램 로직 자동 연동
 
-### 📖 이름 사전 (v4.1)
-- **AI 자동 생성**: Config description에서 엔티티(고객명, 지역, 서비스 등)를 AI가 자동 추출
-- **수동 편집**: 사전 항목의 추가, 수정, 삭제 지원 (카테고리별 분류)
+### 📖 이름 사전 (v4.4.0 - 3-Field Structure)
+- **3개 필드 구조**: 역할별 명확한 분리
+  - **그룹명** (name): 대표 이름 (예: "SK쉴더스")
+  - **Config 키워드** (configKeywords): Config description에 실제 존재하는 키워드들 (예: ["Bizen", "ADTCAPS", "SKShielders", "Infosec"])
+  - **검색 별칭** (searchAliases): 사용자 검색어 (예: ["SK쉴더스", "ISAC", "인포섹", "에스케이쉴더스"])
+- **양방향 검색**: AI 챗봇이 configKeywords와 searchAliases 모두 검색하여 정확도 향상
+- **AI 자동 생성**: Config description에서 엔티티를 AI가 자동 추출 및 분류
+- **수동 편집**: 사전 항목의 추가, 수정, 삭제 지원 (3컬럼 테이블 UI)
 - **서버 저장**: 서버 파일 시스템에 저장하여 브라우저 간 공유 가능
-- **AI 검색 정확도 향상**: 사전 데이터를 AI 챗봇에 함께 전달하여 검색 품질 개선
+- **테이블 정렬**: 3개 컬럼 모두 클릭으로 정렬 가능 (한국어 로케일 지원)
 
 ### 🔎 고급 검색 기능
 - **AND 검색**: ` + ` (공백 포함)로 구분

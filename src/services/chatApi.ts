@@ -1,11 +1,18 @@
 import type { ConfigSummary } from '../utils/configSummaryBuilder';
 import type { DictionaryCompact } from '../types/dictionary';
 
+export interface MatchedEntry {
+  matchedAlias: string;        // 실제로 매칭된 키워드
+  configKeywords: string[];    // Config 검색에 사용될 키워드들
+  groupName: string;           // 그룹 대표 이름
+}
+
 export interface ChatResponse {
   selectedKeys: string[];
   explanation: string;
   confidence: 'high' | 'medium' | 'low';
   filterType?: 'all' | 'epipe' | 'vpls' | 'vprn' | 'ies';
+  matchedEntries?: MatchedEntry[];
 }
 
 interface ChatError {
@@ -19,6 +26,7 @@ export async function sendChatMessage(
   configSummary: ConfigSummary,
   signal?: AbortSignal,
   dictionary?: DictionaryCompact,
+  filterType?: 'all' | 'epipe' | 'vpls' | 'vprn' | 'ies',
 ): Promise<ChatResponse> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT_MS);
@@ -32,7 +40,7 @@ export async function sendChatMessage(
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, configSummary, dictionary }),
+      body: JSON.stringify({ message, configSummary, dictionary, filterType }),
       signal: controller.signal,
     });
 

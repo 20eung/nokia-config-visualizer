@@ -56,6 +56,13 @@ export function ServiceListV3({
     // AI 전송용 compact dictionary
     const dictionaryCompact = useMemo(() => toDictionaryCompact(dictionary), [dictionary]);
 
+    // 🆕 AI 활성화 시 filterType을 'all'로 초기화 (v4.5.0)
+    useEffect(() => {
+        if (aiEnabled) {
+            setFilterType('all');
+        }
+    }, [aiEnabled]);
+
     const handleAIResponse = useCallback((response: ChatResponse) => {
         onSetSelected(response.selectedKeys);
         if (response.filterType && response.filterType !== 'all') {
@@ -430,6 +437,7 @@ export function ServiceListV3({
                 aiEnabled={aiEnabled}
                 onToggleAI={() => setAiEnabled(prev => !prev)}
                 dictionary={dictionaryCompact}
+                filterType={filterType}
             />
             {aiEnabled && configs.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px 4px' }}>

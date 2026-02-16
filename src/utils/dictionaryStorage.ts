@@ -1,12 +1,12 @@
 import type { NameDictionary, DictionaryCompact } from '../types/dictionary';
 
 /**
- * 빈 dictionary를 생성합니다.
+ * 빈 dictionary를 생성합니다 (v4.4.0).
  */
 export function createEmptyDictionary(): NameDictionary {
   const now = new Date().toISOString();
   return {
-    version: 1,
+    version: 4,  // v4.4.0
     createdAt: now,
     updatedAt: now,
     entries: [],
@@ -14,7 +14,7 @@ export function createEmptyDictionary(): NameDictionary {
 }
 
 /**
- * NameDictionary → AI 전송용 DictionaryCompact 변환.
+ * NameDictionary → AI 전송용 DictionaryCompact 변환 (v4.4.0)
  * 엔트리가 없으면 undefined를 반환합니다.
  */
 export function toDictionaryCompact(dict: NameDictionary | null): DictionaryCompact | undefined {
@@ -22,11 +22,9 @@ export function toDictionaryCompact(dict: NameDictionary | null): DictionaryComp
 
   return {
     entries: dict.entries.map(e => ({
-      t: e.originalToken,
-      s: e.shortName,
-      l: e.longName,
-      k: e.koreanName,
-      a: e.aliases,
+      n: e.name,
+      k: e.configKeywords,
+      a: e.searchAliases,
     })),
   };
 }
