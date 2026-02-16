@@ -210,9 +210,26 @@
   transition: all 0.2s;
 }
 
-.dict-add-btn:hover {
+.dict-add-btn:hover:not(:disabled) {
   background: #f3f4f6;
   border-color: #9ca3af;
+}
+
+.dict-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dict-clear-btn:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.dict-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .dict-save-btn {

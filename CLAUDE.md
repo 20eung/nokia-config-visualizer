@@ -580,12 +580,12 @@ curl http://localhost:3301/api/health
 | v3.1.0 | 2026-01-21 | BGP/OSPF 고급 시각화, UI 개선 |
 | v3.2.0 | 2026-02-15 | QoS 하이라이트, VPRN 라우팅 노드, SAP 파싱 개선 |
 | v4.0.0 | 2026-02-15 | AI 챗봇 서비스 검색, Express 백엔드 (AWS Bedrock) |
-| v4.1.0 | 2026-02-15 | 이름 사전 (Name Dictionary), 서버 파일 저장소 |
+| v4.1.0 | 2026-02-16 | 이름 사전 (Name Dictionary), 전역 단일 사전, 테이블 정렬, 중복 정리 |
 
 상세 변경 이력은 `CHANGELOG.md` 참조.
 
 ---
 
-**Last Updated**: 2026-02-15
+**Last Updated**: 2026-02-16
 **Current Version**: v4.1.0
 **Branch**: v4-development

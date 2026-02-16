@@ -28,12 +28,14 @@ description 텍스트 배열이 제공됩니다. 예시:
 
 ## 이름 변형 생성 규칙
 
-각 엔티티에 대해 다음을 생성합니다:
+각 엔티티에 대해 **originalToken과 다른 이름**을 생성합니다.
+originalToken과 동일한 값은 shortName, longName, koreanName, aliases에 절대 넣지 마세요.
+해당 필드에 적절한 변형이 없으면 빈 문자열("") 또는 빈 배열([])로 두세요.
 
-- **shortName**: 약어/짧은 형태 (예: "Cust-A", "HQ", "PE1")
-- **longName**: 정식 이름 (예: "Customer A", "Headquarters", "Provider Edge 1")
-- **koreanName**: 한국어 이름 (예: "고객A", "본사", "PE라우터1")
-- **aliases**: 추가 별칭 배열 (예: ["A사", "CustA", "고객에이"])
+- **shortName**: 약어/짧은 형태. originalToken이 이미 약어이면 "" (예: "HQ" → "")
+- **longName**: 정식 이름/풀네임 (예: "HQ" → "Headquarters", "PE1" → "Provider Edge 1")
+- **koreanName**: 한국어 이름 (예: "HQ" → "본사", "PE1" → "PE라우터1"). 한국어 변환이 부자연스러우면 ""
+- **aliases**: 추가 별칭 배열. originalToken, shortName, longName, koreanName과 중복되지 않는 것만 포함
 
 ## 응답 형식
 
@@ -44,15 +46,15 @@ description 텍스트 배열이 제공됩니다. 예시:
     {
       "originalToken": "Cust-A",
       "category": "customer",
-      "shortName": "Cust-A",
+      "shortName": "",
       "longName": "Customer A",
       "koreanName": "고객A",
-      "aliases": ["A사", "CustA"]
+      "aliases": ["A사"]
     },
     {
       "originalToken": "HQ",
       "category": "location",
-      "shortName": "HQ",
+      "shortName": "",
       "longName": "Headquarters",
       "koreanName": "본사",
       "aliases": ["본점", "헤드쿼터"]
@@ -62,7 +64,8 @@ description 텍스트 배열이 제공됩니다. 예시:
 
 ## 주의사항
 
-- 추측이 어려운 약어는 originalToken을 그대로 shortName으로 사용
-- koreanName이 부자연스러우면 영문 그대로 사용 가능 (예: "LAN" → "LAN")
-- aliases는 빈 배열도 허용
+- **핵심 원칙**: originalToken과 동일한 값을 다른 필드에 넣지 마세요. 변형이 없으면 빈 문자열 또는 빈 배열로 두세요.
+- 추측이 어려운 약어는 shortName을 ""로 두세요 (originalToken을 복사하지 마세요)
+- koreanName이 부자연스러우면 ""로 두세요 (영문을 그대로 복사하지 마세요)
+- aliases에 originalToken, shortName, longName, koreanName과 동일한 값을 넣지 마세요
 - 반드시 유효한 JSON으로 응답`;
