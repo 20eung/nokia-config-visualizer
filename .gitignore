@@ -35,3 +35,9 @@ screenshot/
 *.njsproj
 *.sln
 *.sw?
+
+# bkit plugin
+.bkit/
+.bkit-memory.json
+docs/.bkit-memory.json
+docs/.pdca-snapshots/
