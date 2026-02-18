@@ -179,19 +179,26 @@ git commit -m "chore: Bump version to vX.X.X"
 git push origin v4-development
 ```
 
-#### 자동 버전 관리 (선택사항, 비권장)
+#### 자동 버전 관리 (현재 활성화)
 
-Git hook을 활성화하면 **커밋 시마다 자동으로 patch 버전이 증가**합니다.
+Git hook을 활성화하면 **커밋 시마다 자동으로 patch 버전이 증가하고, push 시 Tag와 Release가 자동 생성**됩니다.
 
 ```bash
 # 활성화
-ln -s ../../scripts/auto-version.sh .git/hooks/pre-commit
+ln -s ../../scripts/auto-version.sh .git/hooks/pre-commit   # 버전 자동 증가
+ln -s ../../scripts/auto-tag.sh .git/hooks/post-commit      # Tag 자동 생성
 
 # 비활성화
 rm .git/hooks/pre-commit
+rm .git/hooks/post-commit
 ```
 
-⚠️ **주의**: 모든 커밋마다 버전이 증가하므로 일반적으로 권장하지 않습니다.
+**완전 자동화 워크플로우**:
+1. **Commit** → 버전 자동 증가 (pre-commit) + Tag 자동 생성 (post-commit)
+2. **Push** → `git push origin v4-development --follow-tags` (tag도 함께 push)
+3. **GitHub Actions** → Release 자동 생성 (커밋 로그 포함한 Release 노트)
+
+📌 **현재 상태**: **활성화됨** - 모든 커밋마다 버전이 증가하고 Release가 생성됩니다.
 
 #### Minor/Major 버전 변경 워크플로우
 
@@ -200,6 +207,7 @@ rm .git/hooks/pre-commit
 1. **Git hook 임시 비활성화**
    ```bash
    rm .git/hooks/pre-commit
+   rm .git/hooks/post-commit
    ```
 
 2. **버전 변경**
@@ -215,14 +223,21 @@ rm .git/hooks/pre-commit
    git commit -m "chore: Bump version to vX.X.X"
    ```
 
-4. **Git hook 재활성화**
+4. **Git tag 수동 생성**
    ```bash
-   ln -s ../../scripts/auto-version.sh .git/hooks/pre-commit
+   git tag -a vX.X.X -m "Release vX.X.X"
    ```
 
-5. **사용자에게 Push 확인 요청**
+5. **Git hook 재활성화**
+   ```bash
+   ln -s ../../scripts/auto-version.sh .git/hooks/pre-commit
+   ln -s ../../scripts/auto-tag.sh .git/hooks/post-commit
+   ```
+
+6. **사용자에게 Push 확인 요청**
    ```
    "변경사항을 GitHub에 푸시하시겠습니까?"
+   → git push origin v4-development --follow-tags
    ```
 
 ⚠️ **중요 정책**:
