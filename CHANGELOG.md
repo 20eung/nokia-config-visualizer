@@ -6,6 +6,57 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [4.5.2] - 2026-02-18
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **Grafana InfluxDB 쿼리 자동 생성**: 선택한 서비스의 모든 포트에 대해 트래픽 모니터링 쿼리문 자동 생성
+  - InfluxQL 쿼리 형식: `SELECT non_negative_derivative("ifHCOutOctets", 1s) *8 FROM "snmp" WHERE ("hostname" = 'hostname' AND "ifName" = 'port') AND $timeFilter`
+  - 모든 서비스 타입 지원: Epipe, VPLS, VPRN, IES
+  - Grafana 대시보드에 즉시 사용 가능한 쿼리문 제공
+
+### ✨ 새로운 기능 (New Features)
+- **Export to Grafana 버튼**: ServiceDiagram에 Grafana 쿼리 내보내기 버튼 추가 (BarChart3 아이콘)
+- **쿼리문 테이블 모달**: Hostname, Interface, Direction, Query, Action 컬럼으로 구성
+  - 개별 쿼리 복사: Copy 버튼으로 쿼리문 클립보드 복사 (2초 피드백)
+  - 전체 쿼리 복사: "Copy All Queries" 버튼으로 모든 쿼리 한 번에 복사
+  - 쿼리 개수 표시: Footer에 생성된 쿼리 개수 표시
+- **HA 구성 지원**: 여러 장비의 포트를 각각 개별 hostname으로 쿼리 생성
+  - 기존: "장비1 + 장비2" 결합 hostname (Grafana에서 사용 불가)
+  - 변경: 각 장비별 개별 hostname으로 분리된 쿼리 생성
+- **다이어그램별 필터링**: IES 서비스에서 선택된 다이어그램의 포트만 쿼리 생성
+  - usedPortIds 추적하여 실제 다이어그램에 표시된 포트만 필터링
+- **VPLS 연결 해석**: IES 인터페이스가 VPLS를 통해 연결된 경우 실제 물리 포트 자동 탐지
+  - VPLS 서비스를 조회하여 SAP portId 추출
+  - 서비스 포트(VLAN 없음) 우선 선택, L2 Interlink(VLAN 있음) 제외
+
+### 🐛 버그 수정 (Bug Fixes)
+- **HA hostname 결합 문제**: "장비1 + 장비2" 형태의 hostname을 장비별 개별 hostname으로 분리
+- **IES 전체 포트 생성 문제**: 선택된 다이어그램과 관계없이 모든 포트의 쿼리가 생성되던 문제 수정
+- **잘못된 포트 선택**: interfaceName 대신 portId 기반 필터링으로 정확도 향상
+- **VPLS 포트 누락**: IES 인터페이스가 VPLS로 연결된 경우 Port 정보가 없던 문제 해결
+- **L2 Interlink 선택**: VLAN이 포함된 L2 Interlink 대신 서비스 포트 선택하도록 개선
+
+### 🔧 기술적 변경 (Technical Changes)
+- **신규 파일**:
+  - `src/types/grafana.ts`: GrafanaQuery, GrafanaQuerySet 타입 정의
+  - `src/utils/grafana/queryGenerator.ts`: 쿼리 생성 핵심 로직
+    - `generateGrafanaQueries()`: 서비스 타입별 라우팅
+    - `generateEpipeQueries()`, `generateVPLSQueries()`, `generateVPRNQueries()`, `generateIESQueries()`
+    - `extractPortId()`: VLAN 제거 (1/1/1:100 → 1/1/1)
+    - `buildInfluxQuery()`: InfluxQL 쿼리문 빌더
+  - `src/components/v3/GrafanaExportModal.tsx`: 쿼리문 표시 및 복사 UI
+- **수정 파일**:
+  - `src/components/v2/ServiceDiagram.tsx`: Grafana 버튼 및 모달 통합 (라인 4, 20, 160-162, 190-197)
+  - `src/pages/V3Page.tsx`: _hostname 전파 로직 (라인 105-117), HA 인터페이스 병합 (라인 296-385), 다이어그램별 필터링
+  - `src/utils/v3/parserV3.ts`: VPLS 포트 해석 로직 (라인 1253-1270, 1479-1498), 서비스 포트 우선 선택
+- **adminState 필터링**: 모든 서비스 타입에서 adminState='down' 포트 제외
+- **DictionaryEditor.css 재사용**: 모달 UI 스타일 일관성 유지
+
+### 📊 개선 사항 (Improvements)
+- **시각적 피드백**: 복사 버튼 클릭 시 2초간 "Copied!" 표시 및 녹색 체크 아이콘
+- **쿼리 주석**: "Copy All" 시 각 쿼리 앞에 `-- hostname interface direction` 주석 추가
+- **데이터 정확도**: portId 기반 필터링으로 다이어그램과 쿼리문 일치 보장
+
 ## [4.5.0] - 2026-02-18
 
 ### 🚀 주요 변경 사항 (Major Changes)

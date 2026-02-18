@@ -1250,6 +1250,27 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
         if ('interfaces' in service && (service.serviceType === 'vprn' || service.serviceType === 'ies')) {
             const l3Service = service as VPRNService | IESService;
             l3Service.interfaces.forEach(intf => {
+                // VPLS 연결된 인터페이스의 경우 VPLS SAP에서 portId 가져오기
+                if (intf.vplsName && !intf.portId) {
+                    const vplsService = services.find(s =>
+                        s.serviceType === 'vpls' &&
+                        (s.serviceName === intf.vplsName ||
+                         (s as any).description === intf.vplsName)
+                    ) as VPLSService | undefined;
+
+                    if (vplsService && vplsService.saps && vplsService.saps.length > 0) {
+                        // VLAN이 없는 SAP를 우선 선택 (서비스 포트, 예: "3/2/12")
+                        // L2 인터링크(예: "3/1/24:1047")는 VLAN이 있으므로 제외됨
+                        const sapsWithPort = vplsService.saps.filter(sap => sap.portId);
+                        const serviceSap = sapsWithPort.find(sap => !sap.sapId.includes(':'));
+                        const selectedSap = serviceSap || sapsWithPort[0]; // 없으면 첫 번째 SAP
+                        if (selectedSap) {
+                            intf.portId = selectedSap.portId;
+                            intf.sapId = selectedSap.sapId;
+                        }
+                    }
+                }
+
                 if (intf.portId) {
                     // portId for L3 interfaces can be "1/1/1:100" (SAP format)
                     const rawPort = intf.portId.split(':')[0];
@@ -1455,8 +1476,31 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
         }
     }
 
-    // Enrich Base Router interfaces with QoS rate info from policy definitions
+    // Enrich Base Router interfaces with VPLS port info and QoS rate
     baseInterfaces.forEach(intf => {
+        // VPLS 연결된 인터페이스의 경우 VPLS SAP에서 portId 가져오기
+        if (intf.vplsName && !intf.portId) {
+            const vplsService = services.find(s =>
+                s.serviceType === 'vpls' &&
+                (s.serviceName === intf.vplsName ||
+                 (s as any).description === intf.vplsName)
+            ) as VPLSService | undefined;
+
+            if (vplsService && vplsService.saps && vplsService.saps.length > 0) {
+                // VLAN이 없는 SAP를 우선 선택 (서비스 포트, 예: "3/2/12")
+                // L2 인터링크(예: "3/1/24:1047")는 VLAN이 있으므로 제외됨
+                const sapsWithPort = vplsService.saps.filter(sap => sap.portId);
+                const serviceSap = sapsWithPort.find(sap => !sap.sapId.includes(':'));
+                const selectedSap = serviceSap || sapsWithPort[0]; // 없으면 첫 번째 SAP
+                if (selectedSap) {
+                    intf.portId = selectedSap.portId;
+                    if (!intf.sapId) {
+                        intf.sapId = selectedSap.sapId;
+                    }
+                }
+            }
+        }
+
         if (intf.ingressQosId) {
             const p = qosPolicyMap.get(`ingress-${intf.ingressQosId}`);
             if (p) {

@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v4.4.0** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 (3-Field)
+> 🚀 **v4.5.2** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 + Grafana 쿼리 생성
 
 ![Application Screenshot](./docs/screenshot.png)
 
@@ -57,6 +57,16 @@
 - **AI 토글**: AI 검색과 기존 텍스트 검색을 자유롭게 전환
 - **응답 패널**: 검색 결과 설명, 정확도 배지, 선택된 서비스 수 표시
 - **기존 다이어그램 100% 호환**: AI가 selectionKey를 반환하면 기존 다이어그램 로직 자동 연동
+
+### 📊 Grafana 쿼리 자동 생성 (v4.5.2)
+- **InfluxDB InfluxQL 쿼리 생성**: 선택한 서비스의 모든 포트에 대해 트래픽 모니터링 쿼리 자동 생성
+- **모든 서비스 타입 지원**: Epipe, VPLS, VPRN, IES
+- **HA 구성 지원**: 각 장비별 개별 hostname으로 쿼리 생성 (장비1, 장비2 개별 쿼리)
+- **다이어그램 기반 필터링**: IES의 경우 선택된 다이어그램의 포트만 쿼리 생성
+- **VPLS 연결 해석**: VPLS를 통해 연결된 IES 인터페이스의 실제 물리 포트 자동 탐지
+- **서비스 포트 우선**: L2 Interlink(VLAN 있음) 대신 서비스 포트(VLAN 없음) 선택
+- **개별/전체 복사**: 각 쿼리 개별 복사 + 전체 쿼리 한 번에 복사
+- **쿼리 형식**: `SELECT non_negative_derivative("ifHCOutOctets", 1s) *8 FROM "snmp" WHERE ("hostname" = 'hostname' AND "ifName" = 'port') AND $timeFilter`
 
 ### 📖 이름 사전 (v4.4.0 - 3-Field Structure)
 - **3개 필드 구조**: 역할별 명확한 분리
@@ -165,6 +175,10 @@ npm run preview
 - **PNG/SVG 다운로드**: 다이어그램 우측 상단 Download 버튼
 - **Mermaid 코드 복사**: `<>` 버튼 클릭 → 복사 버튼
 - **Grafana 연동**: 복사한 Mermaid 코드를 Grafana Diagram 패널에 붙여넣기하여 실시간 모니터링 대시보드 구축
+- **Grafana 쿼리 생성**: 🔺 "Grafana" 버튼 클릭 → InfluxDB 쿼리문 자동 생성
+  - Hostname, Interface, Direction(Ingress/Egress), Query 테이블 표시
+  - 개별 쿼리 복사 또는 "Copy All Queries"로 전체 복사
+  - Grafana Graph 패널에 붙여넣기하여 트래픽 그래프 생성
 
 ### 6. AI 챗봇 사용하기 (v3.3+)
 
@@ -335,6 +349,26 @@ v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하�
 **Latest Release**: v4.1.0 (2026-02-15)
 
 ## 📊 버전 히스토리
+
+- **v4.5.2** (2026-02-18) - Grafana InfluxDB 쿼리 자동 생성
+  - InfluxQL 쿼리문 자동 생성 (Ingress/Egress)
+  - 모든 서비스 타입 지원 (Epipe, VPLS, VPRN, IES)
+  - HA 구성: 장비별 개별 쿼리 생성
+  - VPLS 연결 해석 및 서비스 포트 우선 선택
+  - 개별/전체 복사 기능
+
+- **v4.5.0** (2026-02-18) - IES 인터페이스 레벨 필터링 및 검색 기반 HA 필터링
+  - IES 인터페이스 개별 필터링
+  - 검색 결과 기반 "이중화" 버튼 동작
+  - Type별 갯수 표시 개선
+
+- **v4.4.0** (2026-02-16) - Dictionary 3-Field 구조 (name, configKeywords, searchAliases)
+  - 양방향 검색 지원
+  - 3컬럼 UI 및 테이블 정렬
+
+- **v4.3.0** (2026-02-16) - Dictionary 구조 간소화 (6 fields → 2 fields)
+  - originalToken, aliases 2-field 구조
+  - 마이그레이션 스크립트 제공
 
 - **v4.1.0** (2026-02-15) - 이름 사전 (Name Dictionary)
   - AI 자동 생성: Config description에서 엔티티 추출

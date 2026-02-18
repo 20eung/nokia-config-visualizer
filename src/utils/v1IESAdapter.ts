@@ -241,7 +241,7 @@ function detectHAGroups(items: Array<{
  */
 export function generateCrossDeviceIESDiagrams(
     deviceEntries: Array<{ v1Device: NokiaDevice; selectedInterfaceNames: string[] }>
-): Array<{ name: string; code: string; description: string }> {
+): Array<{ name: string; code: string; description: string; usedInterfaceNames: string[]; usedHostnames: string[]; usedPortIds: string[] }> {
     console.log(`🔍 [IES Cross-Device] Processing ${deviceEntries.length} devices`);
 
     // 모든 디바이스의 선택된 인터페이스에 대해 Peer IP와 관련 라우트 수집
@@ -274,7 +274,10 @@ export function generateCrossDeviceIESDiagrams(
         return [{
             name: 'No Selection',
             code: 'graph LR\n    NoSelection["No interface selected"]',
-            description: ''
+            description: '',
+            usedInterfaceNames: [],
+            usedHostnames: [],
+            usedPortIds: []
         }];
     }
 
@@ -287,7 +290,7 @@ export function generateCrossDeviceIESDiagrams(
     const topology = createTopologyFromMultipleDevices(deviceEntries.map(e => e.v1Device));
 
     // 다이어그램 생성
-    const result: Array<{ name: string; code: string; description: string }> = [];
+    const result: Array<{ name: string; code: string; description: string; usedInterfaceNames: string[]; usedHostnames: string[]; usedPortIds: string[] }> = [];
 
     groups.forEach(group => {
         if (group.haPair) {
@@ -300,7 +303,10 @@ export function generateCrossDeviceIESDiagrams(
             result.push({
                 name: `이중화: ${title}`,
                 code: generateCombinedHaDiagram(group, topology),
-                description: '이중화 토폴로지'
+                description: '이중화 토폴로지',
+                usedInterfaceNames: group.items.map(i => i.intf.name),
+                usedHostnames: group.items.map(i => i.device.hostname),
+                usedPortIds: group.items.map(i => i.intf.portId || '').filter(p => p)
             });
         } else {
             group.items.forEach(item => {
@@ -308,7 +314,10 @@ export function generateCrossDeviceIESDiagrams(
                 result.push({
                     name: `${item.device.hostname}: ${titleSuffix}`,
                     code: generateSingleInterfaceDiagram(item.device, item.intf, topology),
-                    description: item.intf.portDescription || item.intf.description || ''
+                    description: item.intf.portDescription || item.intf.description || '',
+                    usedInterfaceNames: [item.intf.name],
+                    usedHostnames: [item.device.hostname],
+                    usedPortIds: item.intf.portId ? [item.intf.portId] : []
                 });
             });
         }

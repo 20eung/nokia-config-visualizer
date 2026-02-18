@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import { toPng, toSvg } from 'html-to-image';
-import { Download, Code, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Download, Code, ZoomIn, ZoomOut, Maximize2, BarChart3 } from 'lucide-react';
 import type { L2VPNService } from '../../types/v2';
+import { GrafanaExportModal } from '../v3/GrafanaExportModal';
 import './ServiceDiagram.css';
 
 interface ServiceDiagramProps {
@@ -16,6 +17,7 @@ export function ServiceDiagram({ service, diagram, hostname, diagramName }: Serv
     const diagramRef = useRef<HTMLDivElement>(null);
     const [showCode, setShowCode] = useState(false);
     const [zoom, setZoom] = useState(1);
+    const [showGrafanaModal, setShowGrafanaModal] = useState(false);
 
     useEffect(() => {
         if (diagramRef.current && diagram) {
@@ -155,6 +157,9 @@ export function ServiceDiagram({ service, diagram, hostname, diagramName }: Serv
                     <button onClick={handleDownloadSVG} className="control-btn" title="Download SVG">
                         <Download size={18} /> SVG
                     </button>
+                    <button onClick={() => setShowGrafanaModal(true)} className="control-btn" title="Export to Grafana">
+                        <BarChart3 size={18} /> Grafana
+                    </button>
                 </div>
             </div>
 
@@ -182,7 +187,14 @@ export function ServiceDiagram({ service, diagram, hostname, diagramName }: Serv
                 </div>
             )}
 
-
+            {/* Grafana Export 모달 */}
+            {showGrafanaModal && (
+                <GrafanaExportModal
+                    service={service}
+                    hostname={hostname}
+                    onClose={() => setShowGrafanaModal(false)}
+                />
+            )}
         </div>
     );
 }

@@ -102,7 +102,21 @@ export function V3Page() {
         };
     }, [isResizing]);
 
-    const allServices = configs.flatMap(c => c.services.map(s => ({ ...s, _hostname: c.hostname })));
+    const allServices = configs.flatMap(c =>
+        c.services.map(s => {
+            const serviceWithHostname = { ...s, _hostname: c.hostname };
+
+            // SAP와 Interface에도 _hostname 전파 (Grafana 쿼리문 생성용)
+            if ('saps' in serviceWithHostname && serviceWithHostname.saps) {
+                serviceWithHostname.saps = serviceWithHostname.saps.map(sap => ({ ...sap, _hostname: c.hostname }));
+            }
+            if ('interfaces' in serviceWithHostname && serviceWithHostname.interfaces) {
+                serviceWithHostname.interfaces = serviceWithHostname.interfaces.map(intf => ({ ...intf, _hostname: c.hostname }));
+            }
+
+            return serviceWithHostname;
+        })
+    );
 
     const selectedServices = ((allServices as any[]).flatMap(s => {
         if (s.serviceType === 'ies') {
@@ -221,8 +235,10 @@ export function V3Page() {
             const iesServices = group as (IESService & { _hostname: string })[];
             const hostname = iesServices[0]._hostname || 'Unknown';
 
-            // 같은 호스트의 모든 IES 서비스 인터페이스를 병합
-            const mergedInterfaces = iesServices.flatMap(s => s.interfaces);
+            // 같은 호스트의 모든 IES 서비스 인터페이스를 병합 (hostname 정보 추가)
+            const mergedInterfaces = iesServices.flatMap(s =>
+                s.interfaces.map(intf => ({ ...intf, _hostname: s._hostname }))
+            );
             const mergedService: IESService & { _hostname: string } = {
                 ...iesServices[0],
                 interfaces: mergedInterfaces,
@@ -277,16 +293,33 @@ export function V3Page() {
             deviceEntries.map(e => ({ v1Device: e.v1Device, selectedInterfaceNames: e.selectedInterfaceNames }))
         );
 
-        // 대표 서비스를 첫 번째 entry에서 가져옴
-        const representativeService = deviceEntries[0].representativeService;
+        // 각 다이어그램마다 해당하는 인터페이스만 포함하는 서비스 생성 (Grafana Export용)
+        return crossDeviceDiagrams.map(d => {
+            // 이 다이어그램에 사용된 장비의 인터페이스만 필터링 (portId 기반)
+            const diagramInterfaces = deviceEntries.flatMap(e => {
+                const service = e.representativeService as IESService & { _hostname: string };
+                // 장비 hostname이 다이어그램에 포함되어 있고, portId도 일치해야 함
+                if (!d.usedHostnames.includes(e.hostname)) {
+                    return [];
+                }
+                return service.interfaces.filter(intf =>
+                    intf.portId && d.usedPortIds.includes(intf.portId)
+                );
+            });
 
-        return crossDeviceDiagrams.map(d => ({
-            service: representativeService as NokiaService & { _hostname: string },
-            diagram: d.code,
-            hostname: deviceEntries.map(e => e.hostname).join(' + '),
-            diagramName: d.name,
-            description: d.description
-        }));
+            const representativeService: IESService & { _hostname: string } = {
+                ...(deviceEntries[0].representativeService as IESService & { _hostname: string }),
+                interfaces: diagramInterfaces,
+            };
+
+            return {
+                service: representativeService as NokiaService & { _hostname: string },
+                diagram: d.code,
+                hostname: d.usedHostnames.join(' + '), // 실제 사용된 장비만 표시
+                diagramName: d.name,
+                description: d.description
+            };
+        });
     })();
 
     const nonIesDiagrams: DiagramItem[] = nonIesGroupEntries.flatMap<DiagramItem>(([, group]) => {
@@ -303,9 +336,19 @@ export function V3Page() {
         const representativeService = servicesWithContext[0].service;
 
         if (representativeService.serviceType === 'vprn') {
+            // VPRN HA: 모든 장비의 인터페이스를 병합한 대표 서비스 생성 (Grafana Export용)
+            const allInterfaces = servicesWithContext.flatMap(ctx => {
+                const service = ctx.service as VPRNService & { _hostname: string };
+                return service.interfaces || [];
+            });
+            const mergedVPRNService = {
+                ...(representativeService as VPRNService),
+                interfaces: allInterfaces
+            } as NokiaService & { _hostname: string };
+
             // V3 네이티브: generateServiceDiagram() 사용
             return [{
-                service: representativeService,
+                service: mergedVPRNService,
                 diagram: generateServiceDiagram(
                     servicesWithContext.map(s => s.service),
                     servicesWithContext.map(s => s.hostname),
@@ -330,23 +373,48 @@ export function V3Page() {
                 sdpSubGroups.get(sdpKey)!.push(ctx);
             });
 
-            return Array.from(sdpSubGroups.values()).map(subGroup => ({
-                service: representativeService,
-                diagram: generateServiceDiagram(
-                    subGroup.map(s => s.service),
-                    subGroup.map(s => s.hostname),
-                    subGroup[0].sdps,
-                    remoteDeviceMap
-                ),
-                hostname: subGroup.map(s => s.hostname).join(' + '),
-                diagramName: undefined,
-                description: undefined
-            }));
+            return Array.from(sdpSubGroups.values()).map(subGroup => {
+                // EPIPE HA: 모든 장비의 SAP를 병합한 대표 서비스 생성 (Grafana Export용)
+                const allSaps = subGroup.flatMap(ctx => {
+                    const service = ctx.service as EpipeService & { _hostname: string };
+                    return service.saps || [];
+                });
+                const mergedEpipeService = {
+                    ...(subGroup[0].service as EpipeService),
+                    saps: allSaps
+                } as NokiaService & { _hostname: string };
+
+                return {
+                    service: mergedEpipeService,
+                    diagram: generateServiceDiagram(
+                        subGroup.map(s => s.service),
+                        subGroup.map(s => s.hostname),
+                        subGroup[0].sdps,
+                        remoteDeviceMap
+                    ),
+                    hostname: subGroup.map(s => s.hostname).join(' + '),
+                    diagramName: undefined,
+                    description: undefined
+                };
+            });
         }
 
         // Other service types (VPLS etc.)
+        // VPLS HA: 모든 장비의 SAP를 병합한 대표 서비스 생성 (Grafana Export용)
+        const allSaps = servicesWithContext.flatMap(ctx => {
+            const service = ctx.service;
+            if ('saps' in service && service.saps) {
+                return service.saps;
+            }
+            return [];
+        });
+        const mergedService = {
+            ...representativeService,
+            saps: allSaps
+        } as NokiaService & { _hostname: string };
+
         return [{
-            service: representativeService,
+            service: mergedService,
             diagram: generateServiceDiagram(
                 servicesWithContext.map(s => s.service),
                 servicesWithContext.map(s => s.hostname),
