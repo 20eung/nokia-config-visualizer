@@ -70,6 +70,46 @@ export function ServiceListV3({
         }
     }, [onSetSelected]);
 
+    /**
+     * IES 인터페이스 레벨 필터링 (v4.5.0)
+     * 검색어에 매칭되는 인터페이스만 포함하는 새 서비스 생성
+     */
+    const filterIESInterfaces = useCallback((
+        service: IESService & { _hostname: string },
+        query: string
+    ): (IESService & { _hostname: string }) | null => {
+        if (!query) return service; // 검색어 없으면 전체 반환
+
+        const filteredInterfaces = service.interfaces.filter(iface => {
+            // 인터페이스 특화 필드 검색
+            if (iface.interfaceName && iface.interfaceName.toLowerCase().includes(query)) return true;
+            if (iface.description && iface.description.toLowerCase().includes(query)) return true;
+            if (iface.portId && iface.portId.toLowerCase().includes(query)) return true;
+            if (iface.ipAddress && iface.ipAddress.toLowerCase().includes(query)) return true;
+
+            // Catch-all: 인터페이스 전체 JSON 검색
+            try {
+                const ifaceJson = JSON.stringify(iface).toLowerCase();
+                if (ifaceJson.includes(query)) return true;
+            } catch (e) {
+                console.warn('[filterIESInterfaces] JSON.stringify failed:', e);
+            }
+
+            return false;
+        });
+
+        // 매칭된 인터페이스가 없으면 null 반환
+        if (filteredInterfaces.length === 0) {
+            return null;
+        }
+
+        // 매칭된 인터페이스만 포함하는 새 서비스 반환
+        return {
+            ...service,
+            interfaces: filteredInterfaces
+        };
+    }, []);
+
     // 필터링된 서비스
     const filteredServices = services.filter(service => {
         // 타입 필터 (IES 포함)
@@ -171,24 +211,37 @@ export function ServiceListV3({
                     if (service.routeDistinguisher.toLowerCase().includes(query)) return true;
                 }
             } else if (service.serviceType === 'ies') {
-                if ('interfaces' in service && service.interfaces) {
-                    for (const iface of service.interfaces) {
-                        if (iface.interfaceName && iface.interfaceName.toLowerCase().includes(query)) return true;
-                        if (iface.description && iface.description.toLowerCase().includes(query)) return true;
-                        if (iface.portId && iface.portId.toLowerCase().includes(query)) return true;
-                        if (iface.ipAddress && iface.ipAddress.toLowerCase().includes(query)) return true;
-                    }
-                }
-                if ('staticRoutes' in service && service.staticRoutes) {
-                    if (service.staticRoutes.some(route => route.prefix.toLowerCase().includes(query))) return true;
-                }
+                // ⚠️ IES는 여기서 true/false 판단하지 않음!
+                // 인터페이스 레벨 필터링은 별도 로직으로 처리 (v4.5.0)
+                return true; // 일단 통과시키고 나중에 필터링
+            }
+
+            // Catch-all: 서비스 객체 전체를 JSON으로 변환하여 검색 (v4.5.0)
+            // 파싱된 모든 필드를 누락 없이 검색합니다
+            // (IES는 위에서 이미 return true 처리되어 여기 도달하지 않음)
+            try {
+                const serviceJson = JSON.stringify(service).toLowerCase();
+                if (serviceJson.includes(query)) return true;
+            } catch (e) {
+                // JSON.stringify 실패 시 무시
+                console.warn('[ServiceListV3] JSON.stringify failed for service:', service.serviceId, e);
             }
 
             return false;
         }
 
         return true;
-    }).sort((a, b) => a.serviceId - b.serviceId);
+    }).map(service => {
+        // ⭐ IES 인터페이스 레벨 필터링 적용 (v4.5.0)
+        if (service.serviceType === 'ies' && searchQuery) {
+            return filterIESInterfaces(
+                service as IESService & { _hostname: string },
+                searchQuery.toLowerCase()
+            );
+        }
+        return service;
+    }).filter((service): service is NokiaServiceV3 => service !== null) // null 제거 + 타입 가드
+      .sort((a, b) => a.serviceId - b.serviceId);
 
     // 서비스를 serviceId와 serviceType별로 그룹화
     const groupedServices = filteredServices.reduce((acc, service) => {
@@ -213,21 +266,60 @@ export function ServiceListV3({
     const vprnServices = Object.values(groupedServices).filter(group => group[0].serviceType === 'vprn');
     const iesServices = Object.values(groupedServices).filter(group => group[0].serviceType === 'ies');
 
-    // IES Interface Count (호스트별 그룹이므로 interface 개수를 따로 계산)
+    // IES 전체 인터페이스 개수 (호스트별 그룹이므로 interface 개수를 따로 계산)
     const iesInterfaceCount = iesServices.reduce((acc, group) => {
         return acc + group.reduce((sum, service) => {
             return sum + ((service as IESService).interfaces?.length || 0);
         }, 0);
     }, 0);
 
+    // 선택된 서비스의 Type별 갯수 계산 (v4.5.0)
+    const selectedEpipeCount = epipeServices.filter(group =>
+        selectedServiceIds.includes(`${group[0].serviceType}-${group[0].serviceId}`)
+    ).length;
+    const selectedVplsCount = vplsServices.filter(group =>
+        selectedServiceIds.includes(`${group[0].serviceType}-${group[0].serviceId}`)
+    ).length;
+    const selectedVprnCount = vprnServices.filter(group =>
+        selectedServiceIds.includes(`${group[0].serviceType}-${group[0].serviceId}`)
+    ).length;
+
+    // 선택된 IES 인터페이스 개수 계산
+    const selectedIesInterfaceCount = iesServices.reduce((acc, group) => {
+        const hostname = (group[0] as any)._hostname || 'Unknown';
+        const fullHostKey = `ies-${hostname}`;
+
+        if (selectedServiceIds.includes(fullHostKey)) {
+            // 전체 호스트가 선택된 경우, 모든 인터페이스 카운트
+            return acc + group.reduce((sum, service) => {
+                return sum + ((service as IESService).interfaces?.length || 0);
+            }, 0);
+        } else {
+            // 개별 인터페이스만 선택된 경우
+            const prefix = `ies___${hostname}___`;
+            const selectedInterfaceKeys = selectedServiceIds.filter(id => id.startsWith(prefix));
+            return acc + selectedInterfaceKeys.length;
+        }
+    }, 0);
+
     const handleSelectAll = () => {
-        onSetSelected(filteredServices.map(s => {
+        const allKeys: string[] = [];
+
+        filteredServices.forEach(s => {
             if (s.serviceType === 'ies') {
                 const hostname = (s as any)._hostname || 'Unknown';
-                return `ies-${hostname}`;
+                const iesService = s as IESService;
+                // ⭐ v4.5.0: filteredServices의 IES는 이미 필터링된 인터페이스만 포함
+                // 개별 인터페이스 키를 생성하여 검색 결과만 선택
+                iesService.interfaces.forEach(intf => {
+                    allKeys.push(`ies___${hostname}___${intf.interfaceName}`);
+                });
+            } else {
+                allKeys.push(`${s.serviceType}-${s.serviceId}`);
             }
-            return `${s.serviceType}-${s.serviceId}`;
-        }));
+        });
+
+        onSetSelected(allKeys);
     };
 
     const handleSelectNone = () => {
@@ -237,10 +329,24 @@ export function ServiceListV3({
     const handleHAFilter = () => {
         const haServiceIds: string[] = [];
 
-        console.log(`🔍 [HA Filter] Starting HA detection (v1 algorithm), configs:`, configs.length);
+        console.log(`🔍 [HA Filter v4.5] Starting HA detection on filteredServices: ${filteredServices.length}`);
 
         // ==================================================
-        // Step 1: Collect all static routes from all configs
+        // Step 0: Create set of filtered service IDs (v4.5.0)
+        // ==================================================
+        const filteredServiceKeys = new Set<string>();
+        filteredServices.forEach(service => {
+            if (service.serviceType === 'ies') {
+                const hostname = (service as any)._hostname || 'Unknown';
+                filteredServiceKeys.add(`ies-${hostname}`);
+            } else {
+                filteredServiceKeys.add(`${service.serviceType}-${service.serviceId}`);
+            }
+        });
+        console.log(`🔍 [HA Filter v4.5] Filtered service keys: ${filteredServiceKeys.size}`);
+
+        // ==================================================
+        // Step 1: Collect static routes from filteredServices only (v4.5.0)
         // ==================================================
         interface RouteInfo {
             prefix: string;
@@ -254,7 +360,14 @@ export function ServiceListV3({
 
         configs.forEach(config => {
             config.services.forEach(service => {
+                // ⭐ v4.5.0: filteredServices에 포함된 서비스만 처리
                 if (service.serviceType === 'ies') {
+                    const hostname = config.hostname;
+                    const serviceKey = `ies-${hostname}`;
+                    if (!filteredServiceKeys.has(serviceKey)) {
+                        return; // Skip this service
+                    }
+
                     const iesService = service as IESService;
                     iesService.staticRoutes?.forEach(route => {
                         allRoutes.push({
@@ -265,6 +378,11 @@ export function ServiceListV3({
                         });
                     });
                 } else if (service.serviceType === 'vprn') {
+                    const serviceKey = `${service.serviceType}-${service.serviceId}`;
+                    if (!filteredServiceKeys.has(serviceKey)) {
+                        return; // Skip this service
+                    }
+
                     const vprnService = service as VPRNService;
                     vprnService.staticRoutes?.forEach(route => {
                         allRoutes.push({
@@ -327,12 +445,19 @@ export function ServiceListV3({
         console.log('🔍 [HA Filter] HA IPs from pairs:', Array.from(haIps).slice(0, 10), '...');
 
         // ==================================================
-        // Step 4: Find interfaces whose peerIp matches HA next-hops (v1 style)
+        // Step 4: Find interfaces whose peerIp matches HA next-hops (v4.5.0 - filteredServices only)
         // ==================================================
         let totalInterfaces = 0;
         configs.forEach(config => {
             config.services.forEach(service => {
                 if (service.serviceType === 'ies') {
+                    // ⭐ v4.5.0: filteredServices에 포함된 서비스만 처리
+                    const hostname = config.hostname;
+                    const serviceKey = `ies-${hostname}`;
+                    if (!filteredServiceKeys.has(serviceKey)) {
+                        return; // Skip this service
+                    }
+
                     const iesService = service as IESService;
 
                     // 동일 config 내 모든 IES 서비스의 Static Routes 수집
@@ -369,6 +494,12 @@ export function ServiceListV3({
                         }
                     });
                 } else if (service.serviceType === 'vprn') {
+                    // ⭐ v4.5.0: filteredServices에 포함된 서비스만 처리
+                    const serviceKey = `${service.serviceType}-${service.serviceId}`;
+                    if (!filteredServiceKeys.has(serviceKey)) {
+                        return; // Skip this service
+                    }
+
                     const vprnService = service as VPRNService;
                     const v1Device = convertVPRNToV1Format(vprnService, config.hostname);
 
@@ -542,7 +673,7 @@ export function ServiceListV3({
                                 {expandedGroups['epipe'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                             </span>
                             <span className="service-icon">🔗</span>
-                            <h3>Epipe Services ({epipeServices.length})</h3>
+                            <h3>Epipe Services ({selectedServiceIds.length > 0 ? `${selectedEpipeCount} / ` : ''}{epipeServices.length})</h3>
                         </div>
                         {expandedGroups['epipe'] && (
                             <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
@@ -619,7 +750,7 @@ export function ServiceListV3({
                                 {expandedGroups['vpls'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                             </span>
                             <span className="service-icon">🌐</span>
-                            <h3>VPLS Services ({vplsServices.length})</h3>
+                            <h3>VPLS Services ({selectedServiceIds.length > 0 ? `${selectedVplsCount} / ` : ''}{vplsServices.length})</h3>
                         </div>
                         {expandedGroups['vpls'] && (
                             <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
@@ -685,7 +816,7 @@ export function ServiceListV3({
                                 {expandedGroups['vprn'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                             </span>
                             <span className="service-icon">📡</span>
-                            <h3>VPRN Services ({vprnServices.length})</h3>
+                            <h3>VPRN Services ({selectedServiceIds.length > 0 ? `${selectedVprnCount} / ` : ''}{vprnServices.length})</h3>
                         </div>
                         {expandedGroups['vprn'] && (
                             <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
@@ -857,7 +988,7 @@ export function ServiceListV3({
                                 {expandedGroups['ies'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                             </span>
                             <span className="service-icon">🌐</span>
-                            <h3>IES Services ({iesInterfaceCount})</h3>
+                            <h3>IES Services ({selectedServiceIds.length > 0 ? `${selectedIesInterfaceCount} / ` : ''}{iesInterfaceCount})</h3>
                         </div>
                         {expandedGroups['ies'] && (
                             <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>

@@ -23,7 +23,7 @@ export const config = {
     // 모델 ID: docker-compose.yml 환경변수가 최우선
     // 환경변수가 없으면 이 기본값 사용
     modelId: process.env.BEDROCK_MODEL_ID
-      || 'global.anthropic.claude-sonnet-4-20250514-v1:0',
+      || 'global.anthropic.claude-sonnet-4-5-20250929-v1:0',
   },
 
   // Rate Limiting
