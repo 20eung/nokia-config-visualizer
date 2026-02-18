@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v4.5.2** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 + Grafana 쿼리 생성
+> 🚀 **v4.5.3** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 + Grafana 쿼리 생성
 
 ![Application Screenshot](./docs/screenshot.png)
 
@@ -29,7 +29,7 @@
   - VRRP Master/Backup 표시
   - VIP (Virtual IP) 표시
 - **QoS 정보** 링크 라벨에 표시
-- **확대/축소** 및 **PNG/SVG 다운로드** 지원
+- **확대/축소** 및 **PNG 클립보드 복사** 지원 (다운로드 워크플로우 제거, 즉시 복사-붙여넣기)
 - **Mermaid 코드 보기** 및 복사 기능
 - **Grafana 호환성**: Grafana Diagram 패널과 완벽하게 호환되는 Mermaid 코드 생성
 

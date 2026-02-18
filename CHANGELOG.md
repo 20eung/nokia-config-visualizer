@@ -6,6 +6,46 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [4.5.3] - 2026-02-19
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **다이어그램 PNG 클립보드 복사**: 다운로드 버튼을 클립보드 복사로 대체하여 워크플로우 개선
+  - 기존: PNG/SVG 다운로드 → 파일 탐색기 → 다른 프로그램에서 삽입 (5-10초)
+  - 변경: Copy PNG 버튼 → 즉시 복사 → Word/PowerPoint/Slack 등에 붙여넣기 (1-2초)
+  - 클립보드 API (`navigator.clipboard.write()`) 활용
+
+### ✨ 새로운 기능 (New Features)
+- **클립보드 복사 버튼**: PNG/SVG 다운로드 버튼 제거, Copy PNG 버튼으로 통합
+  - `html-to-image`의 `toBlob()` 함수로 PNG 생성
+  - 2x 픽셀 비율로 고품질 이미지 생성
+  - 흰색 배경 처리 (`backgroundColor: '#ffffff'`)로 다크모드 호환성 보장
+- **시각적 피드백**: 복사 성공 시 즉각적인 사용자 피드백
+  - 아이콘 변경: Copy 아이콘 → Check 아이콘 (2초간)
+  - 버튼 색상: 기본 → 녹색 배경 (2초간)
+  - 텍스트 변경: "Copy PNG" → "Copied!"
+
+### 📊 개선 사항 (Improvements)
+- **다크모드 호환성**: 투명 배경 대신 흰색 배경으로 처리하여 다크모드 애플리케이션에서도 다이어그램 선명하게 표시
+- **워크플로우 단순화**: 다운로드 → 파일 찾기 → 삽입 과정 제거, 즉시 복사-붙여넣기 가능
+- **UI 정리**: 자주 사용하지 않는 SVG 다운로드 버튼 제거로 인터페이스 간소화
+
+### 🔧 기술적 변경 (Technical Changes)
+- **수정 파일**:
+  - `src/components/v2/ServiceDiagram.tsx`:
+    - `toPng`, `toSvg` import 제거, `toBlob` 추가
+    - `Download` 아이콘 제거, `Copy`, `Check` 아이콘 추가
+    - `handleDownloadPNG()`, `handleDownloadSVG()` 함수 제거
+    - `handleCopyImagePNG()` 함수 추가 (라인 65-91)
+    - `copied` state 추가로 시각적 피드백 구현
+    - 클립보드 복사 실패 시 사용자 안내 메시지
+  - `src/components/v2/ServiceDiagram.css`:
+    - `.control-btn.copied` 스타일 추가 (녹색 배경, 흰색 텍스트)
+    - `.control-btn.copied:hover` 스타일 추가
+
+### 🌐 브라우저 호환성 (Browser Compatibility)
+- **Clipboard API 지원**: Chrome 76+, Edge 79+, Safari 13.1+, Firefox 90+
+- **에러 처리**: 브라우저가 클립보드 API를 지원하지 않을 경우 안내 메시지 표시
+
 ## [4.5.2] - 2026-02-18
 
 ### 🚀 주요 변경 사항 (Major Changes)
