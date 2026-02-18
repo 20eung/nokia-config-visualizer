@@ -375,7 +375,7 @@ export function V3Page() {
                     </button>
                     <div className="logo">
                         <img src="/favicon.svg" alt="App Icon" className="app-icon" />
-                        <h1>Nokia Config Visualizer v4.4.0 (AI Visualizer)</h1>
+                        <h1>Nokia Config Visualizer v{__APP_VERSION__} (AI Visualizer)</h1>
                     </div>
                 </div>
 

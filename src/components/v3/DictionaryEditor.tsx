@@ -386,7 +386,7 @@ export function DictionaryEditor({
       <div className="dict-modal" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="dict-header">
-          <h2>이름 사전 (Name Dictionary) - v4.4.0</h2>
+          <h2>이름 사전 (Name Dictionary) - v{__APP_VERSION__}</h2>
           <div className="dict-header-actions">
             <button
               className="dict-generate-btn"

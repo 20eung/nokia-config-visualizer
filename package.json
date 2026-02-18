@@ -9,7 +9,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "migrate:dictionary": "tsx scripts/migrate-dictionary-v43.ts",
-    "restore:dictionary": "tsx scripts/migrate-dictionary-v43.ts --restore"
+    "restore:dictionary": "tsx scripts/migrate-dictionary-v43.ts --restore",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version"
   },
   "dependencies": {
     "html-to-image": "^1.11.13",
