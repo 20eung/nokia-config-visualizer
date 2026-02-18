@@ -124,6 +124,72 @@ git commit -m "feat: Add new feature"
 git push origin v4-development
 ```
 
+## Minor/Major 버전 변경 워크플로우
+
+Minor 또는 Major 버전을 변경할 때는 자동 버전 증가 Git hook과 충돌하지 않도록 특별한 절차가 필요합니다.
+
+### 사용자 요청 예시
+
+```
+"v4.5.0으로 변경해줘"
+```
+
+### Claude Code 어시스턴트 작업 절차
+
+1. **Git hook 임시 비활성화**
+   ```bash
+   rm .git/hooks/pre-commit
+   ```
+
+2. **버전 변경 (Minor 예시)**
+   ```bash
+   npm run version:minor
+   ```
+   또는 Major 버전:
+   ```bash
+   npm run version:major
+   ```
+
+3. **변경사항 커밋**
+   ```bash
+   git add package.json
+   git commit -m "chore: Bump version to v4.5.0"
+   ```
+
+4. **Git hook 재활성화**
+   ```bash
+   ln -s ../../scripts/auto-version.sh .git/hooks/pre-commit
+   ```
+
+5. **사용자에게 Push 확인**
+   "변경사항을 GitHub에 푸시하시겠습니까?"
+
+⚠️ **중요**: Claude Code 어시스턴트는 자동으로 GitHub에 push하지 않습니다. 모든 push 작업은 사용자의 명시적 승인이 필요합니다. (글로벌 CLAUDE.md 정책)
+
+### 수동 작업 시
+
+사용자가 직접 작업할 경우:
+
+```bash
+# 1. Git hook 비활성화
+rm .git/hooks/pre-commit
+
+# 2. 버전 변경
+npm run version:minor  # v4.4.x → v4.5.0
+# 또는
+npm run version:major  # v4.x.x → v5.0.0
+
+# 3. 커밋
+git add package.json
+git commit -m "chore: Bump version to v4.5.0"
+
+# 4. Push (선택)
+git push origin v4-development
+
+# 5. Git hook 재활성화
+ln -s ../../scripts/auto-version.sh .git/hooks/pre-commit
+```
+
 ## FAQ
 
 ### Q: 버전을 수동으로 변경하면 안 되나요?
@@ -148,7 +214,9 @@ A: **권장하지 않습니다**. 모든 커밋마다 버전이 증가하면:
 npm run version:minor
 ```
 
-이렇게 하면 `v4.4.0` → `v4.5.0`으로 변경됩니다.
+이렇게 하면 `v4.4.x` → `v4.5.0`으로 변경됩니다.
+
+⚠️ **주의**: Minor/Major 버전 변경 시에는 위의 "Minor/Major 버전 변경 워크플로우" 섹션을 참조하여 Git hook을 임시 비활성화해야 합니다.
 
 ---
 

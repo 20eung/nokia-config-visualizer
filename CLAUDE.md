@@ -193,6 +193,44 @@ rm .git/hooks/pre-commit
 
 ⚠️ **주의**: 모든 커밋마다 버전이 증가하므로 일반적으로 권장하지 않습니다.
 
+#### Minor/Major 버전 변경 워크플로우
+
+사용자가 **"v4.5.0으로 변경해줘"** 같은 요청을 하면, Claude Code 어시스턴트는 다음 절차를 **자동으로 수행**합니다:
+
+1. **Git hook 임시 비활성화**
+   ```bash
+   rm .git/hooks/pre-commit
+   ```
+
+2. **버전 변경**
+   ```bash
+   npm run version:minor  # Minor 버전 증가
+   # 또는
+   npm run version:major  # Major 버전 증가
+   ```
+
+3. **변경사항 커밋**
+   ```bash
+   git add package.json
+   git commit -m "chore: Bump version to vX.X.X"
+   ```
+
+4. **Git hook 재활성화**
+   ```bash
+   ln -s ../../scripts/auto-version.sh .git/hooks/pre-commit
+   ```
+
+5. **사용자에게 Push 확인 요청**
+   ```
+   "변경사항을 GitHub에 푸시하시겠습니까?"
+   ```
+
+⚠️ **중요 정책**:
+- **모든 Git push 작업은 사용자의 명시적 승인 필요** (글로벌 CLAUDE.md 정책 준수)
+- Claude Code 어시스턴트는 자동으로 GitHub에 push하지 않습니다
+- 코드 변경 시 매번 사용자에게 push 여부를 물어봅니다
+- 사용자가 승인한 경우에만 push를 실행합니다
+
 #### 버전 표시 위치
 
 - **웹 페이지 헤더**: [src/pages/V3Page.tsx](src/pages/V3Page.tsx) - `v{__APP_VERSION__}`
@@ -237,5 +275,5 @@ rm .git/hooks/pre-commit
 ---
 
 **Last Updated**: 2026-02-18
-**Current Version**: v4.4.0
+**Current Version**: v4.4.6 (Auto-versioning enabled)
 **Branch**: v4-development
