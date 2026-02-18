@@ -254,7 +254,8 @@ rm .git/hooks/post-commit
 
 #### 상세 문서
 
-- [VERSION_MANAGEMENT.md](VERSION_MANAGEMENT.md): 전체 버전 관리 가이드, 워크플로우, FAQ
+- [VERSION_MANAGEMENT.md](VERSION_MANAGEMENT.md): 프로젝트별 설정 (전역 문서 참조)
+- `~/.claude/VERSION_MANAGEMENT.md`: 전체 버전 관리 가이드, 워크플로우, FAQ
 
 ## 테스트
 - 표준 테스트 파일: `public/config1.txt`, `public/config2.txt`
