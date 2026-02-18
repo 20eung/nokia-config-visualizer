@@ -1,6 +1,10 @@
-# CLAUDE.md - AI Assistant Context Document
+# CLAUDE.md - Nokia Config Visualizer Project Context
 
-> 이 문서는 AI 어시스턴트가 프로젝트를 이해하고 효과적으로 작업할 수 있도록 작성된 컨텍스트 문서입니다.
+> 이 문서는 Nokia Config Visualizer 프로젝트에 특화된 컨텍스트 문서입니다.
+>
+> **전역 지침**: `~/.claude/CLAUDE.md` 참조 (역할, 언어, 코딩 원칙, Docker/Git 연동)
+>
+> 이 문서는 프로젝트 특화 내용만 기술합니다.
 
 ## 프로젝트 개요
 
@@ -109,10 +113,8 @@ Nokia Config는 들여쓰기 기반 구조. 정규식으로 블록 추출, 들�
 ## 테스트
 - 표준 테스트 파일: `public/config1.txt`, `public/config2.txt`
 
-## 응답 스타일
-- **언어**: 한국어 (Korean)
-- **톤**: 전문적이고 기술적인 어조
-- **코드 변경 시**: 변경 이유를 먼저 설명한 후 코드 제시
+## 프로젝트 특화 응답 스타일
+- **톤**: 전문적이고 기술적인 어조 (네트워크 엔지니어링 배경 지식 필요)
 
 ## 참고 문서
 - `README.md`: 사용자 대상 프로젝트 설명 및 빌드/배포 명령어
