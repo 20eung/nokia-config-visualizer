@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
-import { toPng, toSvg } from 'html-to-image';
-import { Download, Code, ZoomIn, ZoomOut, Maximize2, BarChart3 } from 'lucide-react';
+import { toBlob } from 'html-to-image';
+import { Code, ZoomIn, ZoomOut, Maximize2, BarChart3, Copy, Check } from 'lucide-react';
 import type { L2VPNService } from '../../types/v2';
 import { GrafanaExportModal } from '../v3/GrafanaExportModal';
 import './ServiceDiagram.css';
@@ -18,6 +18,7 @@ export function ServiceDiagram({ service, diagram, hostname, diagramName }: Serv
     const [showCode, setShowCode] = useState(false);
     const [zoom, setZoom] = useState(1);
     const [showGrafanaModal, setShowGrafanaModal] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         if (diagramRef.current && diagram) {
@@ -61,36 +62,31 @@ export function ServiceDiagram({ service, diagram, hostname, diagramName }: Serv
         }
     }, [diagram, service.serviceId]);
 
-    const handleDownloadPNG = async () => {
+    const handleCopyImagePNG = async () => {
         if (!diagramRef.current) return;
 
         try {
-            const dataUrl = await toPng(diagramRef.current, {
+            const blob = await toBlob(diagramRef.current, {
                 quality: 1.0,
                 pixelRatio: 2,
+                backgroundColor: '#ffffff',
             });
 
-            const link = document.createElement('a');
-            link.download = `${service.serviceType}-${service.serviceId}.png`;
-            link.href = dataUrl;
-            link.click();
+            if (!blob) {
+                throw new Error('Failed to generate image blob');
+            }
+
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'image/png': blob
+                })
+            ]);
+
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
         } catch (error) {
-            console.error('PNG export error:', error);
-        }
-    };
-
-    const handleDownloadSVG = async () => {
-        if (!diagramRef.current) return;
-
-        try {
-            const dataUrl = await toSvg(diagramRef.current);
-
-            const link = document.createElement('a');
-            link.download = `${service.serviceType}-${service.serviceId}.svg`;
-            link.href = dataUrl;
-            link.click();
-        } catch (error) {
-            console.error('SVG export error:', error);
+            console.error('Copy image error:', error);
+            alert('이미지 복사에 실패했습니다. 브라우저가 클립보드 API를 지원하는지 확인해주세요.');
         }
     };
 
@@ -151,11 +147,13 @@ export function ServiceDiagram({ service, diagram, hostname, diagramName }: Serv
                         <Code size={18} />
                         {showCode ? ' Hide Code' : ' Show Code'}
                     </button>
-                    <button onClick={handleDownloadPNG} className="control-btn" title="Download PNG">
-                        <Download size={18} /> PNG
-                    </button>
-                    <button onClick={handleDownloadSVG} className="control-btn" title="Download SVG">
-                        <Download size={18} /> SVG
+                    <button
+                        onClick={handleCopyImagePNG}
+                        className={`control-btn ${copied ? 'copied' : ''}`}
+                        title="Copy diagram as PNG to clipboard"
+                    >
+                        {copied ? <Check size={18} /> : <Copy size={18} />}
+                        {copied ? ' Copied!' : ' Copy PNG'}
                     </button>
                     <button onClick={() => setShowGrafanaModal(true)} className="control-btn" title="Export to Grafana">
                         <BarChart3 size={18} /> Grafana
