@@ -110,6 +110,99 @@ Nokia Config는 들여쓰기 기반 구조. 정규식으로 블록 추출, 들�
 
 **상세 규칙은 `DIAGRAM_RULES.md` 참조**
 
+## 설정 및 버전 관리
+
+### 환경변수 관리 (server/src/config.ts)
+
+**모든 환경변수는 `server/src/config.ts`에서 중앙 집중식으로 관리**합니다.
+
+#### 설정 변경 방법
+
+1. **환경변수 우선순위**:
+   ```
+   docker-compose.yml 환경변수 > .env 파일 > config.ts 기본값
+   ```
+
+2. **모델 ID 변경 예시**:
+   ```yaml
+   # docker-compose.yml
+   environment:
+     - BEDROCK_MODEL_ID=global.anthropic.claude-sonnet-4-xxxxxx-v1:0
+   ```
+
+3. **기본값 변경**:
+   ```typescript
+   // server/src/config.ts
+   bedrock: {
+     modelId: process.env.BEDROCK_MODEL_ID || 'your-new-default-model-id',
+   }
+   ```
+
+#### 관리되는 설정
+
+- **AWS 설정**: region, profile
+- **Bedrock 모델**: modelId (현재: `global.anthropic.claude-sonnet-4-20250514-v1:0`)
+- **서버**: port, corsOrigin
+- **Rate Limiting**: windowMs, maxRequests
+
+### 버전 관리 (package.json)
+
+**프로젝트 버전은 `package.json`의 `version` 필드에서 단일 소스로 관리**합니다.
+웹 페이지에 표시되는 버전은 빌드 시점에 자동으로 주입됩니다.
+
+#### 버전 형식
+
+```
+v{major}.{minor}.{patch}
+예: v4.4.0, v4.4.1, v4.5.0
+```
+
+- **Major**: 큰 변경, 호환성이 깨지는 변경
+- **Minor**: 새로운 기능 추가 (하위 호환 유지)
+- **Patch**: 버그 수정, 작은 개선
+
+#### 버전 변경 방법 (수동 관리 권장)
+
+```bash
+# Patch 버전 증가 (4.4.0 → 4.4.1)
+npm run version:patch
+
+# Minor 버전 증가 (4.4.0 → 4.5.0)
+npm run version:minor
+
+# Major 버전 증가 (4.4.0 → 5.0.0)
+npm run version:major
+
+# 변경사항 커밋
+git add package.json
+git commit -m "chore: Bump version to vX.X.X"
+git push origin v4-development
+```
+
+#### 자동 버전 관리 (선택사항, 비권장)
+
+Git hook을 활성화하면 **커밋 시마다 자동으로 patch 버전이 증가**합니다.
+
+```bash
+# 활성화
+ln -s ../../scripts/auto-version.sh .git/hooks/pre-commit
+
+# 비활성화
+rm .git/hooks/pre-commit
+```
+
+⚠️ **주의**: 모든 커밋마다 버전이 증가하므로 일반적으로 권장하지 않습니다.
+
+#### 버전 표시 위치
+
+- **웹 페이지 헤더**: [src/pages/V3Page.tsx](src/pages/V3Page.tsx) - `v{__APP_VERSION__}`
+- **이름 사전 모달**: [src/components/v3/DictionaryEditor.tsx](src/components/v3/DictionaryEditor.tsx) - `v{__APP_VERSION__}`
+- **빌드 시 주입**: [vite.config.ts](vite.config.ts) - `__APP_VERSION__` 전역 변수
+
+#### 상세 문서
+
+- [VERSION_MANAGEMENT.md](VERSION_MANAGEMENT.md): 전체 버전 관리 가이드, 워크플로우, FAQ
+
 ## 테스트
 - 표준 테스트 파일: `public/config1.txt`, `public/config2.txt`
 
@@ -136,11 +229,13 @@ Nokia Config는 들여쓰기 기반 구조. 정규식으로 블록 추출, 들�
 | v4.0.0 | 2026-02-15 | AI 챗봇 서비스 검색, Express 백엔드 (AWS Bedrock) |
 | v4.1.0 | 2026-02-16 | 이름 사전 (Name Dictionary), 전역 단일 사전, 테이블 정렬 |
 | v4.3.0 | 2026-02-16 | Dictionary 구조 간소화 (6 fields → 2 fields), 마이그레이션 스크립트 |
+| v4.4.0 | 2026-02-16 | 3-Field Dictionary (name, configKeywords, searchAliases), 양방향 검색 |
+| v4.4.0+ | 2026-02-18 | 환경변수 중앙 관리 (config.ts), 동적 버전 관리 (package.json) |
 
 상세 변경 이력은 `CHANGELOG.md` 참조.
 
 ---
 
-**Last Updated**: 2026-02-16
-**Current Version**: v4.3.0
+**Last Updated**: 2026-02-18
+**Current Version**: v4.4.0
 **Branch**: v4-development
