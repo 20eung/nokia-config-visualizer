@@ -5,18 +5,14 @@ import {
   type ContentBlock,
 } from '@aws-sdk/client-bedrock-runtime';
 import { DICTIONARY_SYSTEM_PROMPT } from '../prompts/dictionaryPrompt';
+import { config } from '../config';
 import type { DictionaryGenerateResponse } from '../types';
 
-// AWS Bedrock 클라이언트 (claudeClient.ts와 동일한 설정)
+// AWS Bedrock 클라이언트 (config에서 중앙 관리)
 const client = new BedrockRuntimeClient({
-  region: process.env.AWS_REGION
-    || process.env.AWS_DEFAULT_REGION
-    || 'ap-northeast-2',
-  ...(process.env.AWS_PROFILE ? { profile: process.env.AWS_PROFILE } : {}),
+  region: config.aws.region,
+  ...(config.aws.profile ? { profile: config.aws.profile } : {}),
 });
-
-const MODEL_ID = process.env.BEDROCK_MODEL_ID
-  || 'global.anthropic.claude-sonnet-4-20250514-v1:0';
 
 export async function generateDictionaryEntries(
   descriptions: string[],
@@ -35,7 +31,7 @@ ${descriptions.map((d, i) => `${i + 1}. "${d}"`).join('\n')}`;
   ];
 
   const command = new ConverseCommand({
-    modelId: MODEL_ID,
+    modelId: config.bedrock.modelId,
     system: [{ text: DICTIONARY_SYSTEM_PROMPT }],
     messages,
     inferenceConfig: {

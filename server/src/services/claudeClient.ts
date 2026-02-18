@@ -5,19 +5,14 @@ import {
   type ContentBlock,
 } from '@aws-sdk/client-bedrock-runtime';
 import { SYSTEM_PROMPT } from '../prompts/systemPrompt';
+import { config } from '../config';
 import type { ConfigSummary, ChatResponse, DictionaryCompact, MatchedEntry } from '../types';
 
 // AWS Bedrock 클라이언트 (credential chain: env vars → ~/.aws/credentials → IAM Role)
 const client = new BedrockRuntimeClient({
-  region: process.env.AWS_REGION
-    || process.env.AWS_DEFAULT_REGION
-    || 'ap-northeast-2',
-  ...(process.env.AWS_PROFILE ? { profile: process.env.AWS_PROFILE } : {}),
+  region: config.aws.region,
+  ...(config.aws.profile ? { profile: config.aws.profile } : {}),
 });
-
-// 모델 ID (환경변수로 변경 가능)
-const MODEL_ID = process.env.BEDROCK_MODEL_ID
-  || 'global.anthropic.claude-sonnet-4-20250514-v1:0';
 
 /**
  * MatchedEntry 배열 유효성 검증 (v4.4.0)
@@ -101,7 +96,7 @@ ${message}`;
   ];
 
   const command = new ConverseCommand({
-    modelId: MODEL_ID,
+    modelId: config.bedrock.modelId,
     system: [{ text: SYSTEM_PROMPT }],
     messages,
     inferenceConfig: {
@@ -198,7 +193,7 @@ ${message}`;
 export async function checkBedrockAccess(): Promise<boolean> {
   try {
     const command = new ConverseCommand({
-      modelId: MODEL_ID,
+      modelId: config.bedrock.modelId,
       messages: [
         {
           role: 'user',
