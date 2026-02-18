@@ -2,7 +2,9 @@
 
 > 이 프로젝트는 전역 버전 관리 시스템을 사용합니다.
 >
-> **상세 가이드**: `~/.claude/VERSION_MANAGEMENT.md` 참조
+> **상세 가이드**: `~/Project/Version-Management/VERSION_MANAGEMENT.md` 참조
+>
+> **전역 정책**: `~/.claude/CLAUDE.md` 참조
 
 ## 현재 프로젝트 설정
 

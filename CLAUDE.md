@@ -252,10 +252,19 @@ rm .git/hooks/post-commit
 - **이름 사전 모달**: [src/components/v3/DictionaryEditor.tsx](src/components/v3/DictionaryEditor.tsx) - `v{__APP_VERSION__}`
 - **빌드 시 주입**: [vite.config.ts](vite.config.ts) - `__APP_VERSION__` 전역 변수
 
+#### 자동 설정
+
+사용자가 **"자동 버전관리를 해줘"** 요청 시:
+1. npm scripts 추가 (package.json)
+2. Git hooks 활성화 (전역 스크립트 링크)
+3. GitHub Actions workflow 복사
+4. VERSION_MANAGEMENT.md 생성
+
 #### 상세 문서
 
 - [VERSION_MANAGEMENT.md](VERSION_MANAGEMENT.md): 프로젝트별 설정 (전역 문서 참조)
-- `~/.claude/VERSION_MANAGEMENT.md`: 전체 버전 관리 가이드, 워크플로우, FAQ
+- `~/Project/Version-Management/VERSION_MANAGEMENT.md`: 전체 버전 관리 가이드, 워크플로우, FAQ
+- `~/.claude/CLAUDE.md`: 전역 버전 관리 정책
 
 ## 테스트
 - 표준 테스트 파일: `public/config1.txt`, `public/config2.txt`
