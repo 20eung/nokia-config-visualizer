@@ -17,7 +17,7 @@ const client = new BedrockRuntimeClient({
 
 // 모델 ID (환경변수로 변경 가능)
 const MODEL_ID = process.env.BEDROCK_MODEL_ID
-  || 'apac.anthropic.claude-sonnet-4-20250514-v1:0';
+  || 'global.anthropic.claude-sonnet-4-20250514-v1:0';
 
 /**
  * MatchedEntry 배열 유효성 검증 (v4.4.0)

@@ -16,7 +16,7 @@ const client = new BedrockRuntimeClient({
 });
 
 const MODEL_ID = process.env.BEDROCK_MODEL_ID
-  || 'apac.anthropic.claude-sonnet-4-20250514-v1:0';
+  || 'global.anthropic.claude-sonnet-4-20250514-v1:0';
 
 export async function generateDictionaryEntries(
   descriptions: string[],

@@ -38,7 +38,7 @@ app.get('/api/health', (_req, res) => {
       || process.env.AWS_DEFAULT_REGION
       || 'ap-northeast-2',
     model: process.env.BEDROCK_MODEL_ID
-      || 'apac.anthropic.claude-sonnet-4-20250514-v1:0',
+      || 'global.anthropic.claude-sonnet-4-20250514-v1:0',
   });
 });
 

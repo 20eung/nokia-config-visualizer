@@ -28,7 +28,7 @@ services:
       - AWS_REGION=${AWS_REGION:-ap-northeast-2}
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-northeast-2}
       - AWS_PROFILE=${AWS_PROFILE:-}
-      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-apac.anthropic.claude-sonnet-4-20250514-v1:0}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-global.anthropic.claude-sonnet-4-20250514-v1:0}
     volumes:
       - ${HOME}/.aws:/root/.aws:ro
       - dict-data:/app/data
