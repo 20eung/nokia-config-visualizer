@@ -8,7 +8,7 @@
 
 ## 현재 프로젝트 설정
 
-- **현재 버전**: v4.4.8
+- **현재 버전**: v4.5.0
 - **자동 버전 관리**: 활성화됨
 - **자동 Tag 생성**: 활성화됨
 - **자동 Release 생성**: 활성화됨 (GitHub Actions)
@@ -62,4 +62,4 @@ Commit → 버전↑ + Tag생성 → Push (--follow-tags) → GitHub Release 자
 ---
 
 **Last Updated**: 2026-02-18
-**Current Version**: v4.4.8
+**Current Version**: v4.5.0
