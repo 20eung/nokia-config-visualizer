@@ -30,14 +30,14 @@ ConfigSummary는 파싱된 Nokia 장비 설정을 축약한 JSON입니다.
 
 {
   "selectedKeys": ["epipe-1001", "vpls-2001"],
-  "explanation": "SK쉴더스에 연결된 서비스 8개를 찾았습니다.",
+  "explanation": "고객사A에 연결된 서비스 8개를 찾았습니다.",
   "confidence": "high",
   "filterType": "all",
   "matchedEntries": [
     {
-      "matchedAlias": "SK쉴더스",
-      "configKeywords": ["Bizen", "ADTCAPS", "SKShielders", "Infosec"],
-      "groupName": "SK쉴더스"
+      "matchedAlias": "고객사A",
+      "configKeywords": ["CompanyA", "EntA", "PartnerA", "SecA"],
+      "groupName": "고객사A"
     }
   ]
 }
@@ -77,29 +77,29 @@ ConfigSummary는 파싱된 Nokia 장비 설정을 축약한 JSON입니다.
 ### 1. Dictionary 구조 이해 (v4.4.0)
 
 각 dictionary entry는 다음 3개 필드로 구성됩니다:
-- **name**: 그룹 대표 이름 (UI 표시용, 예: "SK쉴더스")
-- **configKeywords**: Config description에서 검색할 키워드들 (예: ["Bizen", "ADTCAPS", "SKShielders", "Infosec"])
-- **searchAliases**: 추가 사용자 검색어들 (예: ["SK쉴더스", "ISAC", "인포섹"])
+- **name**: 그룹 대표 이름 (UI 표시용, 예: "고객사A")
+- **configKeywords**: Config description에서 검색할 키워드들 (예: ["CompanyA", "EntA", "PartnerA", "SecA"])
+- **searchAliases**: 추가 사용자 검색어들 (예: ["고객사A", "엔터프라이즈A", "보안업체A"])
 
 ### 2. 사용자 입력 매칭 (Bidirectional Search)
 
 사용자 입력은 **configKeywords + searchAliases** 전체에서 매칭합니다:
 
 **configKeywords에서 매칭**: Config 키워드를 직접 입력한 경우
-  - 예: 사용자 입력 "Bizen" → configKeywords: ["Bizen", ...] 매칭
-  - 예: 사용자 입력 "ADTCAPS" → configKeywords: [..., "ADTCAPS", ...] 매칭
+  - 예: 사용자 입력 "CompanyA" → configKeywords: ["CompanyA", ...] 매칭
+  - 예: 사용자 입력 "EntA" → configKeywords: [..., "EntA", ...] 매칭
 
 **searchAliases에서 매칭**: 사용자 친화적 검색어를 입력한 경우
-  - 예: 사용자 입력 "SK쉴더스" → searchAliases: ["SK쉴더스", ...] 매칭
-  - 예: 사용자 입력 "ISAC" → searchAliases: [..., "ISAC", ...] 매칭
+  - 예: 사용자 입력 "고객사A" → searchAliases: ["고객사A", ...] 매칭
+  - 예: 사용자 입력 "엔터프라이즈A" → searchAliases: [..., "엔터프라이즈A", ...] 매칭
 
 **중요**: configKeywords 자체도 사용자가 직접 입력할 수 있습니다. 이는 양방향 검색(Bidirectional Search)을 의미합니다.
 
 ### 3. Config 검색 (OR Condition)
 
 매칭된 entry의 **configKeywords 전체**를 OR 조건으로 Config description에서 검색합니다:
-- 예: configKeywords: ["Bizen", "ADTCAPS", "SKShielders", "Infosec"]
-- Config 검색: description에 "Bizen" OR "ADTCAPS" OR "SKShielders" OR "Infosec" 포함
+- 예: configKeywords: ["CompanyA", "EntA", "PartnerA", "SecA"]
+- Config 검색: description에 "CompanyA" OR "EntA" OR "PartnerA" OR "SecA" 포함
 - 결과: 4개 키워드 중 **하나라도** 포함된 모든 서비스를 찾습니다
 
 ### 4. matchedEntries 생성
@@ -110,9 +110,9 @@ ConfigSummary는 파싱된 Nokia 장비 설정을 축약한 JSON입니다.
 {
   "matchedEntries": [
     {
-      "matchedAlias": "SK쉴더스",
-      "configKeywords": ["Bizen", "ADTCAPS", "SKShielders", "Infosec"],
-      "groupName": "SK쉴더스"
+      "matchedAlias": "고객사A",
+      "configKeywords": ["CompanyA", "EntA", "PartnerA", "SecA"],
+      "groupName": "고객사A"
     }
   ]
 }
@@ -121,22 +121,22 @@ ConfigSummary는 파싱된 Nokia 장비 설정을 축약한 JSON입니다.
 ### 5. 검색 예시
 
 **시나리오 1: Config 키워드 직접 입력**
-- 사용자 입력: "Bizen"
-- 매칭: configKeywords에서 "Bizen" 발견
-- Config 검색: ["Bizen", "ADTCAPS", "SKShielders", "Infosec"] 전체 OR 조건 검색
+- 사용자 입력: "CompanyA"
+- 매칭: configKeywords에서 "CompanyA" 발견
+- Config 검색: ["CompanyA", "EntA", "PartnerA", "SecA"] 전체 OR 조건 검색
 - 결과: 4개 키워드 중 하나라도 포함된 모든 서비스
 
 **시나리오 2: 사용자 친화적 검색어 입력**
-- 사용자 입력: "SK쉴더스"
-- 매칭: searchAliases에서 "SK쉴더스" 발견
-- Config 검색: ["Bizen", "ADTCAPS", "SKShielders", "Infosec"] 전체 OR 조건 검색
+- 사용자 입력: "고객사A"
+- 매칭: searchAliases에서 "고객사A" 발견
+- Config 검색: ["CompanyA", "EntA", "PartnerA", "SecA"] 전체 OR 조건 검색
 - 결과: 4개 키워드 중 하나라도 포함된 모든 서비스
 
 **시나리오 3: 여러 entry 매칭**
-- 사용자 입력: "SK쉴더스와 LG U+" (복합 검색)
-- 매칭 1: "SK쉴더스" → configKeywords: ["Bizen", "ADTCAPS", ...]
-- 매칭 2: "LG U+" → configKeywords: ["LGUplus", "LGUPLUS", ...]
-- Config 검색: (Bizen OR ADTCAPS OR ...) OR (LGUplus OR LGUPLUS OR ...)
+- 사용자 입력: "고객사A와 통신사B" (복합 검색)
+- 매칭 1: "고객사A" → configKeywords: ["CompanyA", "EntA", ...]
+- 매칭 2: "통신사B" → configKeywords: ["ISPB", "TelecomB", ...]
+- Config 검색: (CompanyA OR EntA OR ...) OR (ISPB OR TelecomB OR ...)
 - 결과: 두 그룹의 키워드 중 하나라도 포함된 모든 서비스
 
 ### 6. 주의사항

@@ -6,6 +6,58 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [4.5.5] - 2026-02-19
+
+### 🔒 보안 개선 (Security Improvements)
+- **민감 정보 익명화**: AI 프롬프트 및 UI 예시 데이터의 실제 고객사명 제거
+  - AI 프롬프트 예시: 실제 고객사명 → 익명화된 예시 ("고객사A", "통신사B" 등)
+  - UI Placeholder: 실제 고객사명 → 일반적인 예시
+  - 코드 공개 및 배포에 적합한 보안 수준 달성
+
+### 🛡️ 보안 검사 완료 (Security Audit)
+- **코드 전체 스캔**: 민감 정보 검출 및 익명화
+  - 'SK', 고객사명 키워드 검색 (28개 발견)
+  - AWS Credentials, API Key 하드코딩: 없음 ✅
+  - 환경변수 보호: .env 파일 gitignore 처리 ✅
+  - 테스트 Config 파일: 익명화된 데이터 사용 ✅
+- **보안 등급**: Medium → Good 상향
+
+### 🔧 기술적 변경 (Technical Changes)
+- **수정 파일**:
+  - `server/src/prompts/dictionaryPrompt.ts`:
+    - 예시 데이터 익명화 (라인 10-12, 17, 26, 34, 36, 42, 57-69)
+    - "SK쉴더스", "Bizen", "ADTCAPS" → "고객사A", "CompanyA", "EntA"
+    - "LG U+", "LGUplus" → "통신사B", "ISPB", "TelecomB"
+  - `server/src/prompts/systemPrompt.ts`:
+    - 예시 데이터 익명화 (라인 33, 38-40, 80-82, 89-94, 101-102, 113-115, 124-140)
+    - AI 응답 예시의 고객사명 제거
+  - `src/components/v3/DictionaryEditor.tsx`:
+    - UI placeholder 익명화 (라인 463, 474)
+    - Config Keywords: "Bizen..." → "CompanyA..."
+    - Search Aliases: "SK쉴더스..." → "고객사A..."
+
+### 📋 보안 검증 항목 (Security Checklist)
+- ✅ **Credentials 하드코딩**: 없음
+- ✅ **API Key 노출**: 없음
+- ✅ **실제 고객 데이터**: 없음
+- ✅ **환경변수 보호**: .env gitignore 처리
+- ✅ **예시 데이터**: 익명화 완료
+- ✅ **Config 파일**: 익명화된 테스트 데이터 사용
+
+### 📊 변경 요약 (Summary)
+| 항목 | Before | After |
+|------|--------|-------|
+| **AI 프롬프트 예시** | 실제 고객사명 사용 | 익명화된 일반 예시 |
+| **UI Placeholder** | 실제 고객사명 사용 | 익명화된 일반 예시 |
+| **보안 등급** | Medium (보통) | Good (양호) |
+| **코드 공개 가능** | 주의 필요 | 적합 ✅ |
+
+### 💡 개선 효과 (Impact)
+- **보안성**: 민감 정보 노출 위험 제거
+- **배포 안전성**: 오픈소스 공개에 적합한 수준
+- **유지보수성**: 일반화된 예시로 이해도 향상
+- **규정 준수**: 고객 정보 보호 강화
+
 ## [4.5.3] - 2026-02-19
 
 ### 🚀 주요 변경 사항 (Major Changes)

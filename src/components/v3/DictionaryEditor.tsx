@@ -460,7 +460,7 @@ export function DictionaryEditor({
                         onChange={e =>
                           setKeywordTexts(prev => ({ ...prev, [entry.id]: e.target.value }))
                         }
-                        placeholder="Bizen&#10;ADTCAPS&#10;SKShielders&#10;Infosec"
+                        placeholder="CompanyA&#10;EntA&#10;PartnerA&#10;SecA"
                       />
                     </td>
                     <td>
@@ -471,7 +471,7 @@ export function DictionaryEditor({
                         onChange={e =>
                           setAliasTexts(prev => ({ ...prev, [entry.id]: e.target.value }))
                         }
-                        placeholder="SK쉴더스&#10;에스케이쉴더스&#10;ISAC&#10;인포섹"
+                        placeholder="고객사A&#10;엔터프라이즈A&#10;보안업체A&#10;파트너A"
                       />
                     </td>
                     <td>
