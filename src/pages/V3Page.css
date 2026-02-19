@@ -1,4 +1,3 @@
-/* Basic Layout */
 .v2-page {
     display: flex;
     flex-direction: column;
@@ -63,7 +62,6 @@
     overflow: hidden;
 }
 
-/* Sidebar */
 .v2-sidebar {
     width: 320px;
     border-right: 1px solid #e2e8f0;
@@ -73,13 +71,6 @@
     transition: width 0.3s ease;
 }
 
-.v2-sidebar.collapsed {
-    width: 0;
-    border-right: none;
-    overflow: hidden;
-}
-
-/* Content Area */
 .v2-content {
     flex: 1;
     overflow-y: auto;
@@ -108,7 +99,6 @@
     text-align: center;
 }
 
-/* Grouping Styles */
 .service-group {
     display: flex;
     flex-direction: column;
@@ -142,4 +132,22 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
+}
+
+.sidebar-resizer {
+    width: 8px;
+    background-color: #e2e8f0;
+    cursor: col-resize;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease;
+    position: relative;
+    z-index: 10;
+}
+
+.sidebar-resizer:hover {
+    background-color: #94a3b8;
+}
+
+.sidebar-resizer.resizing {
+    background-color: #3b82f6;
 }

@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Environment variables
+.env
+
 # Local config directory
 config/
 
@@ -32,3 +35,9 @@ screenshot/
 *.njsproj
 *.sln
 *.sw?
+
+# bkit plugin
+.bkit/
+.bkit-memory.json
+docs/.bkit-memory.json
+docs/.pdca-snapshots/

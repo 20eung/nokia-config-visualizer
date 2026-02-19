@@ -1,0 +1,408 @@
+.service-list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* Take full height of sidebar */
+  overflow: hidden;
+  /* Prevent sidebar itself from scrolling */
+}
+
+/* ... existing styles ... */
+
+/* ... existing styles ... */
+
+.service-list-content {
+  flex: 1;
+  overflow-y: auto;
+  /* Scroll THIS container */
+  min-height: 0;
+}
+
+.service-items {
+  /* No special scroll logic needed here anymore, it just expands */
+}
+
+.service-list-header {
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.service-list-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.service-count {
+  font-size: 14px;
+  color: #666;
+  background: #f5f5f5;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+/* 검색 */
+.service-search {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #1976d2;
+}
+
+/* 필터 */
+.service-filters {
+  padding: 12px 12px 12px 16px;
+  /* Right padding reduced to avoid scrollbar overlap? No, actually needs more breathing room or flex wrapping if too tight. Let's try flexible gap or wrapping */
+  /* Actually, simply ensuring the container has room. Let's add scrollbar-gutter-like breathing room by padding-right */
+  padding-right: 24px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  min-width: 40px;
+  /* Reduced from 70px */
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+  /* Prevent wrapping as per request */
+}
+
+.filter-buttons button {
+  padding: 4px 8px;
+  /* Reduced padding */
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  font-size: 12px;
+  /* Slightly smaller font if needed */
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.filter-buttons button:hover {
+  background: #f5f5f5;
+}
+
+.filter-buttons button.active {
+  background: #1976d2;
+  color: white;
+  border-color: #1976d2;
+}
+
+.filter-select {
+  flex: 1;
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* 액션 버튼 */
+.service-actions {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: #f5f5f5;
+}
+
+/* 서비스 그룹 */
+.service-group {
+  margin-bottom: 16px;
+}
+
+.service-group-header {
+  padding: 12px 16px;
+  background: #f9f9f9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.service-icon {
+  font-size: 18px;
+}
+
+.service-group-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* 서비스 아이템 */
+.service-items {
+  /* Removed max-height constraint as per user request to use full available space */
+  /* If scrolling is needed, it should be handled by the parent container */
+}
+
+.service-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.service-item:hover {
+  background: #f9f9f9;
+}
+
+.service-item.selected {
+  background: #e3f2fd;
+}
+
+.service-checkbox {
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.service-info {
+  flex: 1;
+}
+
+.service-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.service-description {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.service-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  font-size: 12px;
+  color: #999;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* 결과 없음 */
+.no-results {
+  padding: 40px 16px;
+  text-align: center;
+  color: #999;
+}
+
+.no-results p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.service-group-header.clickable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.service-group-header.clickable:hover {
+  background-color: #f0f0f0;
+}
+
+.group-toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: #666;
+  margin-right: 4px;
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+/* ================================================
+   Search Examples UI (search-examples-ui)
+   ================================================ */
+
+/**
+ * 검색 예시 Pills 컨테이너
+ * 검색창 바로 아래에 위치
+ */
+.search-examples-container {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 12px;
+}
+
+/**
+ * "💡 Examples:" 라벨
+ */
+.examples-label {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/**
+ * Pill 버튼들을 감싸는 컨테이너
+ */
+.examples-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/**
+ * 예시 Pill 버튼 기본 스타일
+ */
+.example-pill {
+  /* 레이아웃 */
+  padding: 4px 12px;
+
+  /* 타이포그래피 */
+  font-size: 0.8rem;
+  font-family: 'Courier New', monospace;
+
+  /* 색상 */
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+
+  /* 모양 */
+  border-radius: 16px;
+
+  /* 인터랙션 */
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+
+  /* 텍스트 */
+  white-space: nowrap;
+
+  /* 기타 */
+  outline: none;
+}
+
+/**
+ * 마우스 오버 시 (Hover)
+ */
+.example-pill:hover {
+  background-color: #e0f2fe;
+  border-color: #0ea5e9;
+  color: #0369a1;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/**
+ * 클릭 시 (Active)
+ */
+.example-pill:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/**
+ * 키보드 포커스 시
+ */
+.example-pill:focus {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+}
+
+/**
+ * 비활성화 상태 (Phase 2)
+ */
+.example-pill:disabled {
+  background-color: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ================================================
+   반응형 디자인 (Responsive)
+   ================================================ */
+
+/**
+ * 모바일 (화면 너비 768px 이하)
+ */
+@media (max-width: 768px) {
+  .search-examples-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .examples-label {
+    margin-bottom: 4px;
+  }
+
+  .examples-pills {
+    width: 100%;
+  }
+
+  .example-pill {
+    font-size: 0.75rem;
+  }
+}
+
+/**
+ * 태블릿 (화면 너비 768px ~ 1024px)
+ */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .example-pill {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+  }
+}
