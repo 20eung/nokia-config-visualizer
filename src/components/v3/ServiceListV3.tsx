@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { ParsedConfigV3, NokiaServiceV3 } from '../../utils/v3/parserV3';
-import type { IESService, VPRNService, L3Interface } from '../../types/v2';
+import type { IESService, VPRNService, L3Interface } from '../../types/services';
 import type { NameDictionary } from '../../types/dictionary';
 import { ChevronDown, ChevronRight, BookOpen } from 'lucide-react';
 import { findPeerAndRoutes } from '../../utils/mermaidGenerator';
@@ -12,7 +12,7 @@ import { buildConfigSummary, type ConfigSummary } from '../../utils/configSummar
 import { toDictionaryCompact } from '../../utils/dictionaryStorage';
 import { loadDictionaryFromServer } from '../../services/dictionaryApi';
 import type { ChatResponse } from '../../services/chatApi';
-import '../v2/ServiceList.css';
+import './ServiceListV3.css';
 
 interface ServiceListProps {
     services: NokiaServiceV3[];

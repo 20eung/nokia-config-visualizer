@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { X, Copy } from 'lucide-react';
 import { generateGrafanaQueries } from '../../utils/grafana/queryGenerator';
-import type { NokiaService } from '../../types/v2';
+import type { NokiaService } from '../../types/services';
 import type { GrafanaQuery } from '../../types/grafana';
 import './DictionaryEditor.css'; // 스타일 재사용
 

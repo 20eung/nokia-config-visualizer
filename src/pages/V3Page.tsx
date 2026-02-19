@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { parseL2VPNConfig } from '../utils/v3/parserV3';
 import { generateServiceDiagram } from '../utils/v3/mermaidGeneratorV3';
 import type { ParsedConfigV3 } from '../utils/v3/parserV3';
-import type { NokiaService, IESService, VPRNService, EpipeService } from '../types/v2';
+import type { NokiaService, IESService, VPRNService, EpipeService } from '../types/services';
 import { ServiceListV3 } from '../components/v3/ServiceListV3';
-import { ServiceDiagram } from '../components/v2/ServiceDiagram'; // Reuse for now or duplicate if needed
+import { ServiceDiagram } from '../components/v3/ServiceDiagram';
 import { FileUpload } from '../components/FileUpload';
 import { Menu } from 'lucide-react';
 import { convertIESToV1Format, generateCrossDeviceIESDiagrams } from '../utils/v1IESAdapter';
-import './V2Page.css';
+import './V3Page.css';
 
 export function V3Page() {
     const [configs, setConfigs] = useState<ParsedConfigV3[]>([]);

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import { toBlob } from 'html-to-image';
 import { Code, ZoomIn, ZoomOut, Maximize2, BarChart3, Copy, Check } from 'lucide-react';
-import type { L2VPNService } from '../../types/v2';
+import type { L2VPNService } from '../../types/services';
 import { GrafanaExportModal } from '../v3/GrafanaExportModal';
 import './ServiceDiagram.css';
 

@@ -2,10 +2,7 @@
 
 > 🚀 **v4.5.5** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 + Grafana 쿼리 생성
 
-![Application Screenshot](./docs/screenshot.png)
-
-[![GitHub release](https://img.shields.io/github/v/release/20eung/nokia-config-visualizer)](https://github.com/20eung/nokia-config-visualizer/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Application Screenshot](./public/demo-main.png)
 
 ## 📖 프로젝트 개요
 
@@ -18,9 +15,11 @@
 - **인터페이스 및 포트** 상세 분석
 - **IP 주소, 서브넷** 파싱
 - **QoS 정책** (Ingress/Egress) 추출
-- **서비스 정보** (VPRN/IES/VPLS) 파싱
+- **서비스 정보** (Epipe/VPLS/VPRN/IES) 파싱
+- **라우팅 프로토콜** (BGP/OSPF) 설정 및 Neighbor 정보 파싱
 - **정적 라우팅** (Static Route) 경로 및 Next-Hop 분석
 - **VRRP 설정** (VIP, Priority) 파싱
+- **BGP/OSPF 라우팅 도식화**: 라우팅 프로토콜별 노드 분리 및 관계 시각화
 
 ### 🎨 다이어그램 시각화
 - **Single Interface Diagram**: 개별 인터페이스별 독립적인 토폴로지
@@ -28,37 +27,86 @@
   - 동적 HA 감지 (Static Route + VRRP 기반)
   - VRRP Master/Backup 표시
   - VIP (Virtual IP) 표시
-- **QoS 정보** 링크 라벨에 표시
-- **확대/축소** 및 **PNG 클립보드 복사** 지원 (다운로드 워크플로우 제거, 즉시 복사-붙여넣기)
+- **서비스별 색상 구분**: 서비스 타입(Epipe/VPLS/VPRN/IES)별로 다른 색상 적용하여 시각적 구분 용이
+- **QoS 정보**: 서비스 타입별 최적 위치에 표시
+  - IES: 링크 라벨
+  - Epipe/VPLS: SAP 정보
+- **확대/축소** 및 **PNG 클립보드 복사** 지원 (즉시 복사-붙여넣기)
 - **Mermaid 코드 보기** 및 복사 기능
 - **Grafana 호환성**: Grafana Diagram 패널과 완벽하게 호환되는 Mermaid 코드 생성
 
-### 🌐 VPN 서비스 시각화 (v2.x)
+### 🌐 VPN 서비스 시각화
 - **Epipe (P2P)**: 양방향 QoS 정보, Source/Target 통합 다이어그램
 - **VPLS (Multipoint)**: 멀티 장비 통합, Hub-and-Spoke 구조 시각화
 - **VPRN (L3 VPN)**:
   - 인터페이스 및 Static Route 상세 정보
   - BGP Neighbor 및 Peering 정보
+  - OSPF Area 및 인터페이스 정보
   - VRF, RD, AS 정보 표시
 - **서비스 그룹화**: Service ID 및 Type 기반 자동 그룹화
 - **통합 레이아웃**: Host(Left) - Service(Right) 표준화된 구조
 
-### 🌍 통합 비주얼라이저 (v3.x)
+**Epipe 다이어그램 예시:**
+
+![Epipe Diagram](./public/demo-epipe.png)
+
+**VPLS 다이어그램 예시:**
+
+![VPLS Diagram](./public/demo-vpls.png)
+
+**VPRN 다이어그램 예시:**
+
+![VPRN Diagram](./public/demo-vprn.png)
+
+### 🌍 통합 비주얼라이저
 - **Base Router / IES 통합**: Global Routing Table 인터페이스 및 Static Route 시각화
 - **VPRN 라우팅 노드**: BGP / OSPF / STATIC 분리 노드로 라우팅 관계 시각화
 - **QoS 색상 강조**: 녹색 배경 + 흰색 글자로 QoS 시인성 향상 (모든 서비스 타입 통일)
 - **QoS Rate KMG 변환**: 정책 기반 Rate 파싱 (100M, 500M, 1G, Max 표시)
 - **Shutdown 필터링**: adminState='down' 항목 자동 제외
 - **Host 기반 그룹핑**: IES 서비스를 장비별 그룹화, HA 다이어그램 자동 생성
-- **v1/v2 통합**: 물리 토폴로지와 논리 서비스를 단일 플랫폼에서 지원
-### 🤖 AI 챗봇 검색 (v4.0)
-- **자연어 질문**: "Epipe 서비스 보여줘", "Customer-A 관련 서비스", "QoS 1G 이상 서비스 찾아줘" 등
+
+**IES 다이어그램 예시:**
+
+![IES Diagram](./public/demo-ies.png)
+
+### 📊 Mermaid 코드 활용
+생성된 Mermaid 다이어그램 코드를 다양한 방식으로 활용할 수 있습니다.
+
+#### Mermaid 코드 보기 및 복사
+- 각 다이어그램 우측 상단의 **`</> 코드 보기`** 버튼 클릭
+- **Copy** 버튼으로 Mermaid 코드 복사
+
+#### 활용 방법
+
+**1. Mermaid Live Editor에서 편집**
+- [Mermaid Live Editor](https://mermaid.live/) 접속
+- 복사한 코드 붙여넣기
+- 실시간 편집 및 미리보기
+- PNG/SVG 다운로드 가능
+
+**2. Grafana Diagram 패널 연동**
+- Grafana에서 **Diagram** 패널 추가
+- "Diagram Source" 옵션에서 **Mermaid** 선택
+- 복사한 Mermaid 코드 붙여넣기
+- 실시간 모니터링 대시보드와 네트워크 토폴로지 통합 표시
+
+**Mermaid 코드 보기 예시:**
+
+![Mermaid Code View](./public/demo-mermaid.png)
+### 🤖 AI 챗봇 검색
+- **자연어 질문**: "Epipe 서비스 보여줘", "고객사A 관련 서비스", "QoS 1G 이상 서비스 찾아줘" 등
 - **AWS Bedrock (Claude)**: 파싱된 설정 데이터를 AI가 분석하여 관련 서비스 자동 선택
 - **AI 토글**: AI 검색과 기존 텍스트 검색을 자유롭게 전환
 - **응답 패널**: 검색 결과 설명, 정확도 배지, 선택된 서비스 수 표시
+- **알리아스 배지 (Alias Badge)**: AI가 선택한 서비스에 매칭된 검색 별칭을 시각적 배지로 표시하여 선택 근거 명확화
 - **기존 다이어그램 100% 호환**: AI가 selectionKey를 반환하면 기존 다이어그램 로직 자동 연동
 
-### 📊 Grafana 쿼리 자동 생성 (v4.5.2)
+**AI 챗봇 검색 예시:**
+
+![AI Chat Search](./public/demo-aichat.png)
+
+### 📊 Grafana 쿼리 자동 생성
 - **InfluxDB InfluxQL 쿼리 생성**: 선택한 서비스의 모든 포트에 대해 트래픽 모니터링 쿼리 자동 생성
 - **모든 서비스 타입 지원**: Epipe, VPLS, VPRN, IES
 - **HA 구성 지원**: 각 장비별 개별 hostname으로 쿼리 생성 (장비1, 장비2 개별 쿼리)
@@ -68,11 +116,15 @@
 - **개별/전체 복사**: 각 쿼리 개별 복사 + 전체 쿼리 한 번에 복사
 - **쿼리 형식**: `SELECT non_negative_derivative("ifHCOutOctets", 1s) *8 FROM "snmp" WHERE ("hostname" = 'hostname' AND "ifName" = 'port') AND $timeFilter`
 
-### 📖 이름 사전 (v4.4.0 - 3-Field Structure)
+**Grafana 쿼리 생성 예시:**
+
+![Grafana Query Generation](./public/demo-grafana.png)
+
+### 📖 이름 사전
 - **3개 필드 구조**: 역할별 명확한 분리
-  - **그룹명** (name): 대표 이름 (예: "SK쉴더스")
-  - **Config 키워드** (configKeywords): Config description에 실제 존재하는 키워드들 (예: ["Bizen", "ADTCAPS", "SKShielders", "Infosec"])
-  - **검색 별칭** (searchAliases): 사용자 검색어 (예: ["SK쉴더스", "ISAC", "인포섹", "에스케이쉴더스"])
+  - **그룹명** (name): 대표 이름 (예: "고객사A")
+  - **Config 키워드** (configKeywords): Config description에 실제 존재하는 키워드들 (예: ["CompanyA", "EntA", "PartnerA", "SecA"])
+  - **검색 별칭** (searchAliases): 사용자 검색어 (예: ["고객사A", "엔터프라이즈A", "보안업체A", "파트너A"])
 - **양방향 검색**: AI 챗봇이 configKeywords와 searchAliases 모두 검색하여 정확도 향상
 - **AI 자동 생성**: Config description에서 엔티티를 AI가 자동 추출 및 분류
 - **수동 편집**: 사전 항목의 추가, 수정, 삭제 지원 (3컬럼 테이블 UI)
@@ -83,6 +135,7 @@
 - **AND 검색**: ` + ` (공백 포함)로 구분
 - **OR 검색**: 띄어쓰기로 구분
 - **검색 필드**: Hostname, Port, Port Description, Interface Name, Interface Description, IP Address, Service Description
+- **IES 인터페이스 레벨 필터링**: IES 서비스의 경우 검색 시 인터페이스 단위로 필터링하여 실제 매칭된 인터페이스만 표시 (전체 서비스가 아닌 관련 인터페이스만 선택)
 
 ### 📁 인터페이스 관리
 - **계층 구조**: 장비별 접기/펼치기 (파일 탐색기 스타일)
@@ -94,10 +147,10 @@
 - **인터페이스 개수** 표시
 
 ### 🎯 사용자 편의성
-- **드래그 앤 드롭** 또는 텍스트 붙여넣기 지원
 - **여러 Config 파일** 동시 로드 가능
-- **데모 모드**: 미리 준비된 설정 파일로 즉시 테스트 (Beta 환경)
+- **데모 모드**: 미리 준비된 설정 파일로 즉시 테스트 (Demo 환경)
 - **크기 조절 가능한 사이드바**
+- **다이어그램 전체화면 모드**: 왼쪽 상단 햄버거 버튼(☰)으로 사이드바 숨기기/표시
 - **모던하고 깔끔한 UI** 디자인
 
 ## 🛠 기술 스택
@@ -114,12 +167,31 @@
 
 ## 🚀 시작하기
 
-### 사전 요구사항
+### 🎮 데모 환경에서 바로 체험하기
+
+기능을 빠르게 확인하고 싶다면 **demo 브랜치**를 이용하세요. 샘플 config 파일이 자동으로 로드되어 즉시 테스트할 수 있습니다.
+
+```bash
+# demo 브랜치 클론
+git clone -b demo https://github.com/20eung/nokia-config-visualizer.git
+cd nokia-config-visualizer
+
+# Docker Compose로 실행
+docker-compose up -d
+
+# 브라우저에서 접속
+# http://localhost:3301
+```
+
+### 개발 환경 설치
+
+#### 사전 요구사항
 
 - Node.js (v22 이상 권장)
 - npm
+- Docker & Docker Compose
 
-### 설치 및 실행
+#### 설치 및 실행
 
 ```bash
 # 저장소 클론
@@ -129,17 +201,30 @@ cd nokia-config-visualizer
 # 패키지 설치
 npm install
 
-# 개발 서버 실행
+# 개발 서버 실행 (프론트엔드만)
 npm run dev
 ```
 
 브라우저에서 `http://localhost:5173`으로 접속하여 확인합니다.
 
-### 프로덕션 빌드
+#### 프로덕션 빌드
 
 ```bash
 npm run build
 npm run preview
+```
+
+#### Docker Compose로 전체 환경 실행 (AI 기능 포함)
+
+```bash
+# AWS 자격 증명 설정 (AI 기능 사용 시)
+# ~/.aws/credentials 파일에 AWS 자격 증명 추가
+
+# Docker Compose 실행
+docker-compose up -d
+
+# 브라우저 접속
+# http://localhost:3301
 ```
 
 ## 📝 사용 방법
@@ -147,6 +232,12 @@ npm run preview
 ### 1. Config 파일 업로드
 
 상단 헤더의 **"Upload Config"** 버튼을 클릭하여 Nokia 설정 파일(`.cfg`, `.txt`, `.conf`)을 업로드합니다.
+
+**파일 미리보기 모달**:
+- 업로드한 파일의 내용을 미리 확인 가능
+- 여러 파일을 한 번에 업로드하고 추가 파일 선택 가능
+- 원하지 않는 파일은 업로드 전 제외 가능
+- **확인** 버튼으로 최종 업로드, **취소** 버튼으로 전체 취소
 
 ### 2. 인터페이스 선택
 
@@ -172,7 +263,7 @@ npm run preview
 
 ### 5. 다이어그램 내보내기
 
-- **PNG/SVG 다운로드**: 다이어그램 우측 상단 Download 버튼
+- **PNG 클립보드 복사**: 다이어그램 우측 상단 **Copy PNG** 버튼으로 즉시 복사
 - **Mermaid 코드 복사**: `<>` 버튼 클릭 → 복사 버튼
 - **Grafana 연동**: 복사한 Mermaid 코드를 Grafana Diagram 패널에 붙여넣기하여 실시간 모니터링 대시보드 구축
 - **Grafana 쿼리 생성**: 🔺 "Grafana" 버튼 클릭 → InfluxDB 쿼리문 자동 생성
@@ -180,7 +271,19 @@ npm run preview
   - 개별 쿼리 복사 또는 "Copy All Queries"로 전체 복사
   - Grafana Graph 패널에 붙여넣기하여 트래픽 그래프 생성
 
-### 6. AI 챗봇 사용하기 (v3.3+)
+### 6. AI 챗봇 사용하기
+
+> **⚠️ 현재 AI 기능 지원 상태**
+>
+> 현재 버전에서는 **AWS Bedrock (Claude)** 연동만 지원합니다.
+> AWS 계정과 Bedrock 접근 권한이 필요하며, 사용량에 따라 AWS 요금이 부과됩니다.
+>
+> **향후 업데이트 예정:**
+> - OpenAI API, Google Gemini 등 다른 AI 모델 지원
+> - 무료 AI 서비스 연동 옵션 추가
+> - 로컬 AI 모델 연동 (Ollama 등)
+>
+> 일반 사용자를 위한 더 쉬운 AI 연동 방법은 다음 버전에서 제공될 예정입니다.
 
 #### 사전 준비: AWS Bedrock 설정
 
@@ -238,7 +341,7 @@ npm run preview
      - "nokia-1의 모든 서비스 찾아줘"
      - "BGP를 사용하는 서비스 검색"
      - "QoS가 1G 이상인 인터페이스"
-     - "Customer-A 관련 서비스"
+     - "고객사A 관련 서비스"
 
 4. **AI 응답 확인**:
    - **정확도 배지**: 높음/보통/낮음
@@ -302,126 +405,9 @@ nokia-config-visualizer/
 └── package.json
 ```
 
-## 🎯 v1.x 기능 완성도
-
-v1.x 시리즈는 **물리적 연결 토폴로지 시각화**를 목표로 하며, 다음 기능들이 구현되었습니다:
-
-- ✅ 장비 간 물리적 연결
-- ✅ IP 주소, 포트 정보
-- ✅ HA 구성 (VRRP)
-- ✅ QoS 정보
-- ✅ Static Route 기반 Customer Network
-- ✅ 동적 HA 감지 (Static Route + VRRP 기반)
-- ✅ VRRP 기반 이중화 자동 탐지
-- ✅ 고급 검색 기능 (AND/OR)
-- ✅ 인터페이스 계층 구조 (접기/펼치기)
-- ✅ VRRP VIP 및 Master 표시
-- ✅ Mermaid 코드 보기 및 복사
-
-## 🗺 로드맵
-
-### v1.x - 물리적 연결 토폴로지 ✅ 완료
-물리적 연결 구조 시각화
-
-### v2.x - MPLS VPN 서비스 토폴로지 ✅ 완료 (v2.1.0 released)
-- ✅ **Epipe**: Point-to-Point L2 VPN, 양방향 QoS, 통합 다이어그램
-- ✅ **VPLS**: Multipoint L2 VPN, 멀티 호스트 지원, 중복 제거
-- ✅ **VPRN**: L3 VPN, Interface/Static Route/BGP 통합 시각화
-- ✅ **표준화된 레이아웃**: 모든 서비스에 대해 Host-Service 구조 통일
-- ✅ **고도화된 파싱**: 복잡한 서비스 설정(Multi-hop, VRF 등) 파싱 지원
-
-### v3.x - Unified Visualizer ✅ 완료
-- ✅ **Base Router 통합**: 물리적 연결(v1)과 서비스(v2) 뷰 통합
-- ✅ **IES 서비스 지원**: Base Router 인터페이스 및 Global Routing Table 시각화
-- ✅ **통합 UI**: 모든 서비스(Epipe, VPLS, VPRN, IES)를 하나의 인터페이스에서 관리
-- ✅ **HA 토폴로지**: IES 서비스에 대한 Local -> Peer -> Network 위상 자동 생성
-- ✅ **VPRN 라우팅 노드**: BGP / OSPF / STATIC 분리 노드로 3단 레이아웃
-- ✅ **QoS 하이라이트**: 녹색 배경 + 흰색 글자, Rate KMG 변환
-- ✅ **Shutdown 필터링**: adminState='down' 항목 다이어그램에서 자동 제외
-- ✅ **SAP 파싱 개선**: Position 기반 추출, VLAN-less SAP 지원
-
-### v4.x - AI Visualizer ✅ 완료 (v4.1.0 released)
-- ✅ **AI 챗봇 검색**: AWS Bedrock (Claude) 기반 자연어 서비스 검색
-- ✅ **Express 백엔드**: AI API를 위한 별도 컨테이너 (nginx 프록시)
-- ✅ **이름 사전**: AI 자동 생성 + 수동 편집, 서버 파일 저장
-- ✅ **사전 서버 저장소**: Docker named volume으로 컨테이너 재빌드에도 유지
-
-**Latest Release**: v4.1.0 (2026-02-15)
-
-## 📊 버전 히스토리
-
-- **v4.5.2** (2026-02-18) - Grafana InfluxDB 쿼리 자동 생성
-  - InfluxQL 쿼리문 자동 생성 (Ingress/Egress)
-  - 모든 서비스 타입 지원 (Epipe, VPLS, VPRN, IES)
-  - HA 구성: 장비별 개별 쿼리 생성
-  - VPLS 연결 해석 및 서비스 포트 우선 선택
-  - 개별/전체 복사 기능
-
-- **v4.5.0** (2026-02-18) - IES 인터페이스 레벨 필터링 및 검색 기반 HA 필터링
-  - IES 인터페이스 개별 필터링
-  - 검색 결과 기반 "이중화" 버튼 동작
-  - Type별 갯수 표시 개선
-
-- **v4.4.0** (2026-02-16) - Dictionary 3-Field 구조 (name, configKeywords, searchAliases)
-  - 양방향 검색 지원
-  - 3컬럼 UI 및 테이블 정렬
-
-- **v4.3.0** (2026-02-16) - Dictionary 구조 간소화 (6 fields → 2 fields)
-  - originalToken, aliases 2-field 구조
-  - 마이그레이션 스크립트 제공
-
-- **v4.1.0** (2026-02-15) - 이름 사전 (Name Dictionary)
-  - AI 자동 생성: Config description에서 엔티티 추출
-  - 수동 편집: 사전 항목 추가/수정/삭제
-  - 서버 파일 저장: Docker volume으로 브라우저 간 공유
-
-- **v4.0.0** (2026-02-15) - AI 챗봇 서비스 검색, Express 백엔드 추가
-  - AWS Bedrock (Claude) 기반 자연어 서비스 검색
-  - Express 백엔드 별도 Docker 컨테이너 구성
-  - AI 토글 UI (기존 검색과 전환 가능)
-
-- **v3.2.0** (2026-02-15) - QoS 하이라이트, VPRN 라우팅 노드, SAP 파싱 개선
-  - VPRN BGP/OSPF/STATIC 분리 라우팅 노드
-  - QoS 녹색 배경 강조 및 Rate KMG 변환 (100M, 500M, 1G, Max)
-  - Shutdown SAP/인터페이스 자동 필터링
-  - SAP 파싱 전면 개선 (position 기반, VLAN-less 지원)
-
-- **v3.1.0** (2026-01-21) - BGP/OSPF 시각화 고도화 및 UI 개선
-  - VPRN BGP 정보 (Router ID, Neighbor, AS, RD) 시각화 강화
-  - OSPF 영역(Area) 및 인터페이스 정보 시각화 추가
-  - Service 라벨 가독성 개선 및 정보 중복 제거
-  - 초기 화면 UI 문구 개선 ("L2 VPN" 제거)
-- **v3.0.0** (2026-01-21) - Unified Visualizer 런칭
-  - Base Router / IES 통합 시각화
-  - Host 기반 그룹핑 및 통합 UI 적용
-
-- **v1.8.0** (2025-12-17) - VRRP 기반 HA 탐지
-- **v1.7.0** (2025-12-15) - VRRP VIP 및 Master 표시
-- **v1.6.0** (2025-12-15) - 인터페이스 리스트 계층 구조
-- **v1.5.0** (2025-12-15) - Mermaid 코드 보기 UX 개선
-- **v1.4.0** (2025-12-15) - 동적 HA 감지
-- **v1.3.0** (2025-12-15) - 고급 검색 기능 (AND/OR)
-- **v1.2.0** (2025-12-14) - HA 다이어그램 표시 개선
-- **v1.1.0** (2025-12-14) - HA 다이어그램 생성 기능
-- **v1.0.0** (2025-12-14) - 초기 릴리즈
-
-전체 변경 이력은 [CHANGELOG.md](./CHANGELOG.md)를 참조하세요.
-
-## 🤝 기여하기
-
-기여는 언제나 환영합니다! 버그를 발견하거나 새로운 기능을 제안하고 싶다면 Issue를 등록하거나 Pull Request를 보내주세요.
-
-## 📄 라이선스
-
-이 프로젝트는 MIT 라이선스를 따릅니다.
-
-## 🔗 링크
-
-### 개발
-- **GitHub Repository**: https://github.com/20eung/nokia-config-visualizer
-- **Latest Release**: https://github.com/20eung/nokia-config-visualizer/releases/latest
-
 ---
+
+**전체 변경 이력**: [CHANGELOG.md](./CHANGELOG.md)
 
 Made with ❤️ by Network Engineers, for Network Engineers
 

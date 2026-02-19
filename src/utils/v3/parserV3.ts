@@ -17,7 +17,7 @@ import type {
     IESService,
     PortEthernetConfig,
     BGPGroup
-} from '../../types/v2';
+} from '../../types/services';
 
 // Use NokiaService from v2 types which now includes IES
 export type NokiaServiceV3 = NokiaService;

@@ -1,4 +1,4 @@
-import type { EpipeService, VPLSService, VPRNService, SDP, SAP, L3Interface } from '../../types/v2';
+import type { EpipeService, VPLSService, VPRNService, SDP, SAP, L3Interface } from '../../types/services';
 import type { ParsedConfigV3, NokiaServiceV3 } from './parserV3';
 
 /**
