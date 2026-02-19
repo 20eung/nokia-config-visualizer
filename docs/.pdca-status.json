@@ -1,0 +1,929 @@
+{
+  "version": "2.0",
+  "lastUpdated": "2026-02-16T12:18:44.297Z",
+  "activeFeatures": [
+    "server",
+    "prompts",
+    "claudeClient.ts",
+    "routes",
+    "v3",
+    "chatApi.ts",
+    "dictionary-simplification",
+    "scripts",
+    "dictionaryGenerator.ts",
+    "nokia-config-visualizer",
+    "dictionary-simplification Gap Analysis",
+    "dictionary-structure-v5",
+    "ai-chatbot-alias-display (v4.5.0)",
+    "dictionaryApi.ts"
+  ],
+  "primaryFeature": "dictionary-structure-v5",
+  "features": {
+    "server": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-16T05:42:49.480Z",
+        "lastUpdated": "2026-02-16T10:34:56.685Z"
+      },
+      "lastFile": "/Users/20eung/Project/nokia-config-visualizer/server/src/types.ts"
+    },
+    "prompts": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-16T05:45:30.250Z",
+        "lastUpdated": "2026-02-16T11:34:56.019Z"
+      },
+      "lastFile": "/Users/20eung/Project/nokia-config-visualizer/server/src/prompts/systemPrompt.ts"
+    },
+    "claudeClient.ts": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-16T05:46:11.871Z",
+        "lastUpdated": "2026-02-16T10:35:35.081Z"
+      },
+      "lastFile": "/Users/20eung/Project/nokia-config-visualizer/server/src/services/claudeClient.ts"
+    },
+    "routes": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-16T05:47:01.048Z",
+        "lastUpdated": "2026-02-16T11:34:15.885Z"
+      },
+      "lastFile": "/Users/20eung/Project/nokia-config-visualizer/server/src/routes/chat.ts"
+    },
+    "v3": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-16T05:47:25.559Z",
+        "lastUpdated": "2026-02-16T12:18:26.696Z"
+      },
+      "lastFile": "/Users/20eung/Project/nokia-config-visualizer/src/components/v3/DictionaryEditor.tsx"
+    },
+    "chatApi.ts": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-16T05:47:58.420Z",
+        "lastUpdated": "2026-02-16T10:23:25.493Z"
+      },
+      "lastFile": "/Users/20eung/Project/nokia-config-visualizer/src/services/chatApi.ts"
+    },
+    "dictionary-simplification": {
+      "phase": "check",
+      "matchRate": 98,
+      "iterationCount": 0,
+      "startedAt": "2026-02-16T08:04:16.347024+00:00",
+      "documents": {
+        "plan": "docs/01-plan/features/dictionary-simplification.plan.md",
+        "design": "docs/02-design/features/dictionary-simplification.design.md",
+        "analysis": "docs/03-analysis/dictionary-simplification.analysis.md"
+      }
+    },
+    "scripts": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-16T08:16:53.416Z",
+        "lastUpdated": "2026-02-16T08:16:53.416Z"
+      },
+      "lastFile": "/Users/20eung/Project/nokia-config-visualizer/scripts/migrate-dictionary-v43.ts"
+    },
+    "dictionaryGenerator.ts": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-16T08:18:09.320Z",
+        "lastUpdated": "2026-02-16T10:24:45.080Z"
+      },
+      "lastFile": "/Users/20eung/Project/nokia-config-visualizer/server/src/services/dictionaryGenerator.ts"
+    },
+    "nokia-config-visualizer": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-16T08:32:43.955Z",
+        "lastUpdated": "2026-02-16T12:18:44.297Z"
+      },
+      "lastFile": "/Users/20eung/Project/nokia-config-visualizer/src/pages/V3Page.tsx"
+    },
+    "dictionary-simplification Gap Analysis": {
+      "phase": "act",
+      "phaseNumber": 5,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-16T08:47:10.509Z",
+        "lastUpdated": "2026-02-16T08:47:10.513Z"
+      },
+      "previousPhase": "check",
+      "autoAdvanced": true
+    },
+    "dictionary-structure-v5": {
+      "phase": "design",
+      "matchRate": 0,
+      "iterationCount": 0,
+      "startedAt": "2026-02-16T09:40:57.357Z",
+      "documents": {
+        "plan": "docs/01-plan/features/dictionary-structure-v5.plan.md",
+        "design": "docs/02-design/features/dictionary-structure-v5.design.md"
+      },
+      "updatedAt": "2026-02-16T10:21:37.742Z"
+    },
+    "ai-chatbot-alias-display (v4.5.0)": {
+      "phase": "act",
+      "phaseNumber": 5,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-16T11:58:40.439Z",
+        "lastUpdated": "2026-02-16T11:58:40.439Z"
+      },
+      "previousPhase": "check",
+      "autoAdvanced": true
+    },
+    "dictionaryApi.ts": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-16T12:11:23.424Z",
+        "lastUpdated": "2026-02-16T12:11:23.424Z"
+      },
+      "lastFile": "/Users/20eung/Project/nokia-config-visualizer/src/services/dictionaryApi.ts"
+    }
+  },
+  "archived": {
+    "ai-chat-search": {
+      "phase": "archived",
+      "matchRate": 98,
+      "iterationCount": 0,
+      "startedAt": "2026-02-15T12:36:24.181Z",
+      "completedAt": "2026-02-16T01:45:00.000Z",
+      "archivedAt": "2026-02-16T02:26:00.000Z",
+      "archivedTo": "docs/archive/2026-02/ai-chat-search/"
+    },
+    "name-dictionary": {
+      "phase": "archived",
+      "matchRate": 100,
+      "iterationCount": 0,
+      "startedAt": "2026-02-16T02:40:00.000Z",
+      "completedAt": "2026-02-16T03:25:00.000Z",
+      "archivedAt": "2026-02-16T05:07:00.000Z",
+      "archivedTo": "docs/archive/2026-02/name-dictionary/"
+    },
+    "ai-chatbot-alias-display": {
+      "phase": "archived",
+      "matchRate": 98,
+      "iterationCount": 0,
+      "startedAt": "2026-02-16T14:30:00.000Z",
+      "completedAt": "2026-02-16T19:15:00.000Z",
+      "archivedAt": "2026-02-16T21:06:00.000Z",
+      "archivedTo": "docs/archive/2026-02/ai-chatbot-alias-display/"
+    }
+  },
+  "pipeline": {
+    "currentPhase": 1,
+    "level": "Enterprise",
+    "phaseHistory": []
+  },
+  "session": {
+    "startedAt": "2026-02-15T12:36:24.181Z",
+    "onboardingCompleted": false,
+    "lastActivity": "2026-02-16T12:18:44.297Z"
+  },
+  "history": [
+    {
+      "timestamp": "2026-02-15T13:03:01.973Z",
+      "feature": "ai-chat-search - Gap Analysis",
+      "phase": "act",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T01:45:00.000Z",
+      "feature": "ai-chat-search",
+      "phase": "completed",
+      "action": "report_generated",
+      "matchRate": 98
+    },
+    {
+      "timestamp": "2026-02-16T02:26:00.000Z",
+      "feature": "ai-chat-search",
+      "phase": "archived",
+      "action": "archived",
+      "archivedTo": "docs/archive/2026-02/ai-chat-search/"
+    },
+    {
+      "timestamp": "2026-02-16T02:40:00.000Z",
+      "feature": "name-dictionary",
+      "phase": "plan",
+      "action": "created"
+    },
+    {
+      "timestamp": "2026-02-16T02:55:00.000Z",
+      "feature": "name-dictionary",
+      "phase": "design",
+      "action": "created"
+    },
+    {
+      "timestamp": "2026-02-16T03:10:00.000Z",
+      "feature": "name-dictionary",
+      "phase": "check",
+      "action": "gap_analysis_completed",
+      "matchRate": 100
+    },
+    {
+      "timestamp": "2026-02-16T03:25:00.000Z",
+      "feature": "name-dictionary",
+      "phase": "completed",
+      "action": "report_generated",
+      "matchRate": 100
+    },
+    {
+      "timestamp": "2026-02-16T05:07:00.000Z",
+      "feature": "name-dictionary",
+      "phase": "archived",
+      "action": "archived",
+      "archivedTo": "docs/archive/2026-02/name-dictionary/"
+    },
+    {
+      "timestamp": "2026-02-16T14:30:00.000Z",
+      "feature": "ai-chatbot-alias-display",
+      "phase": "plan",
+      "action": "created"
+    },
+    {
+      "timestamp": "2026-02-16T15:00:00.000Z",
+      "feature": "ai-chatbot-alias-display",
+      "phase": "design",
+      "action": "created"
+    },
+    {
+      "timestamp": "2026-02-16T05:42:49.480Z",
+      "feature": "server",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:45:30.250Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:45:35.922Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:45:43.558Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:45:54.727Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:46:11.871Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:46:20.458Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:46:24.995Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:46:30.868Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:46:35.059Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:46:42.037Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:47:01.048Z",
+      "feature": "routes",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:47:25.559Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:47:58.420Z",
+      "feature": "chatApi.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:48:06.018Z",
+      "feature": "chatApi.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:48:33.546Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:48:40.766Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:49:28.442Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:49:34.342Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:49:41.923Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T05:49:49.249Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T06:04:54.745Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T06:05:01.513Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T06:11:41.014Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T06:16:50.975Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T06:17:14.806Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T06:28:29.896Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T06:28:40.574Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T06:28:49.435Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T06:29:17.562Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T07:37:03.069Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T07:37:15.040Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T07:48:15.666Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:04:16.347344+00:00",
+      "feature": "dictionary-simplification",
+      "phase": "plan",
+      "action": "created"
+    },
+    {
+      "timestamp": "2026-02-16T08:09:50.517394+00:00",
+      "feature": "dictionary-simplification",
+      "phase": "design",
+      "action": "created"
+    },
+    {
+      "timestamp": "2026-02-16T08:16:10.400Z",
+      "feature": "server",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:16:10.444Z",
+      "feature": "server",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:16:10.484Z",
+      "feature": "server",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:16:21.489Z",
+      "feature": "chatApi.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:16:53.416Z",
+      "feature": "scripts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:17:41.024Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:17:41.071Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:17:53.760Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:18:09.320Z",
+      "feature": "dictionaryGenerator.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:18:33.966Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:18:34.006Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:18:34.055Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:30:10.218Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:32:00.555Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:32:43.955Z",
+      "feature": "nokia-config-visualizer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:33:04.520Z",
+      "feature": "nokia-config-visualizer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:35:39.812Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T08:37:00.000Z",
+      "feature": "dictionary-simplification",
+      "phase": "check",
+      "action": "gap_analysis_completed",
+      "matchRate": 98
+    },
+    {
+      "timestamp": "2026-02-16T08:47:10.513Z",
+      "feature": "dictionary-simplification Gap Analysis",
+      "phase": "act",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T09:02:14.353Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T09:40:57.357Z",
+      "feature": "dictionary-structure-v5",
+      "phase": "plan",
+      "action": "created"
+    },
+    {
+      "timestamp": "2026-02-16T10:21:37.742Z",
+      "feature": "dictionary-structure-v5",
+      "phase": "design",
+      "action": "created"
+    },
+    {
+      "timestamp": "2026-02-16T10:22:52.641Z",
+      "feature": "server",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:22:59.076Z",
+      "feature": "server",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:23:09.829Z",
+      "feature": "nokia-config-visualizer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:23:15.512Z",
+      "feature": "nokia-config-visualizer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:23:25.493Z",
+      "feature": "chatApi.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:23:54.175Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:24:06.397Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:24:19.156Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:24:33.306Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:24:45.080Z",
+      "feature": "dictionaryGenerator.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:25:18.637Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:25:32.001Z",
+      "feature": "nokia-config-visualizer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:25:38.299Z",
+      "feature": "nokia-config-visualizer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:25:53.969Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:25:59.563Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:26:09.268Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:34:45.301Z",
+      "feature": "nokia-config-visualizer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:34:51.175Z",
+      "feature": "nokia-config-visualizer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:34:56.685Z",
+      "feature": "server",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:35:02.629Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:35:09.099Z",
+      "feature": "nokia-config-visualizer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:35:15.322Z",
+      "feature": "nokia-config-visualizer",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:35:21.736Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:35:27.241Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T10:35:35.081Z",
+      "feature": "claudeClient.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T11:34:15.885Z",
+      "feature": "routes",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T11:34:56.019Z",
+      "feature": "prompts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T11:44:00.419Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T11:44:30.439Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T11:58:40.439Z",
+      "feature": "ai-chatbot-alias-display (v4.5.0)",
+      "phase": "act",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T21:06:00.000Z",
+      "feature": "ai-chatbot-alias-display",
+      "phase": "archived",
+      "action": "archived",
+      "archivedTo": "docs/archive/2026-02/ai-chatbot-alias-display/"
+    },
+    {
+      "timestamp": "2026-02-16T12:11:01.443Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:11:23.424Z",
+      "feature": "dictionaryApi.ts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:16:36.640Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:16:36.682Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:16:36.773Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:16:36.862Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:16:36.956Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:16:37.040Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:16:37.118Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:16:37.195Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:16:37.273Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:16:37.353Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:16:37.436Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:18:26.696Z",
+      "feature": "v3",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-16T12:18:44.297Z",
+      "feature": "nokia-config-visualizer",
+      "phase": "do",
+      "action": "updated"
+    }
+  ]
+}

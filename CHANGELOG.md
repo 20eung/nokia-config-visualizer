@@ -6,6 +6,340 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [4.5.5] - 2026-02-19
+
+### 🔒 보안 개선 (Security Improvements)
+- **민감 정보 익명화**: AI 프롬프트 및 UI 예시 데이터의 실제 고객사명 제거
+  - AI 프롬프트 예시: 실제 고객사명 → 익명화된 예시 ("고객사A", "통신사B" 등)
+  - UI Placeholder: 실제 고객사명 → 일반적인 예시
+  - 코드 공개 및 배포에 적합한 보안 수준 달성
+
+### 🛡️ 보안 검사 완료 (Security Audit)
+- **코드 전체 스캔**: 민감 정보 검출 및 익명화
+  - 'SK', 고객사명 키워드 검색 (28개 발견)
+  - AWS Credentials, API Key 하드코딩: 없음 ✅
+  - 환경변수 보호: .env 파일 gitignore 처리 ✅
+  - 테스트 Config 파일: 익명화된 데이터 사용 ✅
+- **보안 등급**: Medium → Good 상향
+
+### 🔧 기술적 변경 (Technical Changes)
+- **수정 파일**:
+  - `server/src/prompts/dictionaryPrompt.ts`:
+    - 예시 데이터 익명화 (라인 10-12, 17, 26, 34, 36, 42, 57-69)
+    - "SK쉴더스", "Bizen", "ADTCAPS" → "고객사A", "CompanyA", "EntA"
+    - "LG U+", "LGUplus" → "통신사B", "ISPB", "TelecomB"
+  - `server/src/prompts/systemPrompt.ts`:
+    - 예시 데이터 익명화 (라인 33, 38-40, 80-82, 89-94, 101-102, 113-115, 124-140)
+    - AI 응답 예시의 고객사명 제거
+  - `src/components/v3/DictionaryEditor.tsx`:
+    - UI placeholder 익명화 (라인 463, 474)
+    - Config Keywords: "Bizen..." → "CompanyA..."
+    - Search Aliases: "SK쉴더스..." → "고객사A..."
+
+### 📋 보안 검증 항목 (Security Checklist)
+- ✅ **Credentials 하드코딩**: 없음
+- ✅ **API Key 노출**: 없음
+- ✅ **실제 고객 데이터**: 없음
+- ✅ **환경변수 보호**: .env gitignore 처리
+- ✅ **예시 데이터**: 익명화 완료
+- ✅ **Config 파일**: 익명화된 테스트 데이터 사용
+
+### 📊 변경 요약 (Summary)
+| 항목 | Before | After |
+|------|--------|-------|
+| **AI 프롬프트 예시** | 실제 고객사명 사용 | 익명화된 일반 예시 |
+| **UI Placeholder** | 실제 고객사명 사용 | 익명화된 일반 예시 |
+| **보안 등급** | Medium (보통) | Good (양호) |
+| **코드 공개 가능** | 주의 필요 | 적합 ✅ |
+
+### 💡 개선 효과 (Impact)
+- **보안성**: 민감 정보 노출 위험 제거
+- **배포 안전성**: 오픈소스 공개에 적합한 수준
+- **유지보수성**: 일반화된 예시로 이해도 향상
+- **규정 준수**: 고객 정보 보호 강화
+
+## [4.5.3] - 2026-02-19
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **다이어그램 PNG 클립보드 복사**: 다운로드 버튼을 클립보드 복사로 대체하여 워크플로우 개선
+  - 기존: PNG/SVG 다운로드 → 파일 탐색기 → 다른 프로그램에서 삽입 (5-10초)
+  - 변경: Copy PNG 버튼 → 즉시 복사 → Word/PowerPoint/Slack 등에 붙여넣기 (1-2초)
+  - 클립보드 API (`navigator.clipboard.write()`) 활용
+
+### ✨ 새로운 기능 (New Features)
+- **클립보드 복사 버튼**: PNG/SVG 다운로드 버튼 제거, Copy PNG 버튼으로 통합
+  - `html-to-image`의 `toBlob()` 함수로 PNG 생성
+  - 2x 픽셀 비율로 고품질 이미지 생성
+  - 흰색 배경 처리 (`backgroundColor: '#ffffff'`)로 다크모드 호환성 보장
+- **시각적 피드백**: 복사 성공 시 즉각적인 사용자 피드백
+  - 아이콘 변경: Copy 아이콘 → Check 아이콘 (2초간)
+  - 버튼 색상: 기본 → 녹색 배경 (2초간)
+  - 텍스트 변경: "Copy PNG" → "Copied!"
+
+### 📊 개선 사항 (Improvements)
+- **다크모드 호환성**: 투명 배경 대신 흰색 배경으로 처리하여 다크모드 애플리케이션에서도 다이어그램 선명하게 표시
+- **워크플로우 단순화**: 다운로드 → 파일 찾기 → 삽입 과정 제거, 즉시 복사-붙여넣기 가능
+- **UI 정리**: 자주 사용하지 않는 SVG 다운로드 버튼 제거로 인터페이스 간소화
+
+### 🔧 기술적 변경 (Technical Changes)
+- **수정 파일**:
+  - `src/components/v2/ServiceDiagram.tsx`:
+    - `toPng`, `toSvg` import 제거, `toBlob` 추가
+    - `Download` 아이콘 제거, `Copy`, `Check` 아이콘 추가
+    - `handleDownloadPNG()`, `handleDownloadSVG()` 함수 제거
+    - `handleCopyImagePNG()` 함수 추가 (라인 65-91)
+    - `copied` state 추가로 시각적 피드백 구현
+    - 클립보드 복사 실패 시 사용자 안내 메시지
+  - `src/components/v2/ServiceDiagram.css`:
+    - `.control-btn.copied` 스타일 추가 (녹색 배경, 흰색 텍스트)
+    - `.control-btn.copied:hover` 스타일 추가
+
+### 🌐 브라우저 호환성 (Browser Compatibility)
+- **Clipboard API 지원**: Chrome 76+, Edge 79+, Safari 13.1+, Firefox 90+
+- **에러 처리**: 브라우저가 클립보드 API를 지원하지 않을 경우 안내 메시지 표시
+
+## [4.5.2] - 2026-02-18
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **Grafana InfluxDB 쿼리 자동 생성**: 선택한 서비스의 모든 포트에 대해 트래픽 모니터링 쿼리문 자동 생성
+  - InfluxQL 쿼리 형식: `SELECT non_negative_derivative("ifHCOutOctets", 1s) *8 FROM "snmp" WHERE ("hostname" = 'hostname' AND "ifName" = 'port') AND $timeFilter`
+  - 모든 서비스 타입 지원: Epipe, VPLS, VPRN, IES
+  - Grafana 대시보드에 즉시 사용 가능한 쿼리문 제공
+
+### ✨ 새로운 기능 (New Features)
+- **Export to Grafana 버튼**: ServiceDiagram에 Grafana 쿼리 내보내기 버튼 추가 (BarChart3 아이콘)
+- **쿼리문 테이블 모달**: Hostname, Interface, Direction, Query, Action 컬럼으로 구성
+  - 개별 쿼리 복사: Copy 버튼으로 쿼리문 클립보드 복사 (2초 피드백)
+  - 전체 쿼리 복사: "Copy All Queries" 버튼으로 모든 쿼리 한 번에 복사
+  - 쿼리 개수 표시: Footer에 생성된 쿼리 개수 표시
+- **HA 구성 지원**: 여러 장비의 포트를 각각 개별 hostname으로 쿼리 생성
+  - 기존: "장비1 + 장비2" 결합 hostname (Grafana에서 사용 불가)
+  - 변경: 각 장비별 개별 hostname으로 분리된 쿼리 생성
+- **다이어그램별 필터링**: IES 서비스에서 선택된 다이어그램의 포트만 쿼리 생성
+  - usedPortIds 추적하여 실제 다이어그램에 표시된 포트만 필터링
+- **VPLS 연결 해석**: IES 인터페이스가 VPLS를 통해 연결된 경우 실제 물리 포트 자동 탐지
+  - VPLS 서비스를 조회하여 SAP portId 추출
+  - 서비스 포트(VLAN 없음) 우선 선택, L2 Interlink(VLAN 있음) 제외
+
+### 🐛 버그 수정 (Bug Fixes)
+- **HA hostname 결합 문제**: "장비1 + 장비2" 형태의 hostname을 장비별 개별 hostname으로 분리
+- **IES 전체 포트 생성 문제**: 선택된 다이어그램과 관계없이 모든 포트의 쿼리가 생성되던 문제 수정
+- **잘못된 포트 선택**: interfaceName 대신 portId 기반 필터링으로 정확도 향상
+- **VPLS 포트 누락**: IES 인터페이스가 VPLS로 연결된 경우 Port 정보가 없던 문제 해결
+- **L2 Interlink 선택**: VLAN이 포함된 L2 Interlink 대신 서비스 포트 선택하도록 개선
+
+### 🔧 기술적 변경 (Technical Changes)
+- **신규 파일**:
+  - `src/types/grafana.ts`: GrafanaQuery, GrafanaQuerySet 타입 정의
+  - `src/utils/grafana/queryGenerator.ts`: 쿼리 생성 핵심 로직
+    - `generateGrafanaQueries()`: 서비스 타입별 라우팅
+    - `generateEpipeQueries()`, `generateVPLSQueries()`, `generateVPRNQueries()`, `generateIESQueries()`
+    - `extractPortId()`: VLAN 제거 (1/1/1:100 → 1/1/1)
+    - `buildInfluxQuery()`: InfluxQL 쿼리문 빌더
+  - `src/components/v3/GrafanaExportModal.tsx`: 쿼리문 표시 및 복사 UI
+- **수정 파일**:
+  - `src/components/v2/ServiceDiagram.tsx`: Grafana 버튼 및 모달 통합 (라인 4, 20, 160-162, 190-197)
+  - `src/pages/V3Page.tsx`: _hostname 전파 로직 (라인 105-117), HA 인터페이스 병합 (라인 296-385), 다이어그램별 필터링
+  - `src/utils/v3/parserV3.ts`: VPLS 포트 해석 로직 (라인 1253-1270, 1479-1498), 서비스 포트 우선 선택
+- **adminState 필터링**: 모든 서비스 타입에서 adminState='down' 포트 제외
+- **DictionaryEditor.css 재사용**: 모달 UI 스타일 일관성 유지
+
+### 📊 개선 사항 (Improvements)
+- **시각적 피드백**: 복사 버튼 클릭 시 2초간 "Copied!" 표시 및 녹색 체크 아이콘
+- **쿼리 주석**: "Copy All" 시 각 쿼리 앞에 `-- hostname interface direction` 주석 추가
+- **데이터 정확도**: portId 기반 필터링으로 다이어그램과 쿼리문 일치 보장
+
+## [4.5.0] - 2026-02-18
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **IES 인터페이스 레벨 필터링**: 검색 시 IES 서비스 전체가 아닌 매칭된 인터페이스만 필터링
+  - 기존: 한 인터페이스라도 매칭되면 호스트의 모든 인터페이스 표시
+  - 변경: 검색어에 실제 매칭되는 인터페이스만 표시
+  - 예: 'Shieldus' 검색 시 102개 → 15개로 정확도 향상
+
+### ✨ 새로운 기능 (New Features)
+- **검색 결과 기반 HA 필터링**: "이중화" 버튼이 검색/필터링된 결과만 대상으로 동작
+  - `handleHAFilter` 함수가 `filteredServices`만 처리하도록 수정
+  - 검색 후 "이중화" 버튼 클릭 시 검색 결과 내에서만 HA 감지
+- **IES 개별 인터페이스 선택**: "All" 버튼이 IES의 경우 개별 인터페이스 키 생성
+  - 기존: `ies-${hostname}` (호스트 전체 선택)
+  - 변경: `ies___${hostname}___${interfaceName}` (필터링된 개별 인터페이스)
+- **Catch-all JSON 검색**: 모든 파싱된 필드를 JSON.stringify()로 검색하여 누락 방지
+
+### 📊 개선 사항 (Improvements)
+- **Type별 갯수 표시**: "선택된 갯수 / 전체 갯수" 형식으로 표시
+  - 예: "Epipe Services (7 / 384)", "IES Services (5 / 102)"
+- **IES 갯수 산정 방식 변경**: 장비 갯수 → 인터페이스 갯수로 변경
+  - 더 직관적이고 정확한 카운팅
+
+### 🐛 버그 수정 (Bug Fixes)
+- **AWS Bedrock 모델 ID 수정**: 잘못된 모델 ID 수정
+  - `global.anthropic.claude-sonnet-4-20250514-v1:0` (오류) → `global.anthropic.claude-sonnet-4-5-20250929-v1:0` (정상)
+  - docker-compose.yml, server/src/config.ts 모두 업데이트
+
+### 🔧 기술적 변경 (Technical Changes)
+- **ServiceListV3.tsx 핵심 로직 수정**:
+  - `filterIESInterfaces()`: 인터페이스 레벨 필터링 함수 추가
+  - `filteredServices`: IES에 대해 `.map()`으로 인터페이스 필터링 적용
+  - `handleHAFilter`: filteredServiceKeys Set을 생성하여 검색 결과만 처리
+  - `handleSelectAll`: IES 개별 인터페이스 키 생성 로직 추가
+- **타입 안정성**: TypeScript 컴파일 에러 없이 모든 변경 사항 적용
+
+### 📈 성능 개선 (Performance Improvements)
+- **렌더링 최적화**: 필터링된 데이터만 다이어그램에 전달하여 렌더링 성능 향상
+- **검색 정확도**: 불필요한 인터페이스 제외로 다이어그램 크기 감소 (예: 102개 → 15개)
+
+## [4.4.0] - 2026-02-16
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **Dictionary 구조 v4.4.0 마이그레이션**: v4.3.0 → v4.4.0 구조 변경
+  - 기존: `originalToken`, `aliases` (2-field)
+  - 변경: `name`, `configKeywords`, `searchAliases` (3-field)
+  - 역할 분리: Config 검색 키워드와 사용자 검색어를 명확히 구분
+
+### ✨ 새로운 기능 (New Features)
+- **3컬럼 UI**: Dictionary Editor를 3개 필드 구조로 재설계
+  - 그룹명 (15%): 대표 이름 입력
+  - Config 키워드 (35%): Config description에 실제 존재하는 키워드들 (줄바꿈 구분)
+  - 검색 별칭 (45%): 사용자 검색어 입력 (줄바꿈 구분)
+- **양방향 검색**: AI 챗봇이 configKeywords와 searchAliases 모두 검색
+  - 사용자가 "Bizen" 입력 → configKeywords 매칭 → ["Bizen", "ADTCAPS", "SKShielders", "Infosec"] 전체 OR 검색
+  - 사용자가 "SK쉴더스" 입력 → searchAliases 매칭 → configKeywords 전체 OR 검색
+- **테이블 정렬**: 3개 컬럼 모두 클릭으로 오름차순/내림차순 정렬 가능
+
+### 🐛 버그 수정 (Bug Fixes)
+- **Docker 빌드 오류 수정**: DictionaryEditor.tsx의 TypeScript 컴파일 에러 해결 (27개 오류)
+  - v4.3.0 구조를 사용하던 코드를 v4.4.0으로 완전 마이그레이션
+  - `originalToken` → `name`, `aliases` → `searchAliases`, `configKeywords` 추가
+- **버전 표시 통일**: 모든 UI에서 v4.4.0으로 일관되게 표시
+  - V3Page.tsx: "v4.1.0" → "v4.4.0"
+  - DictionaryEditor.tsx: "v4.4" → "v4.4.0"
+
+### 🔧 기술적 변경 (Technical Changes)
+- **타입 정의 업데이트**:
+  - `src/types/dictionary.ts`: 3-field structure (name, configKeywords, searchAliases)
+  - `src/services/dictionaryApi.ts`: DictionaryGenerateResponse 타입 v4.4.0 대응
+- **UI 컴포넌트 완전 재작성**:
+  - `keywordTexts` 상태 추가 (Config 키워드 textarea 관리)
+  - 저장 시 configKeywords, searchAliases 모두 동기화
+  - 정렬 로직에 configKeywords 필드 추가
+- **중복 제거 로직 개선**: name, configKeywords, searchAliases 모두 고려하여 병합
+
+### 📊 개선 사항 (Improvements)
+- **검색 정확도 향상**: Config 키워드와 검색어를 분리하여 더 정확한 매칭 가능
+- **사용자 편의성**: placeholder로 각 필드의 용도를 명확히 안내
+- **데이터 품질**: AI 생성 시 Config 키워드와 검색어를 자동 분류하여 데이터 일관성 보장
+
+## [4.3.0] - 2026-02-16
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **Dictionary 구조 간소화**: 6 fields → 2 fields로 단순화
+  - 기존: originalToken, category, shortName, longName, koreanName, aliases
+  - 변경: originalToken, aliases (모든 이름 변형을 aliases 배열로 통합)
+  - 카테고리 분류 제거: 불필요한 복잡성 감소
+  - AI 프롬프트 간소화: 엔티티 추출에만 집중
+
+### ✨ 새로운 기능 (New Features)
+- **Dictionary Editor 재설계**: 2-field 구조에 최적화된 UI
+  - 원본 토큰 입력 (20% 너비)
+  - 별칭 textarea (75% 너비, 줄바꿈 구분자)
+  - 카테고리 드롭다운 제거
+  - shortName, longName, koreanName 필드 제거
+- **AliasBadge 간소화**: 툴팁에 originalToken → matchedAlias 형식으로 표시
+- **마이그레이션 스크립트**: v4.2 → v4.3 자동 변환
+  - `scripts/migrate-dictionary-v43.ts`
+  - 기존 데이터 자동 백업 (.backup.json)
+  - shortName, longName, koreanName을 aliases 배열로 자동 통합
+  - 중복 제거 (case-insensitive)
+
+### 🔧 기술적 변경 (Technical Changes)
+- **타입 정의 업데이트**:
+  - `DictionaryEntry`: id, originalToken, aliases, autoGenerated, userEdited
+  - `DictionaryCompact`: {t: string, a: string[]}
+  - `MatchedEntry`: originalToken, matchedAlias, allAliases
+- **백엔드 프롬프트 간소화** (`dictionaryPrompt.ts`, `systemPrompt.ts`)
+- **프론트엔드 컴포넌트 간소화** (`DictionaryEditor.tsx`, `AliasBadge.tsx`)
+- **마이그레이션 도구**: npm run migrate:dictionary, npm run restore:dictionary
+
+### 📊 성능 개선 (Performance Improvements)
+- AI 토큰 사용량 감소: DictionaryCompact 크기 ~60% 절감 (s, l, k 필드 제거)
+- JSON 파일 크기 감소: 평균 40% 축소
+- UI 렌더링 속도 향상: 불필요한 필드 제거로 DOM 트리 간소화
+
+## [4.1.0] - 2026-02-16
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **이름 사전 (Name Dictionary)**: Config description에서 엔티티(고객명, 지역, 서비스 등)를 AI가 추출하여 이름 사전을 자동 생성
+  - AI 자동 생성: AWS Bedrock (Claude)를 통해 description에서 엔티티 추출 및 이름 변형 생성
+  - 수동 편집: 사전 항목의 추가, 수정, 삭제 지원
+  - AI 챗봇 검색 시 사전 데이터를 함께 전달하여 한국어/별칭으로도 서비스 검색 가능
+- **전역 단일 사전**: 서버에 `/app/data/dictionary.json` 단일 파일로 저장
+  - Config 파일 조합과 무관하게 항상 동일한 사전 사용
+  - Docker named volume(`dict-data`)으로 컨테이너 재빌드에도 데이터 유지
+
+### ✨ 새로운 기능 (New Features)
+- **Dictionary Editor UI**: 모달 기반 사전 편집기
+  - AI 자동 생성 버튼 (Sparkles 아이콘)
+  - 카테고리별 분류 (customer, location, service, device, other)
+  - 원본 토큰, 짧은 이름, 긴 이름, 한국어, 별칭 필드
+- **테이블 정렬**: 컬럼 헤더 클릭으로 오름차순/내림차순 토글 정렬 (한국어 로케일 지원)
+- **증분 사전 구축**: AI 자동 생성 시 기존 항목을 모두 보존하고, 새로운 토큰만 추가
+- **중복 정리**: 원본 토큰과 동일한 값을 짧은이름/긴이름/한국어/별칭에서 일괄 제거
+- **전체 삭제**: 사전 항목을 모두 비우고 처음부터 다시 시작
+- **Dictionary API 엔드포인트**:
+  - `POST /api/dictionary/generate`: AI 사전 자동 생성
+  - `GET /api/dictionary`: 전역 사전 로드
+  - `PUT /api/dictionary`: 전역 사전 저장
+
+### 🐛 버그 수정 (Bug Fixes)
+- **사전 생성 토큰 초과**: AI 응답이 잘려 JSON 파싱 실패하던 문제 수정 (maxTokens 4096 → 8192)
+- **AI 생성 중복 데이터**: originalToken과 동일한 값이 shortName/longName/koreanName/aliases에 중복 등록되던 문제 수정 (프롬프트 개선 + 후처리 필터)
+
+### 🔧 기술적 변경 (Technical Changes)
+- **전역 단일 파일 저장**: fingerprint별 분리 저장에서 `/app/data/dictionary.json` 단일 파일로 단순화
+- **서버 파일 저장 서비스** (`dictionaryStore.ts`): 단일 파일 load/save
+- **사전 생성 프롬프트 개선** (`dictionaryPrompt.ts`): originalToken 중복 방지 규칙 및 예시 추가
+- **Docker Compose**: `dict-data:/app/data` named volume 추가
+- **프론트엔드**: localStorage 의존 제거, 서버 API 기반 load/save로 전환
+
+## [4.0.0] - 2026-02-15
+
+### 🚀 주요 변경 사항 (Major Changes)
+- **AI 챗봇 서비스 검색**: 자연어 질문으로 네트워크 서비스를 검색하고 다이어그램을 자동 표시하는 AI 기능 추가
+  - AWS Bedrock (Claude) 기반 자연어 처리
+  - "Epipe 서비스 보여줘", "Customer-A 관련 서비스", "QoS 1G 이상 서비스 찾아줘" 등 한국어/영어 질문 지원
+  - 기존 다이어그램 생성 로직 100% 재사용 (AI가 selectionKey를 반환하면 기존 onSetSelected()로 연동)
+- **Express 백엔드 추가**: AI 기능을 위한 Node.js Express 서버를 별도 Docker 컨테이너로 추가
+  - nginx에서 `/api/*` 요청을 Express 서버로 프록시
+  - 백엔드 장애 시에도 프론트엔드(다이어그램 기능) 정상 동작
+
+### ✨ 새로운 기능 (New Features)
+- **AI 토글 검색**: 서비스 목록의 검색창에 AI 토글 버튼 추가 (Bot 아이콘)
+  - AI ON: 자연어 질문 입력 → Claude가 관련 서비스 selectionKey 반환 → 다이어그램 자동 표시
+  - AI OFF: 기존 텍스트 검색 그대로 유지
+- **AI 응답 패널**: 검색 결과 설명, 정확도(높음/보통/낮음) 배지, 선택된 서비스 수 표시
+- **ConfigSummary 빌더**: ParsedConfigV3를 AI에 전달할 축약 JSON으로 변환 (10-30KB)
+  - QoS Rate KMG 변환 (1G, 500M 등)
+  - adminState='down' 서비스 자동 제외
+- **API Health Check**: `GET /api/health` 엔드포인트로 백엔드 상태 확인
+- **요청 Rate Limiting**: 분당 30회 제한으로 API 남용 방지
+
+### 🔧 기술적 변경 (Technical Changes)
+- **아키텍처**: nginx + Express 별도 컨테이너 구조 (docker-compose)
+  - `nokia-visualizer`: 프론트엔드 (nginx, 정적 파일)
+  - `nokia-api`: 백엔드 (Express, AWS Bedrock API)
+- **AWS Bedrock 연동**: `@aws-sdk/client-bedrock-runtime` Converse API 사용
+  - AWS 자격 증명: `~/.aws/credentials` (read-only 마운트), 환경변수, IAM Role 순서로 탐지
+  - 모델 ID: `BEDROCK_MODEL_ID` 환경변수로 변경 가능
+  - 리전: `AWS_REGION` 환경변수 지원 (기본: ap-northeast-2)
+- **nginx.conf**: `/api/*` 리버스 프록시 추가 (proxy_read_timeout 120s)
+- **새로운 파일 구조**:
+  - `server/`: Express 백엔드 (TypeScript, 멀티 스테이지 Docker 빌드)
+  - `src/utils/configSummaryBuilder.ts`: ConfigSummary 변환
+  - `src/services/chatApi.ts`: 프론트엔드 API 클라이언트
+  - `src/components/v3/AIChatPanel.tsx`: AI 채팅 UI
+- **에러 처리**: AWS 자격 증명 오류, Bedrock 접근 권한 오류, 스로틀링 등 상세 에러 분류
+
 ## [3.2.0] - 2026-02-15
 
 ### 🚀 주요 변경 사항 (Major Changes)

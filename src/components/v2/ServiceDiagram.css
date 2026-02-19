@@ -91,6 +91,17 @@
     color: #0f172a;
 }
 
+.control-btn.copied {
+    background-color: #10b981;
+    border-color: #10b981;
+    color: white;
+}
+
+.control-btn.copied:hover {
+    background-color: #059669;
+    border-color: #059669;
+}
+
 .zoom-level {
     font-size: 0.85rem;
     color: #64748b;
