@@ -6,6 +6,26 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [4.7.1] - 2026-02-20
+
+### 🐛 버그 수정 (Bug Fixes)
+- **Demo 환경에서 WebSocket 연결 시도 방지**: Cloudflare Pages 같은 정적 사이트에서 불필요한 WebSocket 연결 시도 제거
+  - `useConfigWebSocket.ts`: Demo/Beta/Cloudflare 환경 감지 시 WebSocket 연결 비활성화
+  - `ConfigFileList.tsx`: Demo 환경에서 연결 상태 badge/text 표시하지 않음
+  - `FolderPathSettings.tsx`: Demo 환경에서 기능 제한 경고 메시지 표시
+  - 5번 재시도로 인한 불필요한 콘솔 오류 제거
+  - 정적 사이트에서는 수동 Upload만 사용 가능
+
+### 🔧 기술적 변경 (Technical Changes)
+- **환경 감지 조건**:
+  - `window.location.hostname.includes('demo')`
+  - `window.location.hostname.includes('beta')`
+  - `window.location.hostname.includes('pages.dev')`
+  - `window.location.hostname.includes('cloudflare')`
+- Demo 환경에서는 WebSocket status가 'disconnected'로 유지되며 연결 시도하지 않음
+
+---
+
 ## [4.7.0] - 2026-02-20
 
 ### ✨ 새로운 기능 (New Features)
