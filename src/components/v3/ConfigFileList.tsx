@@ -5,17 +5,20 @@
  */
 
 import React from 'react';
-import { FileText, RefreshCw, AlertCircle } from 'lucide-react';
+import { FileText, RefreshCw, AlertCircle, FolderOpen } from 'lucide-react';
 import type { ConfigFileListProps } from '../../types/configWebSocket';
+import { FileUpload } from '../FileUpload';
 import './ConfigFileList.css';
 
 export const ConfigFileList: React.FC<ConfigFileListProps> = ({
   files,
   groups,
-  activeFile,
-  onSelectFile,
+  activeFiles,
+  onToggleFile,
   isLoading,
-  connectionStatus
+  connectionStatus,
+  onShowSettings,
+  onUploadConfig
 }) => {
   // 연결 상태 표시
   const getStatusBadge = () => {
@@ -103,23 +106,31 @@ export const ConfigFileList: React.FC<ConfigFileListProps> = ({
 
       <div className="file-items">
         {files.map((filename) => {
-          const isActive = filename === activeFile;
+          const isActive = activeFiles.includes(filename);
 
           // 그룹 정보에서 hostname 추출 (있으면)
           const group = groups?.find((g) => g.latestFile === filename);
           const hostname = group?.hostname;
 
+          // 날짜를 YYYY-MM-DD 형식으로 변환
+          const formatDate = (dateStr: string) => {
+            if (!dateStr || dateStr.length !== 8) return dateStr;
+            return `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`;
+          };
+
+          const displayDate = group?.latestDate ? formatDate(group.latestDate) : '';
+
           return (
             <div
               key={filename}
               className={`file-item ${isActive ? 'active' : ''}`}
-              onClick={() => onSelectFile(filename)}
-              title={filename}
+              onClick={() => onToggleFile(filename)}
+              title={`${filename} (클릭하여 ${isActive ? '제외' : '포함'})`}
             >
               <FileText size={16} />
               <div className="file-info">
                 {hostname && <span className="hostname">{hostname}</span>}
-                <span className="filename">{filename}</span>
+                {displayDate && <span className="file-date">{displayDate}</span>}
               </div>
               {isActive && <span className="active-indicator">●</span>}
             </div>
@@ -133,6 +144,21 @@ export const ConfigFileList: React.FC<ConfigFileListProps> = ({
           <span>연결 오류. 파일 목록이 업데이트되지 않습니다.</span>
         </div>
       )}
+
+      {/* 하단 버튼 영역 */}
+      <div className="config-actions">
+        <button
+          className="config-action-btn"
+          onClick={onShowSettings}
+          title="자동 로딩 사용법"
+        >
+          <FolderOpen size={16} />
+          <span>자동 로딩</span>
+        </button>
+        <div className="config-upload-wrapper">
+          <FileUpload onConfigLoaded={onUploadConfig} variant="compact" />
+        </div>
+      </div>
     </div>
   );
 };

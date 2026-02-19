@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v4.6.1** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 + Grafana 쿼리 생성
+> 🚀 **v4.7.0** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 + 자동 Config 로딩 + Grafana 쿼리 생성
 
 ![Application Screenshot](./public/demo-main.png)
 
@@ -136,6 +136,11 @@
 - **OR 검색**: 띄어쓰기로 구분
 - **검색 필드**: Hostname, Port, Port Description, Interface Name, Interface Description, IP Address, Service Description
 - **IES 인터페이스 레벨 필터링**: IES 서비스의 경우 검색 시 인터페이스 단위로 필터링하여 실제 매칭된 인터페이스만 표시 (전체 서비스가 아닌 관련 인터페이스만 선택)
+- **검색 예시 Pills (v4.6.5)**:
+  - 클릭 가능한 6개의 검색 예시 제공 (QoS, IP 서브넷, AND 검색, 서비스 ID, 포트, 서비스 타입)
+  - Tooltip으로 각 예시 설명 표시
+  - 키보드 접근성 지원 (Tab 네비게이션, Enter/Space 실행)
+  - 모바일/태블릿 반응형 디자인
 
 ### 📁 인터페이스 관리
 - **계층 구조**: 장비별 접기/펼치기 (파일 탐색기 스타일)
@@ -153,6 +158,19 @@
 - **다이어그램 전체화면 모드**: 왼쪽 상단 햄버거 버튼(☰)으로 사이드바 숨기기/표시
 - **모던하고 깔끔한 UI** 디자인
 
+### 📂 자동 Config 로딩 (v5.0+)
+- **로컬 폴더 자동 감시**: Docker volume mount로 백업 폴더 연결
+- **실시간 파일 감지**: 파일 추가/변경/삭제 시 자동으로 목록 업데이트
+- **최신 파일 자동 필터링**: hostname별 최신 날짜의 config만 표시
+- **다양한 파일명 형식 지원**:
+  - `router1-20260219.txt` (하이픈 + YYYYMMDD)
+  - `router1_20260219.txt` (언더스코어 + YYYYMMDD)
+  - `router1 20260219.txt` (공백 + YYYYMMDD)
+  - `router1-2026-02-19.txt` (하이픈 + YYYY-MM-DD)
+  - `router1_2026_02_19.txt` (언더스코어 + YYYY_MM_DD)
+- **WebSocket 실시간 통신**: 파일 변경 시 즉시 UI 업데이트
+- **수동 업로드와 병행 사용**: 기존 업로드 기능과 함께 사용 가능
+
 ## 🛠 기술 스택
 
 - **Frontend**: [React](https://react.dev/) 19 + [TypeScript](https://www.typescriptlang.org/)
@@ -160,6 +178,8 @@
 - **Build Tool**: [Vite](https://vitejs.dev/)
 - **Visualization**: [Mermaid.js](https://mermaid.js.org/)
 - **Integration**: [Grafana](https://grafana.com/) Diagram Panel 호환
+- **File Watching**: [chokidar](https://github.com/paulmillr/chokidar) (자동 Config 로딩)
+- **Real-time Communication**: [WebSocket](https://github.com/websockets/ws) (파일 변경 알림)
 - **Styling**: Vanilla CSS
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Image Export**: [html-to-image](https://github.com/bubkoo/html-to-image)
@@ -229,7 +249,48 @@ docker-compose up -d
 
 ## 📝 사용 방법
 
-### 1. Config 파일 업로드
+### 0. 자동 Config 로딩 설정 (v4.7+, 선택사항)
+
+**매일 백업되는 config 파일을 자동으로 로드**할 수 있습니다.
+
+#### 설정 방법
+
+**1. configs 폴더에 파일 저장**
+```bash
+# 프로젝트 루트의 configs 폴더에 백업 파일을 복사하세요
+cd nokia-config-visualizer
+cp ~/backups/*.txt configs/
+
+# 예시:
+# configs/router1-20260219.txt
+# configs/router2-20260219.txt
+# configs/pe-east-20260219.txt
+```
+
+**2. Docker 컨테이너 시작**
+```bash
+docker-compose up -d
+```
+
+**3. 웹 UI에서 확인**
+- 브라우저에서 http://localhost:3301 접속
+- 헤더의 **"자동 로딩"** 버튼 클릭하면 사용법 안내가 표시됩니다
+- 좌측 사이드바에 최신 config 파일 목록이 자동으로 표시됩니다
+
+#### 동작 방식
+
+- **최신 파일만 표시**: hostname별로 가장 최신 날짜의 config만 표시
+- **실시간 업데이트**: 파일 추가/변경/삭제 시 자동으로 목록 갱신
+- **자동 재파싱**: 현재 활성 파일이 변경되면 자동으로 다시 로드
+- **다양한 파일명 형식 지원**:
+  - `router1-20260219.txt`
+  - `router1_2026_02_19.txt`
+  - `router1 20260219.txt`
+  - `ROUTER1-2026-02-19.txt` (대소문자 무관)
+
+💡 **Tip**: configs 폴더는 git에 포함되지만 파일들은 .gitignore에 추가되어 있어서 백업 파일들은 업로드되지 않습니다.
+
+### 1. Config 파일 업로드 (수동)
 
 상단 헤더의 **"Upload Config"** 버튼을 클릭하여 Nokia 설정 파일(`.cfg`, `.txt`, `.conf`)을 업로드합니다.
 

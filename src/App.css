@@ -431,6 +431,28 @@ body {
   background: #1d4ed8;
 }
 
+/* Compact upload button for Config sidebar */
+.btn-upload-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  background-color: #64748b;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.btn-upload-compact:hover {
+  background-color: #475569;
+}
+
 /* Existing File Upload (Default) Support - keeping it just in case or for fallback */
 .file-upload-container {
   display: flex;

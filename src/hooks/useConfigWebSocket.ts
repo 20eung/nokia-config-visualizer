@@ -25,7 +25,7 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
   const [status, setStatus] = useState<WebSocketStatus>('disconnected');
   const [configFiles, setConfigFiles] = useState<string[]>([]);
   const [fileGroups, setFileGroups] = useState<ConfigFileGroup[]>([]);
-  const [activeFile, setActiveFile] = useState<string | null>(null);
+  const [activeFiles, setActiveFiles] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [watchPath, setWatchPath] = useState<string>('/app/configs');
 
@@ -134,13 +134,13 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
           setFileGroups(data.groups || []);
           setWatchPath(data.watchPath || '/app/configs');
 
-          // 첫 파일 자동 선택
-          if (data.files && data.files.length > 0 && !activeFile) {
-            setActiveFile(data.files[0]);
-            // 파일 선택 이벤트 발생
+          // 모든 파일을 활성 상태로 설정
+          if (data.files && data.files.length > 0) {
+            setActiveFiles(data.files);
+            // 모든 파일 로드 이벤트 발생
             window.dispatchEvent(
-              new CustomEvent('config-file-selected', {
-                detail: { filename: data.files[0] }
+              new CustomEvent('config-files-load-all', {
+                detail: { filenames: data.files }
               })
             );
           }
@@ -159,8 +159,8 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
           const data = message.data as FileEventData;
           console.log(`[ConfigWebSocket] File changed: ${data.filename}`);
 
-          // 현재 활성 파일이 변경되었으면 재파싱 트리거
-          if (data.filename === activeFile) {
+          // 현재 활성 파일 중 하나가 변경되었으면 재파싱 트리거
+          if (activeFiles.includes(data.filename)) {
             window.dispatchEvent(
               new CustomEvent('config-file-changed', {
                 detail: { filename: data.filename }
@@ -175,10 +175,8 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
           const data = message.data as FileEventData;
           console.log(`[ConfigWebSocket] File deleted: ${data.filename}`);
 
-          // 현재 활성 파일이 삭제되었으면 초기화
-          if (data.filename === activeFile) {
-            setActiveFile(null);
-          }
+          // 현재 활성 파일에서 삭제된 파일 제거
+          setActiveFiles(prev => prev.filter(f => f !== data.filename));
           break;
         }
 
@@ -188,19 +186,14 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
           setConfigFiles(data.files || []);
           setWatchPath(data.watchPath || '/app/configs');
 
-          // 현재 활성 파일이 목록에 없으면 첫 파일로 변경
-          if (activeFile && !data.files.includes(activeFile)) {
-            if (data.files.length > 0) {
-              setActiveFile(data.files[0]);
-              window.dispatchEvent(
-                new CustomEvent('config-file-selected', {
-                  detail: { filename: data.files[0] }
-                })
-              );
-            } else {
-              setActiveFile(null);
-            }
-          }
+          // 활성 파일 목록에서 삭제된 파일 제거 및 새 파일 추가
+          setActiveFiles(prev => {
+            // 목록에 있는 파일만 유지
+            const filtered = prev.filter(f => data.files.includes(f));
+            // 새로 추가된 파일을 activeFiles에 추가
+            const newFiles = data.files.filter(f => !filtered.includes(f));
+            return [...filtered, ...newFiles];
+          });
           break;
         }
 
@@ -227,25 +220,36 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
           console.warn('[ConfigWebSocket] Unknown message type:', message.type);
       }
     },
-    [activeFile]
+    [activeFiles]
   );
 
   /**
-   * 파일 선택
+   * 파일 토글 (추가/제거)
    */
-  const selectFile = useCallback(async (filename: string) => {
-    try {
-      setActiveFile(filename);
-      // V3Page에서 파일 로드 처리
-      window.dispatchEvent(
-        new CustomEvent('config-file-selected', {
-          detail: { filename }
-        })
-      );
-    } catch (err: any) {
-      console.error('[ConfigWebSocket] Failed to select file:', err);
-      setError(err.message);
-    }
+  const toggleFile = useCallback((filename: string) => {
+    setActiveFiles(prev => {
+      if (prev.includes(filename)) {
+        // 이미 활성화된 파일이면 제거
+        const newFiles = prev.filter(f => f !== filename);
+        // 파일 제거 이벤트 발생
+        window.dispatchEvent(
+          new CustomEvent('config-file-removed', {
+            detail: { filename, activeFiles: newFiles }
+          })
+        );
+        return newFiles;
+      } else {
+        // 활성화되지 않은 파일이면 추가
+        const newFiles = [...prev, filename];
+        // 파일 추가 이벤트 발생
+        window.dispatchEvent(
+          new CustomEvent('config-file-selected', {
+            detail: { filename, activeFiles: newFiles }
+          })
+        );
+        return newFiles;
+      }
+    });
   }, []);
 
   /**
@@ -274,8 +278,8 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
     status,
     configFiles,
     fileGroups,
-    activeFile,
-    selectFile,
+    activeFiles,
+    toggleFile,
     reconnect,
     disconnect,
     error,
