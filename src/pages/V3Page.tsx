@@ -6,8 +6,12 @@ import type { NokiaService, IESService, VPRNService, EpipeService } from '../typ
 import { ServiceListV3 } from '../components/v3/ServiceListV3';
 import { ServiceDiagram } from '../components/v3/ServiceDiagram';
 import { FileUpload } from '../components/FileUpload';
-import { Menu } from 'lucide-react';
+import { PanelLeft, PanelLeftClose, FolderOpen, Folder as FolderIcon, X } from 'lucide-react';
 import { convertIESToV1Format, generateCrossDeviceIESDiagrams } from '../utils/v1IESAdapter';
+// === Auto Config Loading (auto-config-loading) ===
+import { useConfigWebSocket } from '../hooks/useConfigWebSocket';
+import { ConfigFileList } from '../components/v3/ConfigFileList';
+import { FolderPathSettings } from '../components/v3/FolderPathSettings';
 import './V3Page.css';
 
 export function V3Page() {
@@ -16,6 +20,18 @@ export function V3Page() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState(320);
     const [isResizing, setIsResizing] = useState(false);
+
+    // === Auto Config Loading (auto-config-loading) ===
+    const {
+        status: wsStatus,
+        configFiles,
+        fileGroups,
+        activeFiles,
+        toggleFile
+    } = useConfigWebSocket();
+
+    const [showFolderSettings, setShowFolderSettings] = useState(false);
+    const [showConfigFileList, setShowConfigFileList] = useState(false); // 기본값: 접힌 상태
 
     useEffect(() => {
         const isDemoEnvironment = window.location.hostname.includes('demo') || window.location.hostname.includes('beta');
@@ -56,6 +72,97 @@ export function V3Page() {
             alert('Failed to parse L2 VPN configuration file.');
         }
     };
+
+    // === Auto Config Loading (auto-config-loading) ===
+    // config-file-selected/removed 이벤트 리스닝 (파일 토글)
+    useEffect(() => {
+        const handleFileToggle = async (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { activeFiles: newActiveFiles } = customEvent.detail;
+
+            try {
+                console.log(`[V3Page] Loading active config files: ${newActiveFiles.length} files`);
+                const contents = await Promise.all(
+                    newActiveFiles.map(async (filename: string) => {
+                        const res = await fetch(`http://localhost:3001/api/config/file/${filename}`);
+                        return res.text();
+                    })
+                );
+
+                handleConfigLoaded(contents);
+                console.log(`[V3Page] Successfully loaded ${contents.length} config files`);
+            } catch (error) {
+                console.error('[V3Page] Failed to load config files:', error);
+                alert('Config 파일 로드 실패');
+            }
+        };
+
+        window.addEventListener('config-file-selected', handleFileToggle);
+        window.addEventListener('config-file-removed', handleFileToggle);
+        return () => {
+            window.removeEventListener('config-file-selected', handleFileToggle);
+            window.removeEventListener('config-file-removed', handleFileToggle);
+        };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // config-files-load-all 이벤트 리스닝 (모든 파일 로드)
+    useEffect(() => {
+        const handleLoadAll = async (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { filenames } = customEvent.detail;
+
+            try {
+                console.log(`[V3Page] Loading all config files: ${filenames.length} files`);
+                const contents = await Promise.all(
+                    filenames.map(async (filename: string) => {
+                        const res = await fetch(`http://localhost:3001/api/config/file/${filename}`);
+                        return res.text();
+                    })
+                );
+
+                handleConfigLoaded(contents);
+                console.log(`[V3Page] Successfully loaded ${contents.length} config files`);
+            } catch (error) {
+                console.error('[V3Page] Failed to load config files:', error);
+                alert('Config 파일 로드 실패');
+            }
+        };
+
+        window.addEventListener('config-files-load-all', handleLoadAll);
+        return () => {
+            window.removeEventListener('config-files-load-all', handleLoadAll);
+        };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // config-file-changed 이벤트 리스닝 (파일 변경 시 자동 재파싱)
+    useEffect(() => {
+        const handleFileChanged = async (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { filename } = customEvent.detail;
+
+            console.log(`[V3Page] Auto-reloading changed file: ${filename}`);
+
+            try {
+                // activeFiles의 모든 파일을 다시 로드
+                const contents = await Promise.all(
+                    activeFiles.map(async (fname: string) => {
+                        const res = await fetch(`http://localhost:3001/api/config/file/${fname}`);
+                        return res.text();
+                    })
+                );
+
+                handleConfigLoaded(contents);
+                alert(`파일이 변경되어 자동으로 다시 로드되었습니다: ${filename}`);
+            } catch (error) {
+                console.error('[V3Page] Failed to reload changed file:', error);
+            }
+        };
+
+        window.addEventListener('config-file-changed', handleFileChanged);
+        return () => {
+            window.removeEventListener('config-file-changed', handleFileChanged);
+        };
+    }, [activeFiles]); // activeFiles 의존성 추가
 
     const handleToggleService = (serviceKey: string) => {
         setSelectedServiceIds(prev =>
@@ -433,14 +540,26 @@ export function V3Page() {
         <div className="v2-page">
             <header className="v2-header">
                 <div className="header-left">
+                    {/* Config 파일 목록 토글 */}
                     <button
-                        className="icon-btn"
-                        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                        title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-                        style={{ marginRight: '16px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                        className={`sidebar-toggle-btn ${showConfigFileList ? 'active' : ''}`}
+                        onClick={() => setShowConfigFileList(!showConfigFileList)}
+                        title={showConfigFileList ? "Config 목록 닫기" : "Config 목록 열기"}
                     >
-                        <Menu size={20} />
+                        {showConfigFileList ? <FolderOpen size={20} /> : <FolderIcon size={20} />}
+                        <span className="toggle-label">Config</span>
                     </button>
+
+                    {/* Network Services 사이드바 토글 */}
+                    <button
+                        className={`sidebar-toggle-btn ${!isSidebarCollapsed ? 'active' : ''}`}
+                        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                        title={isSidebarCollapsed ? "Network Services 목록 열기" : "Network Services 목록 닫기"}
+                    >
+                        {isSidebarCollapsed ? <PanelLeftClose size={20} /> : <PanelLeft size={20} />}
+                        <span className="toggle-label">Services</span>
+                    </button>
+
                     <div className="logo">
                         <img src="/favicon.svg" alt="App Icon" className="app-icon" />
                         <h1>Nokia Config Visualizer v{__APP_VERSION__} (AI Visualizer)</h1>
@@ -448,11 +567,81 @@ export function V3Page() {
                 </div>
 
                 <div className="header-right">
-                    <FileUpload onConfigLoaded={handleConfigLoaded} variant="header" />
+                    {/* 버튼들이 Config 사이드바로 이동 */}
                 </div>
             </header>
 
+            {/* === Auto Config Loading: Folder Settings Modal (auto-config-loading) === */}
+            {showFolderSettings && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        position: 'relative',
+                        backgroundColor: '#fff',
+                        borderRadius: '8px',
+                        maxWidth: '700px',
+                        width: '90%',
+                        maxHeight: '90vh',
+                        overflow: 'auto'
+                    }}>
+                        <button
+                            onClick={() => setShowFolderSettings(false)}
+                            style={{
+                                position: 'absolute',
+                                top: '16px',
+                                right: '16px',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#666'
+                            }}
+                        >
+                            <X size={24} />
+                        </button>
+                        <FolderPathSettings />
+                    </div>
+                </div>
+            )}
+
             <main className="v2-main" onMouseUp={stopResizing}>
+                {/* === Auto Config Loading: Config File List (auto-config-loading) === */}
+                <aside
+                    className="config-file-sidebar"
+                    style={{
+                        width: showConfigFileList ? '300px' : '0',
+                        minWidth: showConfigFileList ? '300px' : '0',
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                        transition: 'width 0.3s ease-in-out, min-width 0.3s ease-in-out',
+                        opacity: showConfigFileList ? 1 : 0,
+                        pointerEvents: showConfigFileList ? 'auto' : 'none'
+                    }}
+                >
+                    <ConfigFileList
+                        files={configFiles}
+                        groups={fileGroups}
+                        activeFiles={activeFiles}
+                        onToggleFile={toggleFile}
+                        isLoading={wsStatus === 'connecting'}
+                        connectionStatus={wsStatus}
+                        onShowSettings={() => setShowFolderSettings(true)}
+                        onUploadConfig={handleConfigLoaded}
+                    />
+                </aside>
+
                 {configs.length > 0 ? (
                     <>
                         <aside

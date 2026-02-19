@@ -32,8 +32,13 @@ services:
     volumes:
       - ${HOME}/.aws:/root/.aws:ro
       - dict-data:/app/data
-    expose:
-      - "3000"
+      # === Auto Config Loading: Config folder mount (auto-config-loading) ===
+      # 프로젝트 루트의 ./configs 폴더를 컨테이너에 마운트 (읽기 전용)
+      # 사용법: 프로젝트 루트에 configs 폴더 생성 후 백업 파일 저장
+      # 예: mkdir -p configs && cp ~/backups/*.txt configs/
+      - ./configs:/app/configs:ro
+    ports:
+      - "3001:3000"  # 외부:3001 -> 컨테이너 내부:3000 (WebSocket 및 API)
     networks:
       - npm-network
 

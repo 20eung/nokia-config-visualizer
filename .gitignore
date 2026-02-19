@@ -15,8 +15,13 @@ dist-ssr
 # Environment variables
 .env
 
-# Local config directory
+# Local config directory (old)
 config/
+
+# Auto Config Loading folder (v4.7+)
+# Ignore all files in configs/ except .gitkeep
+configs/*
+!configs/.gitkeep
 
 # Sensitive config files
 docs/202*

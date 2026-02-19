@@ -22,8 +22,15 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '2mb' }));
 
-// Rate limiting
-app.use('/api/', rateLimit({
+// Rate limiting (AI 챗봇과 사전 API에만 적용)
+app.use('/api/chat', rateLimit({
+  windowMs: config.rateLimit.windowMs,
+  max: config.rateLimit.maxRequests,
+  message: { error: '요청이 너무 많습니다. 1분 후 다시 시도해주세요.' },
+  validate: { xForwardedForHeader: false },
+}));
+
+app.use('/api/dictionary', rateLimit({
   windowMs: config.rateLimit.windowMs,
   max: config.rateLimit.maxRequests,
   message: { error: '요청이 너무 많습니다. 1분 후 다시 시도해주세요.' },
@@ -33,7 +40,7 @@ app.use('/api/', rateLimit({
 // 라우트
 app.use('/api', chatRouter);
 app.use('/api', dictionaryRouter);
-app.use('/api/config', configRouter);
+app.use('/api/config', configRouter); // Config 파일 다운로드는 Rate Limit 제외
 
 // Health check
 app.get('/api/health', (_req, res) => {

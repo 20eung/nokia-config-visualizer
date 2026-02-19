@@ -56,10 +56,10 @@ export interface UseConfigWebSocketReturn {
   configFiles: string[];
   /** 파일 그룹 정보 (hostname별) */
   fileGroups: ConfigFileGroup[];
-  /** 현재 활성 파일 */
-  activeFile: string | null;
-  /** 파일 선택 핸들러 */
-  selectFile: (filename: string) => Promise<void>;
+  /** 현재 활성 파일들 (여러 개 선택 가능) */
+  activeFiles: string[];
+  /** 파일 토글 핸들러 (추가/제거) */
+  toggleFile: (filename: string) => void;
   /** 연결 재시도 */
   reconnect: () => void;
   /** WebSocket 연결 해제 */
@@ -71,20 +71,6 @@ export interface UseConfigWebSocketReturn {
 }
 
 /**
- * Folder Path Settings Props
- */
-export interface FolderPathSettingsProps {
-  /** 현재 폴더 경로 */
-  currentPath: string;
-  /** 경로 변경 핸들러 */
-  onPathChange: (path: string) => Promise<void>;
-  /** 저장 중 상태 */
-  isSaving: boolean;
-  /** 에러 메시지 */
-  error?: string | null;
-}
-
-/**
  * Config File List Props
  */
 export interface ConfigFileListProps {
@@ -92,14 +78,18 @@ export interface ConfigFileListProps {
   files: string[];
   /** 파일 그룹 정보 */
   groups?: ConfigFileGroup[];
-  /** 현재 활성 파일 */
-  activeFile: string | null;
-  /** 파일 선택 핸들러 */
-  onSelectFile: (filename: string) => void;
+  /** 현재 활성 파일들 */
+  activeFiles: string[];
+  /** 파일 토글 핸들러 */
+  onToggleFile: (filename: string) => void;
   /** 로딩 상태 */
   isLoading: boolean;
   /** WebSocket 연결 상태 */
   connectionStatus: WebSocketStatus;
+  /** 자동 로딩 설정 모달 표시 핸들러 */
+  onShowSettings: () => void;
+  /** Config 업로드 핸들러 */
+  onUploadConfig: (contents: string[]) => void;
 }
 
 /**

@@ -6,7 +6,7 @@ interface FileUploadProps {
   onConfigLoaded: (contents: string[]) => void;
 }
 
-export const FileUpload: React.FC<FileUploadProps & { variant?: 'default' | 'header' }> = ({
+export const FileUpload: React.FC<FileUploadProps & { variant?: 'default' | 'header' | 'compact' }> = ({
   onConfigLoaded,
   variant = 'default'
 }) => {
@@ -33,6 +33,8 @@ export const FileUpload: React.FC<FileUploadProps & { variant?: 'default' | 'hea
     setPreviewFiles(null);
   };
 
+  const inputId = `file-upload-${variant}`;
+
   return (
     <>
       {variant === 'header' ? (
@@ -41,13 +43,28 @@ export const FileUpload: React.FC<FileUploadProps & { variant?: 'default' | 'hea
             type="file"
             accept=".cfg,.txt,.conf"
             onChange={handleFileChange}
-            id="header-upload"
+            id={inputId}
             style={{ display: 'none' }}
             multiple
           />
-          <label htmlFor="header-upload" className="btn-upload">
+          <label htmlFor={inputId} className="btn-upload">
             <Upload size={16} />
             <span>Upload Config</span>
+          </label>
+        </div>
+      ) : variant === 'compact' ? (
+        <div className="file-upload-compact">
+          <input
+            type="file"
+            accept=".cfg,.txt,.conf"
+            onChange={handleFileChange}
+            id={inputId}
+            style={{ display: 'none' }}
+            multiple
+          />
+          <label htmlFor={inputId} className="btn-upload-compact">
+            <Upload size={16} />
+            <span>Upload</span>
           </label>
         </div>
       ) : (
@@ -56,10 +73,10 @@ export const FileUpload: React.FC<FileUploadProps & { variant?: 'default' | 'hea
             type="file"
             accept=".cfg,.txt,.conf"
             onChange={handleFileChange}
-            id="file-upload"
+            id={inputId}
             multiple
           />
-          <label htmlFor="file-upload" className="file-upload-area compact">
+          <label htmlFor={inputId} className="file-upload-area compact">
             <Upload className="icon" size={28} strokeWidth={1.5} />
             <span className="text">Click to upload Config File</span>
             <span className="subtext">.cfg, .txt support</span>

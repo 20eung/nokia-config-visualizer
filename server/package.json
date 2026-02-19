@@ -1,6 +1,6 @@
 {
   "name": "nokia-config-visualizer-api",
-  "version": "4.4.0",
+  "version": "4.7.0",
   "description": "AI Chat backend for Nokia Config Visualizer (AWS Bedrock)",
   "main": "dist/index.js",
   "scripts": {
