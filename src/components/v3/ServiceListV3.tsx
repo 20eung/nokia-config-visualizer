@@ -23,6 +23,20 @@ interface ServiceListProps {
     onSetSelected: (serviceKeys: string[]) => void;
 }
 
+/**
+ * 검색 예시 pill 데이터 구조 (search-examples-ui)
+ */
+interface SearchExample {
+    /** 화면에 표시될 텍스트 */
+    label: string;
+    /** 검색창에 입력될 실제 쿼리 */
+    query: string;
+    /** 예시 카테고리 */
+    category: 'qos' | 'ip' | 'and' | 'service' | 'port' | 'type';
+    /** Tooltip에 표시될 설명 */
+    description?: string;
+}
+
 export function ServiceListV3({
     services,
     configs,
@@ -41,6 +55,135 @@ export function ServiceListV3({
         if (configs.length === 0) return null;
         return buildConfigSummary(configs);
     }, [configs]);
+
+    // === Search Examples UI (search-examples-ui) ===
+    /**
+     * Config 기반 동적 검색 예시 생성 (Phase 2 - v4.8.0 Fixed)
+     * - 업로드된 config 파일에서 실제 데이터를 추출하여 검색 예시 생성
+     * - **검색 가능한 실제 값만 표시** (단일 키워드, AND 검색 미지원)
+     * - 보안: 고객사 이름 제외, config 내 영문 키워드만 사용
+     */
+    const DYNAMIC_EXAMPLES = useMemo<SearchExample[]>(() => {
+        const examples: SearchExample[] = [];
+
+        if (configs.length === 0 || services.length === 0) {
+            // Fallback: config 없으면 기본 예시만
+            return [
+                { label: 'vpls', query: 'vpls', category: 'type', description: 'Filter by service type' },
+            ];
+        }
+
+        // 1. QoS 예시: "qos" 키워드 (SAP description/JSON에 포함됨)
+        outer1: for (const config of configs) {
+            for (const svc of config.services) {
+                if (svc.serviceType === 'epipe' || svc.serviceType === 'vpls') {
+                    for (const sap of svc.saps) {
+                        if (sap.ingressQos || sap.egressQos) {
+                            examples.push({
+                                label: 'qos',
+                                query: 'qos',
+                                category: 'qos',
+                                description: 'QoS policy search'
+                            });
+                            break outer1;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. IP 예시: Customer Network 대역 (static route prefix에서 추출)
+        outer2: for (const config of configs) {
+            for (const svc of config.services) {
+                if (svc.serviceType === 'vprn' || svc.serviceType === 'ies') {
+                    const routes = (svc as VPRNService | IESService).staticRoutes || [];
+                    for (const route of routes) {
+                        // prefix에서 네트워크 주소 추출 (예: "10.230.34.0/24" → "10.230.34.0")
+                        const prefix = route.prefix.split('/')[0];
+                        if (isValidIPv4(prefix)) {
+                            // 네트워크 주소에서 +1하여 첫 번째 호스트 IP 생성
+                            const parts = prefix.split('.');
+                            const lastOctet = parseInt(parts[3]);
+                            if (lastOctet < 255) {
+                                parts[3] = (lastOctet + 1).toString();
+                                const hostIp = parts.join('.');
+                                examples.push({
+                                    label: hostIp,
+                                    query: hostIp,
+                                    category: 'ip',
+                                    description: 'IP address in customer network'
+                                });
+                                break outer2;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. AND 검색 예시: port + description (v1.3.0 AND search)
+        outer3: for (const config of configs) {
+            for (const svc of config.services) {
+                if (svc.serviceType === 'epipe' || svc.serviceType === 'vpls') {
+                    for (const sap of svc.saps) {
+                        if (sap.portId && sap.description) {
+                            // description의 첫 단어 추출 (영문 키워드)
+                            const firstWord = sap.description.split(/\s+/)[0];
+                            if (firstWord && firstWord.length > 2) { // 최소 3글자
+                                examples.push({
+                                    label: `port + ${firstWord}`,
+                                    query: `port + ${firstWord}`,
+                                    category: 'and',
+                                    description: `AND search: port + ${firstWord}`
+                                });
+                                break outer3;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Service ID 예시: 첫 번째 서비스 ID (숫자만)
+        for (const svc of services) {
+            examples.push({
+                label: svc.serviceId.toString(),
+                query: svc.serviceId.toString(),
+                category: 'service',
+                description: `Service ID: ${svc.serviceId}`
+            });
+            break;
+        }
+
+        // 5. Port 예시: 첫 번째 포트
+        outer5: for (const config of configs) {
+            for (const svc of config.services) {
+                if (svc.serviceType === 'epipe' || svc.serviceType === 'vpls') {
+                    for (const sap of svc.saps) {
+                        if (sap.portId) {
+                            examples.push({
+                                label: sap.portId,
+                                query: sap.portId,
+                                category: 'port',
+                                description: 'Port/Interface search'
+                            });
+                            break outer5;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 6. Service Type 예시: vpls (정적, 모든 config에 유효)
+        examples.push({
+            label: 'vpls',
+            query: 'vpls',
+            category: 'type',
+            description: 'Filter by service type'
+        });
+
+        return examples;
+    }, [configs, services]);
 
     // 컴포넌트 마운트 시 서버에서 전역 사전 로드
     useEffect(() => {
@@ -70,6 +213,14 @@ export function ServiceListV3({
             setFilterType(response.filterType);
         }
     }, [onSetSelected]);
+
+    /**
+     * 검색 예시 pill 클릭 핸들러 (search-examples-ui)
+     * 검색창에 예시 쿼리를 입력 (즉시 검색은 실행하지 않음)
+     */
+    const handleExampleClick = useCallback((query: string) => {
+        setSearchQuery(query);
+    }, []);
 
     /**
      * IES 인터페이스 레벨 필터링 (v4.5.0)
@@ -242,7 +393,7 @@ export function ServiceListV3({
 
         filteredServices = interfaceFilteredServices.filter((s): s is NokiaServiceV3 => s !== null);
     } else {
-        // 기존 문자열 검색 로직
+        // 기존 문자열 검색 로직 (AND/OR 검색 지원 - v1.3.0)
         filteredServices = services.filter(service => {
             // 타입 필터 (IES 포함)
             if (filterType !== 'all' && service.serviceType !== filterType) {
@@ -251,7 +402,15 @@ export function ServiceListV3({
 
             // 검색 필터 (Enhanced with Hostname, Interfaces, IPs, BGP/OSPF, SAP/SDP)
             if (searchQuery) {
-                const query = searchQuery.toLowerCase();
+                // AND/OR 검색 로직 (v1.3.0)
+                const isAndSearch = searchQuery.includes(' + ');
+                const searchTerms = isAndSearch
+                    ? searchQuery.split(' + ').map(t => t.trim().toLowerCase()).filter(t => t.length > 0)
+                    : searchQuery.split(/\s+/).map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+
+                // 단일 검색어인 경우 기존 로직 유지 (성능 최적화)
+                if (searchTerms.length === 1) {
+                    const query = searchTerms[0];
 
             // 기본 서비스 정보
             const basicMatch = (
@@ -360,6 +519,105 @@ export function ServiceListV3({
             }
 
             return false;
+                } else {
+                    // 복수 검색어 (AND/OR 검색 - v1.3.0 복원)
+                    // 모든 검색 가능한 필드를 수집
+                    const searchFields: string[] = [];
+
+                    // 기본 서비스 정보
+                    searchFields.push(
+                        service.serviceId.toString(),
+                        service.description,
+                        service.serviceName || '',
+                        service.customerId.toString()
+                    );
+
+                    // Hostname
+                    const hostname = (service as any)._hostname;
+                    if (hostname) searchFields.push(hostname);
+
+                    // 서비스 타입별 상세 필드 수집
+                    if (service.serviceType === 'epipe' || service.serviceType === 'vpls') {
+                        if ('saps' in service && service.saps) {
+                            service.saps.forEach(sap => {
+                                searchFields.push(sap.sapId, sap.description, sap.portId, sap.portDescription || '');
+                            });
+                        }
+                        if ('spokeSdps' in service && service.spokeSdps) {
+                            service.spokeSdps.forEach(sdp => {
+                                searchFields.push(sdp.sdpId.toString(), sdp.vcId.toString(), sdp.description);
+                            });
+                        }
+                        if ('meshSdps' in service && service.meshSdps) {
+                            service.meshSdps.forEach(sdp => {
+                                searchFields.push(sdp.sdpId.toString(), sdp.vcId.toString(), sdp.description);
+                            });
+                        }
+                    } else if (service.serviceType === 'vprn') {
+                        if ('interfaces' in service && service.interfaces) {
+                            service.interfaces.forEach(iface => {
+                                searchFields.push(
+                                    iface.interfaceName || '',
+                                    iface.description || '',
+                                    iface.portId || '',
+                                    iface.ipAddress || '',
+                                    iface.vplsName || '',
+                                    iface.spokeSdpId || ''
+                                );
+                            });
+                        }
+                        if ('bgpRouterId' in service && service.bgpRouterId) {
+                            searchFields.push(service.bgpRouterId);
+                        }
+                        if ('bgpNeighbors' in service && service.bgpNeighbors) {
+                            service.bgpNeighbors.forEach(nbr => {
+                                searchFields.push(nbr.neighborIp, nbr.autonomousSystem?.toString() || '');
+                            });
+                        }
+                        if ('ospf' in service && service.ospf && service.ospf.areas) {
+                            service.ospf.areas.forEach(area => {
+                                searchFields.push(area.areaId);
+                                if (area.interfaces) {
+                                    area.interfaces.forEach(intf => searchFields.push(intf.interfaceName));
+                                }
+                            });
+                        }
+                        if ('autonomousSystem' in service && service.autonomousSystem) {
+                            searchFields.push(service.autonomousSystem.toString());
+                        }
+                        if ('routeDistinguisher' in service && service.routeDistinguisher) {
+                            searchFields.push(service.routeDistinguisher);
+                        }
+                    } else if (service.serviceType === 'ies') {
+                        // IES는 인터페이스 레벨 필터링으로 처리되므로 여기서는 통과
+                        return true;
+                    }
+
+                    // Catch-all: 서비스 객체 전체를 JSON으로 변환하여 추가 (v4.5.0 복원)
+                    // 명시적으로 수집하지 못한 필드나 필드명 자체를 검색할 수 있도록 함
+                    try {
+                        const serviceJson = JSON.stringify(service);
+                        searchFields.push(serviceJson);
+                    } catch (e) {
+                        console.warn('[ServiceListV3] JSON.stringify failed for service:', service.serviceId, e);
+                    }
+
+                    // 모든 필드를 소문자로 변환
+                    const lowerSearchFields = searchFields.map(f => f.toLowerCase());
+
+                    // AND/OR 검색 로직 (v1.3.0)
+                    if (isAndSearch) {
+                        // AND: 모든 검색어가 각각 적어도 하나의 필드에 매칭되어야 함
+                        return searchTerms.every(term =>
+                            lowerSearchFields.some(field => field.includes(term))
+                        );
+                    } else {
+                        // OR: 적어도 하나의 검색어가 적어도 하나의 필드에 매칭되면 됨
+                        return searchTerms.some(term =>
+                            lowerSearchFields.some(field => field.includes(term))
+                        );
+                    }
+                }
         }
 
         return true;
@@ -730,11 +988,31 @@ export function ServiceListV3({
                 <div className="service-search">
                     <input
                         type="text"
-                        placeholder="Search services..."
+                        placeholder="Search (OR: space, AND: ' + ')..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="search-input"
                     />
+                </div>
+            )}
+
+            {/* 검색 예시 Pills (search-examples-ui) */}
+            {!aiEnabled && (
+                <div className="search-examples-container">
+                    <span className="examples-label">💡 Examples:</span>
+                    <div className="examples-pills">
+                        {DYNAMIC_EXAMPLES.map((example, idx) => (
+                            <button
+                                key={idx}
+                                className="example-pill"
+                                title={example.description}
+                                onClick={() => handleExampleClick(example.query)}
+                                aria-label={`Search example: ${example.label}`}
+                            >
+                                {example.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
 

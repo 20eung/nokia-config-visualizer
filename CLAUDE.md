@@ -294,11 +294,12 @@ rm .git/hooks/post-commit
 | v4.3.0 | 2026-02-16 | Dictionary 구조 간소화 (6 fields → 2 fields), 마이그레이션 스크립트 |
 | v4.4.0 | 2026-02-16 | 3-Field Dictionary (name, configKeywords, searchAliases), 양방향 검색 |
 | v4.4.0+ | 2026-02-18 | 환경변수 중앙 관리 (config.ts), 동적 버전 관리 (package.json) |
+| v4.6.1 | 2026-02-19 | AND/OR 검색 catch-all 강화, 백엔드 TypeScript 오류 수정 |
 
 상세 변경 이력은 `CHANGELOG.md` 참조.
 
 ---
 
-**Last Updated**: 2026-02-18
-**Current Version**: v4.4.6 (Auto-versioning enabled)
+**Last Updated**: 2026-02-19
+**Current Version**: v4.6.1 (Auto-versioning enabled)
 **Branch**: v4-development

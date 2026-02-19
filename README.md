@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v4.5.5** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 + Grafana 쿼리 생성
+> 🚀 **v4.6.1** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 + Grafana 쿼리 생성
 
 ![Application Screenshot](./public/demo-main.png)
 
