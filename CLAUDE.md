@@ -283,6 +283,7 @@ rm .git/hooks/post-commit
 ## 브랜치 전략
 - `main`: 프로덕션 코드 (v1.x)
 - `v4-development`: v4 개발 (현재 활성)
+- `demo`: 공개 데모 환경 (샘플 config 자동 로드)
 
 ## 최근 버전 히스토리
 
