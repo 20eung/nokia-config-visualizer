@@ -9,6 +9,13 @@ import { Folder, Info, CheckCircle } from 'lucide-react';
 import './FolderPathSettings.css';
 
 export const FolderPathSettings: React.FC = () => {
+  // Demo/Beta 환경 감지
+  const isDemoEnvironment =
+    window.location.hostname.includes('demo') ||
+    window.location.hostname.includes('beta') ||
+    window.location.hostname.includes('pages.dev') ||
+    window.location.hostname.includes('cloudflare');
+
   return (
     <div className="folder-path-settings">
       <div className="settings-header">
@@ -17,6 +24,20 @@ export const FolderPathSettings: React.FC = () => {
       </div>
 
       <div className="settings-content">
+        {isDemoEnvironment && (
+          <div className="info-box" style={{ backgroundColor: '#fff3cd', borderColor: '#ffc107' }}>
+            <Info size={16} style={{ color: '#856404' }} />
+            <div className="info-content">
+              <p style={{ color: '#856404', fontWeight: 600 }}>
+                ⚠️ 이 기능은 로컬 Docker 환경에서만 사용 가능합니다.
+              </p>
+              <p style={{ color: '#856404', fontSize: '13px', marginTop: '4px' }}>
+                Demo 사이트에서는 <strong>Upload Config</strong> 버튼을 사용하세요.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="info-box">
           <Info size={16} />
           <div className="info-content">

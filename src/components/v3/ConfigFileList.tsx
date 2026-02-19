@@ -20,8 +20,17 @@ export const ConfigFileList: React.FC<ConfigFileListProps> = ({
   onShowSettings,
   onUploadConfig
 }) => {
-  // 연결 상태 표시
+  // Demo/Beta 환경 감지
+  const isDemoEnvironment =
+    window.location.hostname.includes('demo') ||
+    window.location.hostname.includes('beta') ||
+    window.location.hostname.includes('pages.dev') ||
+    window.location.hostname.includes('cloudflare');
+
+  // 연결 상태 표시 (로컬 환경에서만)
   const getStatusBadge = () => {
+    if (isDemoEnvironment) return null; // Demo 환경에서는 표시하지 않음
+
     switch (connectionStatus) {
       case 'connected':
         return <span className="status-badge status-connected">●</span>;
@@ -37,6 +46,8 @@ export const ConfigFileList: React.FC<ConfigFileListProps> = ({
   };
 
   const getStatusText = () => {
+    if (isDemoEnvironment) return ''; // Demo 환경에서는 표시하지 않음
+
     switch (connectionStatus) {
       case 'connected':
         return '연결됨';

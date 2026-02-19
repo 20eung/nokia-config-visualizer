@@ -267,6 +267,20 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
    * 초기 연결 및 정리
    */
   useEffect(() => {
+    // Demo/Beta 환경에서는 WebSocket 연결 시도하지 않음
+    const isDemoEnvironment =
+      window.location.hostname.includes('demo') ||
+      window.location.hostname.includes('beta') ||
+      window.location.hostname.includes('pages.dev') ||
+      window.location.hostname.includes('cloudflare');
+
+    if (isDemoEnvironment) {
+      console.log('[ConfigWebSocket] Demo environment detected. WebSocket disabled.');
+      setStatus('disconnected');
+      return;
+    }
+
+    // 로컬 환경에서만 WebSocket 연결
     connect();
 
     return () => {
