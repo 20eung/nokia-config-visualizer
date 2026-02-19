@@ -9,7 +9,7 @@ import type {
   VPLSService,
   VPRNService,
   IESService,
-} from '../../types/v2';
+} from '../../types/services';
 import type { GrafanaQuery, GrafanaQuerySet } from '../../types/grafana';
 
 /**

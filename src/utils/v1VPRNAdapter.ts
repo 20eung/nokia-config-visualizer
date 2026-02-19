@@ -8,7 +8,7 @@
  */
 
 import type { NokiaDevice, NokiaInterface, NetworkTopology, HAPair } from '../types';
-import type { VPRNService, L3Interface } from '../types/v2';
+import type { VPRNService, L3Interface } from '../types/services';
 import {
     findPeerAndRoutes,
     generateSingleInterfaceDiagram,

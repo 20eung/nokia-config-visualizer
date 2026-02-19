@@ -5,7 +5,7 @@ import type {
   VPLSService,
   VPRNService,
   IESService,
-} from '../types/v2';
+} from '../types/services';
 
 /**
  * ParsedConfigV3[]에서 모든 description을 수집합니다.

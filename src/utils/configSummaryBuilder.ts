@@ -4,7 +4,7 @@ import type {
   VPLSService,
   VPRNService,
   IESService,
-} from '../types/v2';
+} from '../types/services';
 
 /** ConfigSummary 타입 (서버와 공유) */
 
