@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight, BookOpen } from 'lucide-react';
 import { findPeerAndRoutes } from '../../utils/mermaidGenerator';
 import { convertIESToV1Format } from '../../utils/v1IESAdapter';
 import { convertVPRNToV1Format } from '../../utils/v1VPRNAdapter';
+import { isValidIPv4, parseNetwork, isIpInSubnet, type SubnetMatch } from '../../utils/ipUtils';
 import { AIChatPanel } from './AIChatPanel';
 import { DictionaryEditor } from './DictionaryEditor';
 import { buildConfigSummary, type ConfigSummary } from '../../utils/configSummaryBuilder';
@@ -110,16 +111,147 @@ export function ServiceListV3({
         };
     }, []);
 
-    // 필터링된 서비스
-    const filteredServices = services.filter(service => {
-        // 타입 필터 (IES 포함)
-        if (filterType !== 'all' && service.serviceType !== filterType) {
-            return false;
+    /**
+     * IP 주소가 서비스의 Static Routes 서브넷에 매칭되는지 확인
+     * @returns { matched: boolean, bestMatch: { subnet, prefixLen } | null }
+     */
+    const matchServiceByIpSubnet = useCallback((
+        service: NokiaServiceV3,
+        targetIp: string
+    ): { matched: boolean; bestMatch: { subnet: string; prefixLen: number } | null } => {
+        // IES와 VPRN만 Static Routes 보유
+        if (service.serviceType !== 'ies' && service.serviceType !== 'vprn') {
+            return { matched: false, bestMatch: null };
         }
 
-        // 검색 필터 (Enhanced with Hostname, Interfaces, IPs, BGP/OSPF, SAP/SDP)
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
+        const staticRoutes = (service as IESService | VPRNService).staticRoutes || [];
+        let bestMatch: { subnet: string; prefixLen: number } | null = null;
+
+        // ⭐ 최소 Prefix 길이 (너무 넓은 서브넷 제외: /1 ~ /7)
+        const MIN_PREFIX_LEN = 8;
+
+        for (const route of staticRoutes) {
+            const parsed = parseNetwork(route.prefix);
+            if (!parsed) continue;
+
+            // 너무 넓은 서브넷 건너뛰기 (v4.6.0)
+            if (parsed.prefixLen < MIN_PREFIX_LEN) continue;
+
+            if (isIpInSubnet(targetIp, route.prefix)) {
+                // Longest Prefix Match: prefixLen이 더 큰 것 선택
+                if (!bestMatch || parsed.prefixLen > bestMatch.prefixLen) {
+                    bestMatch = { subnet: route.prefix, prefixLen: parsed.prefixLen };
+                }
+            }
+        }
+
+        return { matched: !!bestMatch, bestMatch };
+    }, []);
+
+    // 필터링된 서비스
+    let filteredServices: NokiaServiceV3[];
+
+    // ⭐ IP 서브넷 검색 모드 (v4.6.0)
+    if (searchQuery && isValidIPv4(searchQuery.toLowerCase())) {
+        const query = searchQuery.toLowerCase();
+
+        // 타입 필터 적용
+        let targetServices = services;
+        if (filterType !== 'all') {
+            targetServices = services.filter(s => s.serviceType === filterType);
+        }
+
+        // 서브넷 매칭 결과 수집
+        const ipMatches: Array<{ service: NokiaServiceV3; match: SubnetMatch }> = [];
+
+        targetServices.forEach(service => {
+            const { matched, bestMatch } = matchServiceByIpSubnet(service, query);
+            if (matched && bestMatch) {
+                ipMatches.push({
+                    service,
+                    match: {
+                        subnet: bestMatch.subnet,
+                        prefixLen: bestMatch.prefixLen,
+                        serviceId: service.serviceId
+                    }
+                });
+            }
+        });
+
+        // Longest Prefix Match 정렬 (ipMatches를 직접 정렬)
+        const sortedIpMatches = ipMatches.sort((a, b) => {
+            // prefixLen이 큰 것이 더 구체적 (우선순위 높음)
+            if (a.match.prefixLen !== b.match.prefixLen) {
+                return b.match.prefixLen - a.match.prefixLen;
+            }
+            // prefixLen이 같으면 serviceId로 정렬 (안정성)
+            return a.match.serviceId - b.match.serviceId;
+        });
+
+        // 정렬된 서비스 추출 (service 객체가 그대로 유지되므로 hostname 정보 보존)
+        let matchedServices = sortedIpMatches.map(m => m.service);
+
+        // ⭐ IES 인터페이스 레벨 필터링: 검색 IP와 관련된 Static Route를 가진 인터페이스만 포함 (v4.6.0)
+        const interfaceFilteredServices = matchedServices.map((service): NokiaServiceV3 | null => {
+            if (service.serviceType === 'ies') {
+                const hostname = (service as any)._hostname || 'Unknown';
+                const iesService = service as IESService & { _hostname: string };
+
+                // 동일 config 내 모든 IES 서비스의 Static Routes 수집
+                const parentConfig = configs.find(c => c.hostname === hostname);
+                const aggregatedStaticRoutes: Array<{ prefix: string; nextHop: string }> = [];
+
+                if (parentConfig) {
+                    parentConfig.services.forEach(svc => {
+                        if (svc.serviceType === 'ies') {
+                            const ies = svc as IESService;
+                            ies.staticRoutes?.forEach(route => {
+                                aggregatedStaticRoutes.push({ prefix: route.prefix, nextHop: route.nextHop });
+                            });
+                        }
+                    });
+                }
+
+                // V1 변환 및 각 인터페이스의 관련 라우트 확인
+                const v1Device = convertIESToV1Format(iesService, hostname, aggregatedStaticRoutes);
+
+                const relevantInterfaces = iesService.interfaces.filter(intf => {
+                    const v1Intf = v1Device.interfaces.find(i => i.name === intf.interfaceName);
+                    if (!v1Intf) return false;
+
+                    const { relatedRoutes } = findPeerAndRoutes(v1Device, v1Intf);
+
+                    // 관련 라우트 중 검색 IP를 포함하는 것이 있는지 확인
+                    return relatedRoutes.some(prefix => isIpInSubnet(query, prefix));
+                });
+
+                // 관련 인터페이스가 없으면 null 반환 (서비스 제외)
+                if (relevantInterfaces.length === 0) {
+                    return null;
+                }
+
+                // 관련 인터페이스만 포함하는 새 서비스 반환
+                return {
+                    ...iesService,
+                    interfaces: relevantInterfaces
+                } as NokiaServiceV3;
+            }
+
+            return service;
+        });
+
+        filteredServices = interfaceFilteredServices.filter((s): s is NokiaServiceV3 => s !== null);
+    } else {
+        // 기존 문자열 검색 로직
+        filteredServices = services.filter(service => {
+            // 타입 필터 (IES 포함)
+            if (filterType !== 'all' && service.serviceType !== filterType) {
+                return false;
+            }
+
+            // 검색 필터 (Enhanced with Hostname, Interfaces, IPs, BGP/OSPF, SAP/SDP)
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
 
             // 기본 서비스 정보
             const basicMatch = (
@@ -239,9 +371,10 @@ export function ServiceListV3({
                 searchQuery.toLowerCase()
             );
         }
-        return service;
-    }).filter((service): service is NokiaServiceV3 => service !== null) // null 제거 + 타입 가드
-      .sort((a, b) => a.serviceId - b.serviceId);
+            return service;
+        }).filter((service): service is NokiaServiceV3 => service !== null) // null 제거 + 타입 가드
+          .sort((a, b) => a.serviceId - b.serviceId);
+    }
 
     // 서비스를 serviceId와 serviceType별로 그룹화
     const groupedServices = filteredServices.reduce((acc, service) => {
