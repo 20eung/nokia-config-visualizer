@@ -31,4 +31,13 @@ export const config = {
     windowMs: 60 * 1000, // 1분
     maxRequests: 30,
   },
+
+  // NCV AI Platform - RAG 설정 (v4.8.0)
+  rag: {
+    indexPath: process.env['RAG_INDEX_PATH'] ?? './data/rag-index',
+    embeddingModel: process.env['EMBEDDING_MODEL'] ?? 'amazon.titan-embed-text-v2:0',
+    embeddingDimension: 1024,
+    maxChunksPerConfig: 500,
+    batchSize: 5,
+  },
 } as const;

@@ -16,6 +16,8 @@ import { convertIESToV1Format, generateCrossDeviceIESDiagrams } from '../utils/v
 import { useConfigWebSocket } from '../hooks/useConfigWebSocket';
 import { ConfigFileList } from '../components/v3/ConfigFileList';
 import { FolderPathSettings } from '../components/v3/FolderPathSettings';
+// === NCV AI Platform (ncv-ai-platform) ===
+import { useConfigSync } from '../hooks/useConfigSync';
 import './V3Page.css';
 
 export function V3Page() {
@@ -33,6 +35,10 @@ export function V3Page() {
         activeFiles,
         toggleFile
     } = useConfigWebSocket();
+
+    // === NCV AI Platform (ncv-ai-platform) ===
+    // configs 변경 시 백엔드 ConfigStore에 자동 동기화
+    useConfigSync(configs);
 
     const [showFolderSettings, setShowFolderSettings] = useState(false);
     const [showConfigFileList, setShowConfigFileList] = useState(false); // 기본값: 접힌 상태

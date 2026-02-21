@@ -53,6 +53,7 @@ export async function askClaude(
   configSummary: ConfigSummary,
   dictionary?: DictionaryCompact,
   filterType?: 'all' | 'epipe' | 'vpls' | 'vprn' | 'ies',
+  ragContext?: string,
 ): Promise<ChatResponse> {
   console.log('[askClaude] 요청 정보:');
   console.log(`  - message: "${message}"`);
@@ -77,12 +78,17 @@ export async function askClaude(
     filterSection = `\n\n## 필터 조건\n\n서비스 타입: ${filterType} (이 타입만 검색하세요)`;
   }
 
+  // RAG 컨텍스트 섹션 (ncv-ai-platform v4.8.0)
+  const ragSection = ragContext
+    ? `\n\n## 관련 Config 컨텍스트 (RAG 검색 결과)\n\n${ragContext}`
+    : '';
+
   const userContent = `## ConfigSummary (파싱된 네트워크 설정 축약 데이터)
 
 \`\`\`json
 ${JSON.stringify(configSummary, null, 2)}
 \`\`\`
-${dictionarySection}${filterSection}
+${dictionarySection}${filterSection}${ragSection}
 
 ## 사용자 질문
 

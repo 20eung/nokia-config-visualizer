@@ -12,11 +12,13 @@
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.700.0",
+    "@modelcontextprotocol/sdk": "^1.15.0",
     "chokidar": "^4.0.1",
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "express-rate-limit": "^7.4.0",
     "helmet": "^8.0.0",
+    "vectra": "^0.9.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {
