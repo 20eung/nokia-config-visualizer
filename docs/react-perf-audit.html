@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Performance Audit — Nokia Config Visualizer v4.7.3</title>
+  <style>
+    /* ===== CSS Variables ===== */
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-sub: #64748b;
+      --text-muted: #94a3b8;
+
+      --critical: #dc2626;
+      --critical-bg: #fef2f2;
+      --critical-border: #fecaca;
+
+      --medium: #d97706;
+      --medium-bg: #fffbeb;
+      --medium-border: #fde68a;
+
+      --low: #0284c7;
+      --low-bg: #f0f9ff;
+      --low-border: #bae6fd;
+
+      --good: #16a34a;
+      --good-bg: #f0fdf4;
+      --good-border: #bbf7d0;
+
+      --accent: #6366f1;
+      --code-bg: #1e293b;
+      --code-text: #e2e8f0;
+
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+      --shadow-lg: 0 4px 6px rgba(0,0,0,.07), 0 12px 40px rgba(0,0,0,.1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --surface: #1e293b;
+        --surface-2: #0f172a;
+        --border: #334155;
+        --text: #f1f5f9;
+        --text-sub: #94a3b8;
+        --text-muted: #475569;
+        --code-bg: #020617;
+        --critical-bg: #450a0a;
+        --critical-border: #7f1d1d;
+        --medium-bg: #431407;
+        --medium-border: #78350f;
+        --low-bg: #082f49;
+        --low-border: #0c4a6e;
+        --good-bg: #052e16;
+        --good-border: #14532d;
+        --shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.3);
+        --shadow-lg: 0 4px 6px rgba(0,0,0,.4), 0 12px 40px rgba(0,0,0,.4);
+      }
+    }
+
+    /* ===== Reset & Base ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    /* ===== Layout ===== */
+    .page-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+
+    /* ===== Header ===== */
+    .report-header {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e3a5f 100%);
+      border-radius: 16px;
+      padding: 40px 48px;
+      margin-bottom: 32px;
+      color: #f1f5f9;
+      position: relative;
+      overflow: hidden;
+    }
+    .report-header::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 200px; height: 200px;
+      background: rgba(99,102,241,.15);
+      border-radius: 50%;
+    }
+    .report-header::after {
+      content: '';
+      position: absolute;
+      bottom: -60px; left: 60px;
+      width: 300px; height: 300px;
+      background: rgba(99,102,241,.08);
+      border-radius: 50%;
+    }
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(99,102,241,.25);
+      border: 1px solid rgba(99,102,241,.4);
+      color: #a5b4fc;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .report-header h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+    .report-header h1 span { color: #818cf8; }
+    .report-header p {
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+    .header-meta {
+      display: flex;
+      gap: 24px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .meta-label {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-weight: 600;
+    }
+    .meta-value {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-top: 2px;
+    }
+
+    /* ===== Summary Cards ===== */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .summary-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .summary-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .summary-card.critical .summary-icon { background: var(--critical-bg); }
+    .summary-card.medium .summary-icon  { background: var(--medium-bg); }
+    .summary-card.low .summary-icon    { background: var(--low-bg); }
+    .summary-card.good .summary-icon   { background: var(--good-bg); }
+    .summary-count {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .summary-card.critical .summary-count { color: var(--critical); }
+    .summary-card.medium .summary-count   { color: var(--medium); }
+    .summary-card.low .summary-count     { color: var(--low); }
+    .summary-card.good .summary-count    { color: var(--good); }
+    .summary-label {
+      font-size: 13px;
+      color: var(--text-sub);
+      font-weight: 500;
+    }
+
+    /* ===== Section Headers ===== */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 40px 0 20px;
+    }
+    .section-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .section-badge.critical { background: var(--critical-bg); color: var(--critical); border: 1px solid var(--critical-border); }
+    .section-badge.medium   { background: var(--medium-bg);   color: var(--medium);   border: 1px solid var(--medium-border); }
+    .section-badge.low      { background: var(--low-bg);      color: var(--low);      border: 1px solid var(--low-border); }
+    .section-badge.good     { background: var(--good-bg);     color: var(--good);     border: 1px solid var(--good-border); }
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .section-divider {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ===== Issue Cards ===== */
+    .issue-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .issue-card.critical { border-left: 4px solid var(--critical); }
+    .issue-card.medium   { border-left: 4px solid var(--medium); }
+    .issue-card.low      { border-left: 4px solid var(--low); }
+    .issue-card.good     { border-left: 4px solid var(--good); }
+
+    .issue-header {
+      padding: 18px 24px;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .issue-header:hover { background: var(--surface-2); }
+    .issue-num {
+      font-size: 12px;
+      font-weight: 700;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .issue-card.critical .issue-num { background: var(--critical-bg); color: var(--critical); }
+    .issue-card.medium   .issue-num { background: var(--medium-bg);   color: var(--medium); }
+    .issue-card.low      .issue-num { background: var(--low-bg);      color: var(--low); }
+    .issue-card.good     .issue-num { background: var(--good-bg);     color: var(--good); }
+
+    .issue-title-group { flex: 1; }
+    .issue-rule {
+      font-size: 11px;
+      font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: .03em;
+      margin-bottom: 3px;
+    }
+    .issue-title {
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+    .issue-subtitle {
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-top: 2px;
+    }
+    .issue-toggle {
+      font-size: 18px;
+      color: var(--text-muted);
+      transition: transform .2s;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .issue-card.open .issue-toggle { transform: rotate(180deg); }
+
+    .issue-body {
+      display: none;
+      padding: 0 24px 24px;
+      border-top: 1px solid var(--border);
+    }
+    .issue-card.open .issue-body { display: block; }
+
+    .issue-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin: 20px 0 8px;
+    }
+    .issue-description {
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.7;
+    }
+
+    /* ===== File Tags ===== */
+    .file-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .file-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ===== Code Blocks ===== */
+    .code-block {
+      background: var(--code-bg);
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 8px 0;
+      font-size: 13px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .code-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .code-label.bad  { background: rgba(220,38,38,.15); color: #fca5a5; }
+    .code-label.good { background: rgba(22,163,74,.15);  color: #86efac; }
+    .code-label.info { background: rgba(99,102,241,.15); color: #a5b4fc; }
+    .code-label svg { width: 12px; height: 12px; }
+    pre {
+      padding: 16px;
+      overflow-x: auto;
+      color: var(--code-text);
+      line-height: 1.6;
+    }
+    pre code {
+      font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Cascadia Code', monospace;
+    }
+    .kw  { color: #c084fc; }
+    .fn  { color: #60a5fa; }
+    .str { color: #86efac; }
+    .cmt { color: #64748b; font-style: italic; }
+    .tag { color: #f0abfc; }
+    .var { color: #fbbf24; }
+    .op  { color: #94a3b8; }
+    .num { color: #fb923c; }
+
+    /* ===== Impact Badge ===== */
+    .impact-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .impact-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .impact-tag.perf    { background: #ede9fe; color: #7c3aed; }
+    .impact-tag.bundle  { background: #fce7f3; color: #be185d; }
+    .impact-tag.ux      { background: #ecfdf5; color: #059669; }
+
+    /* ===== Affected Files Table ===== */
+    .file-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .file-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      font-weight: 600;
+      color: var(--text-sub);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .file-table td {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .file-table tr:hover td { background: var(--surface-2); }
+    .file-table code {
+      font-family: 'SF Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      background: var(--surface-2);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* ===== Plan Table ===== */
+    .plan-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .plan-table th {
+      padding: 12px 16px;
+      background: #1e293b;
+      color: #e2e8f0;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      text-align: left;
+    }
+    .plan-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .plan-table tr:last-child td { border-bottom: none; }
+    .plan-table tr:hover td { background: var(--surface-2); }
+    .plan-table code {
+      font-family: 'SF Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+    }
+    .diff-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .diff-tag.easy   { background: var(--good-bg);     color: var(--good); }
+    .diff-tag.medium { background: var(--medium-bg);   color: var(--medium); }
+    .diff-tag.hard   { background: var(--critical-bg); color: var(--critical); }
+    .priority-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    .priority-dot.critical { background: var(--critical); }
+    .priority-dot.medium   { background: var(--medium); }
+    .priority-dot.low      { background: var(--low); }
+
+    /* ===== Good Practices ===== */
+    .good-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .good-item {
+      background: var(--good-bg);
+      border: 1px solid var(--good-border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .good-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .good-text strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--good);
+      margin-bottom: 2px;
+    }
+    .good-text span {
+      font-size: 12.5px;
+      color: var(--text-sub);
+      line-height: 1.5;
+    }
+
+    /* ===== Footer ===== */
+    .report-footer {
+      text-align: center;
+      padding: 32px 0 0;
+      font-size: 13px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      margin-top: 48px;
+    }
+
+    /* ===== Scroll & Misc ===== */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- ===== HEADER ===== -->
+  <header class="report-header">
+    <div class="header-badge">⚡ Performance Audit</div>
+    <h1>React 성능 개선 계획<br><span>Nokia Config Visualizer</span></h1>
+    <p>Vercel React Best Practices 기준 코드베이스 전체 감사 결과</p>
+    <div class="header-meta">
+      <div class="meta-item">
+        <span class="meta-label">대상 버전</span>
+        <span class="meta-value">v4.7.3</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">감사 기준</span>
+        <span class="meta-value">Vercel React Best Practices</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">감사 일자</span>
+        <span class="meta-value">2026-02-21</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">분석 파일</span>
+        <span class="meta-value">38개 (.ts/.tsx)</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">총 발견 항목</span>
+        <span class="meta-value">10개</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== SUMMARY ===== -->
+  <div class="summary-grid">
+    <div class="summary-card critical">
+      <div class="summary-icon">🚨</div>
+      <div>
+        <div class="summary-count">2</div>
+        <div class="summary-label">CRITICAL — 번들 크기</div>
+      </div>
+    </div>
+    <div class="summary-card medium">
+      <div class="summary-icon">⚠️</div>
+      <div>
+        <div class="summary-count">4</div>
+        <div class="summary-label">MEDIUM — 리렌더링</div>
+      </div>
+    </div>
+    <div class="summary-card low">
+      <div class="summary-icon">💡</div>
+      <div>
+        <div class="summary-count">3</div>
+        <div class="summary-label">LOW-MEDIUM — JS 성능</div>
+      </div>
+    </div>
+    <div class="summary-card good">
+      <div class="summary-icon">✅</div>
+      <div>
+        <div class="summary-count">1</div>
+        <div class="summary-label">LOW — 렌더링 최적화</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION: CRITICAL ===== -->
+  <div class="section-header">
+    <span class="section-badge critical">🚨 CRITICAL</span>
+    <span class="section-title">번들 크기 최적화</span>
+    <div class="section-divider"></div>
+  </div>
+
+  <!-- ISSUE 1 -->
+  <div class="issue-card critical" id="issue-1">
+    <div class="issue-header" onclick="toggleCard('issue-1')">
+      <div class="issue-num">1</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">bundle-barrel-imports</div>
+        <div class="issue-title">lucide-react 배럴 import — 전체 12개 파일</div>
+        <div class="issue-subtitle">Dev 부팅 15-70% 지연, cold start 40% 저하</div>
+      </div>
+      <div class="issue-toggle">▾</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        모든 컴포넌트가 <code style="color:var(--accent)">lucide-react</code> 배럴 파일에서 아이콘을 import하고 있습니다.
+        lucide-react v0.556.0은 556개 이상의 아이콘 모듈을 포함하며, 배럴 import는 번들러가 라이브러리를 external로 처리할 때
+        트리 셰이킹이 무력화되어 사용하지 않는 아이콘까지 모두 로드합니다.
+      </p>
+
+      <div class="issue-section-title">영향 파일</div>
+      <table class="file-table">
+        <thead>
+          <tr><th>파일</th><th>import 아이콘</th><th>개수</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>src/pages/V3Page.tsx:9</code></td><td>PanelLeft, PanelLeftClose, FolderOpen, Folder, X</td><td>5개</td></tr>
+          <tr><td><code>src/components/v3/ServiceDiagram.tsx:4</code></td><td>Code, ZoomIn, ZoomOut, Maximize2, BarChart3, Copy, Check</td><td>7개</td></tr>
+          <tr><td><code>src/components/v3/DictionaryEditor.tsx:2</code></td><td>Sparkles, X, Plus, Trash2, ArrowUp, ArrowDown, Eraser, RotateCcw</td><td>8개</td></tr>
+          <tr><td><code>src/components/DiagramViewer.tsx:4</code></td><td>ZoomIn, ZoomOut, Download, ChevronDown, Code, Copy, Check</td><td>7개</td></tr>
+          <tr><td><code>src/components/InterfaceList.tsx:4</code></td><td>CheckSquare, Square, Network, Search, Server, ChevronDown, ChevronRight</td><td>7개</td></tr>
+          <tr><td><code>src/components/v3/ServiceListV3.tsx:5</code></td><td>ChevronDown, ChevronRight, BookOpen</td><td>3개</td></tr>
+          <tr><td>기타 6개 파일</td><td>Upload, X, FileText, Check, AlertCircle, Bot, Folder, Info, …</td><td>1~4개</td></tr>
+        </tbody>
+      </table>
+
+      <div class="issue-section-title">현재 코드 (문제)</div>
+      <div class="code-block">
+        <div class="code-label bad">❌ Before — V3Page.tsx:9</div>
+        <pre><code><span class="kw">import</span> { <span class="var">PanelLeft</span>, <span class="var">PanelLeftClose</span>, <span class="var">FolderOpen</span>, <span class="var">Folder</span> <span class="kw">as</span> <span class="var">FolderIcon</span>, <span class="var">X</span> } <span class="kw">from</span> <span class="str">'lucide-react'</span>;
+<span class="cmt">// ↑ 556개 아이콘 전체가 로드 대상이 됨 (~1MB)</span></code></pre>
+      </div>
+
+      <div class="issue-section-title">개선 코드</div>
+      <div class="code-block">
+        <div class="code-label good">✅ After — 직접 경로 import</div>
+        <pre><code><span class="kw">import</span> <span class="var">PanelLeft</span>      <span class="kw">from</span> <span class="str">'lucide-react/dist/esm/icons/panel-left'</span>;
+<span class="kw">import</span> <span class="var">PanelLeftClose</span> <span class="kw">from</span> <span class="str">'lucide-react/dist/esm/icons/panel-left-close'</span>;
+<span class="kw">import</span> <span class="var">FolderOpen</span>     <span class="kw">from</span> <span class="str">'lucide-react/dist/esm/icons/folder-open'</span>;
+<span class="kw">import</span> <span class="var">FolderIcon</span>     <span class="kw">from</span> <span class="str">'lucide-react/dist/esm/icons/folder'</span>;
+<span class="kw">import</span> <span class="var">X</span>             <span class="kw">from</span> <span class="str">'lucide-react/dist/esm/icons/x'</span>;
+<span class="cmt">// ↑ 5개 모듈만 로드 (~2KB)</span></code></pre>
+      </div>
+
+      <div class="impact-row">
+        <span class="impact-tag bundle">📦 Dev 부팅 15-70% 향상</span>
+        <span class="impact-tag bundle">📦 Cold start 40% 향상</span>
+        <span class="impact-tag ux">⚡ HMR 현저히 빠름</span>
+        <span class="impact-tag perf">🔧 빌드 28% 향상</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ISSUE 2 -->
+  <div class="issue-card critical" id="issue-2">
+    <div class="issue-header" onclick="toggleCard('issue-2')">
+      <div class="issue-num">2</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">bundle-dynamic-imports</div>
+        <div class="issue-title">mermaid + 무거운 모달 컴포넌트 정적 import</div>
+        <div class="issue-subtitle">초기 번들에 불필요한 대용량 라이브러리 포함 → TTI/LCP 직접 저하</div>
+      </div>
+      <div class="issue-toggle">▾</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        <code style="color:var(--accent)">mermaid</code>는 대용량 다이어그램 라이브러리로 초기 렌더링에 필요하지 않습니다.
+        또한 <code style="color:var(--accent)">AIChatPanel</code>, <code style="color:var(--accent)">DictionaryEditor</code>, <code style="color:var(--accent)">GrafanaExportModal</code>은
+        사용자가 버튼을 클릭할 때만 필요한 모달 컴포넌트임에도 정적으로 import되어 초기 번들에 포함됩니다.
+      </p>
+
+      <div class="issue-section-title">현재 코드 (문제)</div>
+      <div class="code-block">
+        <div class="code-label bad">❌ Before — ServiceDiagram.tsx:2</div>
+        <pre><code><span class="kw">import</span> <span class="var">mermaid</span> <span class="kw">from</span> <span class="str">'mermaid'</span>; <span class="cmt">// 초기 번들에 포함 (대용량)</span>
+
+<span class="kw">useEffect</span>(<span class="op">()</span> <span class="op">=></span> {
+  mermaid.<span class="fn">initialize</span>({ ... });
+  mermaid.<span class="fn">render</span>(id, diagram);
+}, [diagram]);</code></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-label bad">❌ Before — ServiceListV3.tsx:10-11</div>
+        <pre><code><span class="kw">import</span> { <span class="var">AIChatPanel</span> }     <span class="kw">from</span> <span class="str">'./AIChatPanel'</span>;      <span class="cmt">// 항상 로드</span>
+<span class="kw">import</span> { <span class="var">DictionaryEditor</span> } <span class="kw">from</span> <span class="str">'./DictionaryEditor'</span>;  <span class="cmt">// 모달, 클릭 시만 필요</span></code></pre>
+      </div>
+
+      <div class="issue-section-title">개선 코드</div>
+      <div class="code-block">
+        <div class="code-label good">✅ After — mermaid 동적 로드</div>
+        <pre><code><span class="kw">const</span> <span class="fn">renderDiagram</span> <span class="op">=</span> <span class="kw">async</span> () <span class="op">=></span> {
+  <span class="cmt">// 첫 다이어그램 렌더링 시점에 lazy load</span>
+  <span class="kw">const</span> { <span class="kw">default</span>: <span class="var">mermaid</span> } <span class="op">=</span> <span class="kw">await</span> <span class="kw">import</span>(<span class="str">'mermaid'</span>);
+  mermaid.<span class="fn">initialize</span>({ ... });
+  <span class="kw">const</span> { <span class="var">svg</span> } <span class="op">=</span> <span class="kw">await</span> mermaid.<span class="fn">render</span>(id, diagram);
+};</code></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-label good">✅ After — React.lazy로 모달 컴포넌트 분리</div>
+        <pre><code><span class="kw">import</span> { <span class="var">lazy</span>, <span class="var">Suspense</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">const</span> <span class="var">DictionaryEditor</span> <span class="op">=</span> <span class="fn">lazy</span>(<span class="op">()</span> <span class="op">=></span>
+  <span class="kw">import</span>(<span class="str">'./DictionaryEditor'</span>).<span class="fn">then</span>(<span class="var">m</span> <span class="op">=></span> ({ <span class="kw">default</span>: <span class="var">m</span>.<span class="var">DictionaryEditor</span> }))
+);
+<span class="kw">const</span> <span class="var">AIChatPanel</span> <span class="op">=</span> <span class="fn">lazy</span>(<span class="op">()</span> <span class="op">=></span>
+  <span class="kw">import</span>(<span class="str">'./AIChatPanel'</span>).<span class="fn">then</span>(<span class="var">m</span> <span class="op">=></span> ({ <span class="kw">default</span>: <span class="var">m</span>.<span class="var">AIChatPanel</span> }))
+);
+
+<span class="cmt">// 사용 시 Suspense로 감싸기</span>
+{<span class="var">showDictionaryEditor</span> <span class="op">&&</span> (
+  <span class="tag">&lt;Suspense</span> <span class="var">fallback</span><span class="op">=</span>{<span class="kw">null</span>}<span class="tag">&gt;</span>
+    <span class="tag">&lt;DictionaryEditor</span> ... <span class="tag">/&gt;</span>
+  <span class="tag">&lt;/Suspense&gt;</span>
+)}</code></pre>
+      </div>
+
+      <div class="impact-row">
+        <span class="impact-tag bundle">📦 TTI 직접 개선</span>
+        <span class="impact-tag bundle">📦 LCP 직접 개선</span>
+        <span class="impact-tag ux">⚡ 초기 로딩 체감 향상</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION: MEDIUM ===== -->
+  <div class="section-header">
+    <span class="section-badge medium">⚠️ MEDIUM</span>
+    <span class="section-title">불필요한 리렌더링 최적화</span>
+    <div class="section-divider"></div>
+  </div>
+
+  <!-- ISSUE 3 -->
+  <div class="issue-card medium" id="issue-3">
+    <div class="issue-header" onclick="toggleCard('issue-3')">
+      <div class="issue-num">3</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">rerender-memo · useMemo 미적용</div>
+        <div class="issue-title">V3Page 렌더 타임 계산 6종 — useMemo 없이 매 렌더마다 재실행</div>
+        <div class="issue-subtitle">사이드바 리사이징, 패널 토글만으로도 다이어그램 전체 재계산 발생</div>
+      </div>
+      <div class="issue-toggle">▾</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        <a href="../src/pages/V3Page.tsx">V3Page.tsx:212~537</a>에서 아래 6가지 연산이 컴포넌트 렌더 본문에 직접 작성되어 있습니다.
+        <code style="color:var(--accent)">isResizing</code>, <code style="color:var(--accent)">showConfigFileList</code>, <code style="color:var(--accent)">isSidebarCollapsed</code> 등
+        <strong>어떤 상태가 변경되어도</strong> 다이어그램 생성 로직까지 전부 재실행됩니다.
+      </p>
+
+      <div class="issue-section-title">영향 계산 목록</div>
+      <table class="file-table">
+        <thead><tr><th>변수</th><th>위치</th><th>비용</th></tr></thead>
+        <tbody>
+          <tr><td><code>allServices</code></td><td>L212</td><td>configs × services 전체 flatMap + hostname 전파</td></tr>
+          <tr><td><code>selectedServices</code></td><td>L228</td><td>allServices × selectedServiceIds 복잡 필터링</td></tr>
+          <tr><td><code>remoteDeviceMap</code></td><td>L288</td><td>Map 재생성</td></tr>
+          <tr><td><code>serviceGroups</code></td><td>L295</td><td>reduce</td></tr>
+          <tr><td><code>iesDiagrams</code></td><td>L330</td><td>IIFE + convertIESToV1Format + 다이어그램 생성</td></tr>
+          <tr><td><code>nonIesDiagrams</code></td><td>L432</td><td>flatMap + generateServiceDiagram (가장 무거움)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="issue-section-title">개선 코드</div>
+      <div class="code-block">
+        <div class="code-label good">✅ After — useMemo로 메모이제이션</div>
+        <pre><code><span class="kw">const</span> <span class="var">allServices</span> <span class="op">=</span> <span class="fn">useMemo</span>(() <span class="op">=></span>
+  configs.<span class="fn">flatMap</span>(<span class="var">c</span> <span class="op">=></span>
+    <span class="var">c</span>.services.<span class="fn">map</span>(<span class="var">s</span> <span class="op">=></span> ({ ...<span class="var">s</span>, _hostname: <span class="var">c</span>.hostname }))
+  ),
+  [configs] <span class="cmt">// configs가 변경될 때만 재계산</span>
+);
+
+<span class="kw">const</span> <span class="var">remoteDeviceMap</span> <span class="op">=</span> <span class="fn">useMemo</span>(() <span class="op">=></span> {
+  <span class="kw">const</span> <span class="var">map</span> <span class="op">=</span> <span class="kw">new</span> <span class="fn">Map</span>&lt;<span class="var">string</span>, <span class="var">string</span>&gt;();
+  configs.<span class="fn">forEach</span>(<span class="var">c</span> <span class="op">=></span> { <span class="kw">if</span> (<span class="var">c</span>.systemIp) <span class="var">map</span>.<span class="fn">set</span>(<span class="var">c</span>.systemIp, <span class="var">c</span>.hostname); });
+  <span class="kw">return</span> <span class="var">map</span>;
+}, [configs]);
+
+<span class="kw">const</span> <span class="var">selectedServices</span> <span class="op">=</span> <span class="fn">useMemo</span>(() <span class="op">=></span>
+  (<span class="var">allServices</span> <span class="kw">as</span> <span class="var">any</span>[]).<span class="fn">flatMap</span>(<span class="var">s</span> <span class="op">=></span> { <span class="cmt">/* 기존 로직 */</span> }),
+  [allServices, selectedServiceIds]
+);
+
+<span class="kw">const</span> <span class="var">diagrams</span> <span class="op">=</span> <span class="fn">useMemo</span>(() <span class="op">=></span> {
+  <span class="cmt">// iesDiagrams + nonIesDiagrams 계산 통합</span>
+  <span class="kw">return</span> [...<span class="var">iesDiagrams</span>, ...<span class="var">nonIesDiagrams</span>];
+}, [selectedServices, configs, remoteDeviceMap, selectedServiceIds]);</code></pre>
+      </div>
+
+      <div class="impact-row">
+        <span class="impact-tag perf">⚡ 리사이징 시 CPU 낭비 제거</span>
+        <span class="impact-tag perf">⚡ 패널 토글 시 렌더 최적화</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ISSUE 4 -->
+  <div class="issue-card medium" id="issue-4">
+    <div class="issue-header" onclick="toggleCard('issue-4')">
+      <div class="issue-num">4</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">rerender-memo · useCallback 미적용</div>
+        <div class="issue-title">V3Page 핸들러 함수 참조 불안정 — 자식 컴포넌트 불필요 리렌더</div>
+        <div class="issue-subtitle">handleToggleService, handleSetSelected 매 렌더마다 새 참조 생성</div>
+      </div>
+      <div class="issue-toggle">▾</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        <a href="../src/pages/V3Page.tsx">V3Page.tsx:167-177</a>의 두 핸들러가 <code style="color:var(--accent)">useCallback</code> 없이 정의되어
+        있습니다. <code style="color:var(--accent)">ServiceListV3</code>에 props로 전달되므로, V3Page가 어떤 이유로든 리렌더되면
+        ServiceListV3도 함께 리렌더됩니다.
+      </p>
+
+      <div class="code-block">
+        <div class="code-label bad">❌ Before — V3Page.tsx:167</div>
+        <pre><code><span class="cmt">// 매 렌더마다 새 함수 객체 생성 → ServiceListV3 불필요 리렌더</span>
+<span class="kw">const</span> <span class="fn">handleToggleService</span> <span class="op">=</span> (<span class="var">serviceKey</span>: <span class="var">string</span>) <span class="op">=></span> {
+  <span class="fn">setSelectedServiceIds</span>(<span class="var">prev</span> <span class="op">=></span>
+    <span class="var">prev</span>.<span class="fn">includes</span>(<span class="var">serviceKey</span>)
+      <span class="op">?</span> <span class="var">prev</span>.<span class="fn">filter</span>(<span class="var">key</span> <span class="op">=></span> <span class="var">key</span> <span class="op">!==</span> <span class="var">serviceKey</span>)
+      <span class="op">:</span> [...<span class="var">prev</span>, <span class="var">serviceKey</span>]
+  );
+};
+
+<span class="kw">const</span> <span class="fn">handleSetSelected</span> <span class="op">=</span> (<span class="var">serviceKeys</span>: <span class="var">string</span>[]) <span class="op">=></span> {
+  <span class="fn">setSelectedServiceIds</span>(<span class="var">serviceKeys</span>);
+};</code></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-label good">✅ After — useCallback으로 참조 안정화</div>
+        <pre><code><span class="kw">const</span> <span class="fn">handleToggleService</span> <span class="op">=</span> <span class="fn">useCallback</span>((<span class="var">serviceKey</span>: <span class="var">string</span>) <span class="op">=></span> {
+  <span class="fn">setSelectedServiceIds</span>(<span class="var">prev</span> <span class="op">=></span>
+    <span class="var">prev</span>.<span class="fn">includes</span>(<span class="var">serviceKey</span>)
+      <span class="op">?</span> <span class="var">prev</span>.<span class="fn">filter</span>(<span class="var">key</span> <span class="op">=></span> <span class="var">key</span> <span class="op">!==</span> <span class="var">serviceKey</span>)
+      <span class="op">:</span> [...<span class="var">prev</span>, <span class="var">serviceKey</span>]
+  );
+}, []); <span class="cmt">// 의존성 없음 — 함수형 setState 덕분</span>
+
+<span class="kw">const</span> <span class="fn">handleSetSelected</span> <span class="op">=</span> <span class="fn">useCallback</span>((<span class="var">serviceKeys</span>: <span class="var">string</span>[]) <span class="op">=></span> {
+  <span class="fn">setSelectedServiceIds</span>(<span class="var">serviceKeys</span>);
+}, []);</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ISSUE 5 -->
+  <div class="issue-card medium" id="issue-5">
+    <div class="issue-header" onclick="toggleCard('issue-5')">
+      <div class="issue-num">5</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">rerender-functional-setstate</div>
+        <div class="issue-title">VPRN/IES 인터페이스 핸들러 — stale closure 위험</div>
+        <div class="issue-subtitle">ServiceListV3.tsx:1265, 1283 — 클로저로 캡처된 selectedServiceIds 사용</div>
+      </div>
+      <div class="issue-toggle">▾</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        <code style="color:var(--accent)">handleServiceSelect</code>와 <code style="color:var(--accent)">handleInterfaceToggle</code>이
+        <code style="color:var(--accent)">vprnServices.map()</code> / <code style="color:var(--accent)">iesServices.map()</code> 내부에서 인라인으로 정의되어
+        렌더 시점의 <code style="color:var(--accent)">selectedServiceIds</code>를 클로저로 캡처합니다.
+        빠른 연속 클릭 시 stale한 값을 기반으로 상태가 잘못 계산될 수 있습니다.
+      </p>
+
+      <div class="code-block">
+        <div class="code-label bad">❌ Before — ServiceListV3.tsx:1265</div>
+        <pre><code><span class="kw">const</span> <span class="fn">handleServiceSelect</span> <span class="op">=</span> (<span class="var">e</span>: React.MouseEvent) <span class="op">=></span> {
+  <span class="var">e</span>.<span class="fn">stopPropagation</span>();
+  <span class="kw">let</span> <span class="var">newSelected</span> <span class="op">=</span> [...<span class="var">selectedServiceIds</span>]; <span class="cmt">// ⚠️ 캡처된 값 — stale할 수 있음</span>
+  <span class="var">newSelected</span> <span class="op">=</span> <span class="var">newSelected</span>.<span class="fn">filter</span>(<span class="var">id</span> <span class="op">=></span> ...);
+  <span class="fn">onSetSelected</span>(<span class="var">newSelected</span>);
+};</code></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-label good">✅ After — 함수형 업데이터로 최신 상태 보장</div>
+        <pre><code><span class="cmt">// V3Page.tsx: onSetSelected를 functional updater 지원으로 확장</span>
+<span class="kw">const</span> <span class="fn">handleSetSelected</span> <span class="op">=</span> <span class="fn">useCallback</span>(
+  (<span class="var">updater</span>: <span class="var">string</span>[] <span class="op">|</span> ((<span class="var">prev</span>: <span class="var">string</span>[]) <span class="op">=></span> <span class="var">string</span>[])) <span class="op">=></span> {
+    <span class="fn">setSelectedServiceIds</span>(<span class="var">updater</span>);
+  },
+  []
+);
+
+<span class="cmt">// ServiceListV3.tsx: prev를 인자로 받는 updater 형태로 변경</span>
+<span class="kw">const</span> <span class="fn">handleServiceSelect</span> <span class="op">=</span> (<span class="var">e</span>: React.MouseEvent) <span class="op">=></span> {
+  <span class="var">e</span>.<span class="fn">stopPropagation</span>();
+  <span class="fn">onSetSelected</span>(<span class="var">prev</span> <span class="op">=></span> {
+    <span class="kw">let</span> <span class="var">next</span> <span class="op">=</span> <span class="var">prev</span>.<span class="fn">filter</span>(<span class="var">id</span> <span class="op">=></span> ...); <span class="cmt">// 항상 최신 prev 사용</span>
+    <span class="kw">if</span> (!<span class="var">isAllSelected</span>) { ... }
+    <span class="kw">return</span> <span class="var">next</span>;
+  });
+};</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ISSUE 6 -->
+  <div class="issue-card medium" id="issue-6">
+    <div class="issue-header" onclick="toggleCard('issue-6')">
+      <div class="issue-num">6</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">rendering-hoist-jsx (응용)</div>
+        <div class="issue-title">mermaid.initialize() — 다이어그램마다 매 렌더 재호출</div>
+        <div class="issue-subtitle">ServiceDiagram.tsx:26 — 앱 전체에서 한 번만 실행되어야 할 초기화 코드</div>
+      </div>
+      <div class="issue-toggle">▾</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        <a href="../src/components/v3/ServiceDiagram.tsx">ServiceDiagram.tsx:26-35</a>에서
+        <code style="color:var(--accent)">mermaid.initialize()</code>가 각 ServiceDiagram 인스턴스의 <code style="color:var(--accent)">useEffect</code> 내에서
+        호출됩니다. 다이어그램이 10개 표시되면 10번 초기화가 실행됩니다.
+        mermaid 초기화는 전역 상태를 변경하므로 앱 최상위에서 한 번만 실행해야 합니다.
+      </p>
+
+      <div class="code-block">
+        <div class="code-label bad">❌ Before — ServiceDiagram.tsx:26</div>
+        <pre><code><span class="kw">useEffect</span>(() <span class="op">=></span> {
+  mermaid.<span class="fn">initialize</span>({ <span class="cmt">// ⚠️ 다이어그램마다 재실행</span>
+    startOnLoad: <span class="kw">true</span>,
+    theme: <span class="str">'default'</span>,
+    securityLevel: <span class="str">'loose'</span>,
+    flowchart: { useMaxWidth: <span class="kw">false</span>, htmlLabels: <span class="kw">true</span>, curve: <span class="str">'basis'</span> },
+  });
+  <span class="fn">renderDiagram</span>();
+}, [diagram, service.serviceId]);</code></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-label good">✅ After — main.tsx에서 앱 시작 시 한 번만</div>
+        <pre><code><span class="cmt">// main.tsx — 앱 진입점에서 단 한 번 실행</span>
+<span class="kw">import</span> <span class="var">mermaid</span> <span class="kw">from</span> <span class="str">'mermaid'</span>;
+
+mermaid.<span class="fn">initialize</span>({
+  startOnLoad: <span class="kw">false</span>, <span class="cmt">// React가 직접 렌더링하므로 false</span>
+  theme: <span class="str">'default'</span>,
+  securityLevel: <span class="str">'loose'</span>,
+  flowchart: { useMaxWidth: <span class="kw">false</span>, htmlLabels: <span class="kw">true</span>, curve: <span class="str">'basis'</span> },
+});
+
+ReactDOM.<span class="fn">createRoot</span>(...);
+
+<span class="cmt">// ServiceDiagram.tsx — initialize() 제거, render만 호출</span>
+<span class="kw">useEffect</span>(() <span class="op">=></span> {
+  <span class="kw">const</span> { <span class="var">svg</span> } <span class="op">=</span> <span class="kw">await</span> mermaid.<span class="fn">render</span>(id, diagram);
+  ...
+}, [diagram, service.serviceId]);</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION: LOW-MEDIUM ===== -->
+  <div class="section-header">
+    <span class="section-badge low">💡 LOW-MEDIUM</span>
+    <span class="section-title">JavaScript 성능 최적화</span>
+    <div class="section-divider"></div>
+  </div>
+
+  <!-- ISSUE 7 -->
+  <div class="issue-card low" id="issue-7">
+    <div class="issue-header" onclick="toggleCard('issue-7')">
+      <div class="issue-num">7</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">js-index-maps</div>
+        <div class="issue-title">configs.find() 루프 내 반복 호출 — O(n²)</div>
+        <div class="issue-subtitle">V3Page.tsx:355, 435 / ServiceListV3.tsx:352 — 루프 안에서 선형 탐색</div>
+      </div>
+      <div class="issue-toggle">▾</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        <code style="color:var(--accent)">configs.find(c =&gt; c.hostname === hostname)</code>가 루프(forEach / flatMap / map) 내부에서
+        반복 호출됩니다. configs가 N개, 루프 대상이 M개이면 O(N×M) 복잡도가 됩니다.
+        루프 시작 전 <code style="color:var(--accent)">Map</code>을 한 번만 구성하면 O(N+M)으로 개선됩니다.
+      </p>
+
+      <div class="code-block">
+        <div class="code-label bad">❌ Before — 루프 안에서 O(n) 탐색</div>
+        <pre><code><span class="cmt">// V3Page.tsx:341 — iesGroupEntries.forEach() 내부</span>
+<span class="kw">const</span> <span class="var">parentConfig</span> <span class="op">=</span> configs.<span class="fn">find</span>(<span class="var">c</span> <span class="op">=></span> <span class="var">c</span>.hostname <span class="op">===</span> <span class="var">hostname</span>); <span class="cmt">// O(n)</span>
+
+<span class="cmt">// V3Page.tsx:435 — nonIesGroupEntries.flatMap() 내부</span>
+<span class="kw">const</span> <span class="var">parentConfig</span> <span class="op">=</span> configs.<span class="fn">find</span>(<span class="var">c</span> <span class="op">=></span> <span class="var">c</span>.hostname <span class="op">===</span> <span class="var">hostname</span>); <span class="cmt">// O(n) 재실행</span></code></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-label good">✅ After — Map으로 O(1) 조회</div>
+        <pre><code><span class="cmt">// useMemo로 Map 미리 구성 (O(n), 한 번만)</span>
+<span class="kw">const</span> <span class="var">configByHostname</span> <span class="op">=</span> <span class="fn">useMemo</span>(() <span class="op">=></span>
+  <span class="kw">new</span> <span class="fn">Map</span>(configs.<span class="fn">map</span>(<span class="var">c</span> <span class="op">=></span> [<span class="var">c</span>.hostname, <span class="var">c</span>])),
+  [configs]
+);
+
+<span class="cmt">// 루프 내에서 O(1) 조회</span>
+<span class="kw">const</span> <span class="var">parentConfig</span> <span class="op">=</span> <span class="var">configByHostname</span>.<span class="fn">get</span>(<span class="var">hostname</span>);</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ISSUE 8 -->
+  <div class="issue-card low" id="issue-8">
+    <div class="issue-header" onclick="toggleCard('issue-8')">
+      <div class="issue-num">8</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">js-combine-iterations</div>
+        <div class="issue-title">Object.values(groupedServices) 4회 반복 순회</div>
+        <div class="issue-subtitle">ServiceListV3.tsx:655-658 — 동일 배열을 타입별로 4번 filter</div>
+      </div>
+      <div class="issue-toggle">▾</div>
+    </div>
+    <div class="issue-body">
+      <div class="code-block">
+        <div class="code-label bad">❌ Before — 4회 순회</div>
+        <pre><code><span class="kw">const</span> <span class="var">epipeServices</span> <span class="op">=</span> Object.<span class="fn">values</span>(<span class="var">groupedServices</span>).<span class="fn">filter</span>(<span class="var">g</span> <span class="op">=></span> <span class="var">g</span>[<span class="num">0</span>].serviceType <span class="op">===</span> <span class="str">'epipe'</span>);
+<span class="kw">const</span> <span class="var">vplsServices</span>  <span class="op">=</span> Object.<span class="fn">values</span>(<span class="var">groupedServices</span>).<span class="fn">filter</span>(<span class="var">g</span> <span class="op">=></span> <span class="var">g</span>[<span class="num">0</span>].serviceType <span class="op">===</span> <span class="str">'vpls'</span>);
+<span class="kw">const</span> <span class="var">vprnServices</span>  <span class="op">=</span> Object.<span class="fn">values</span>(<span class="var">groupedServices</span>).<span class="fn">filter</span>(<span class="var">g</span> <span class="op">=></span> <span class="var">g</span>[<span class="num">0</span>].serviceType <span class="op">===</span> <span class="str">'vprn'</span>);
+<span class="kw">const</span> <span class="var">iesServices</span>   <span class="op">=</span> Object.<span class="fn">values</span>(<span class="var">groupedServices</span>).<span class="fn">filter</span>(<span class="var">g</span> <span class="op">=></span> <span class="var">g</span>[<span class="num">0</span>].serviceType <span class="op">===</span> <span class="str">'ies'</span>);</code></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-label good">✅ After — 1회 순회로 통합</div>
+        <pre><code><span class="kw">const</span> { <span class="var">epipeServices</span>, <span class="var">vplsServices</span>, <span class="var">vprnServices</span>, <span class="var">iesServices</span> } <span class="op">=</span> <span class="fn">useMemo</span>(() <span class="op">=></span> {
+  <span class="kw">const</span> <span class="var">result</span> <span class="op">=</span> {
+    epipeServices: [] <span class="kw">as</span> <span class="var">NokiaServiceV3</span>[][],
+    vplsServices:  [] <span class="kw">as</span> <span class="var">NokiaServiceV3</span>[][],
+    vprnServices:  [] <span class="kw">as</span> <span class="var">NokiaServiceV3</span>[][],
+    iesServices:   [] <span class="kw">as</span> <span class="var">NokiaServiceV3</span>[][],
+  };
+  <span class="kw">for</span> (<span class="kw">const</span> <span class="var">group</span> <span class="kw">of</span> Object.<span class="fn">values</span>(<span class="var">groupedServices</span>)) {
+    <span class="kw">const</span> <span class="var">type</span> <span class="op">=</span> <span class="var">group</span>[<span class="num">0</span>].serviceType;
+    <span class="var">result</span>[`${<span class="var">type</span>}Services`]?.<span class="fn">push</span>(<span class="var">group</span>);
+  }
+  <span class="kw">return</span> <span class="var">result</span>;
+}, [groupedServices]);</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ISSUE 9 -->
+  <div class="issue-card low" id="issue-9">
+    <div class="issue-header" onclick="toggleCard('issue-9')">
+      <div class="issue-num">9</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">js-set-map-lookups</div>
+        <div class="issue-title">selectedServiceIds.includes() — O(n) 조회 다수 반복</div>
+        <div class="issue-subtitle">ServiceListV3.tsx:1098, 1103, 1175, 1254, 1342, 1424, 1504 등 7곳 이상</div>
+      </div>
+      <div class="issue-toggle">▾</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        <code style="color:var(--accent)">selectedServiceIds</code>는 배열입니다.
+        <code style="color:var(--accent)">.includes()</code>는 O(n) 시간 복잡도이며, 서비스 목록 렌더링 중 수십 번 반복 호출됩니다.
+        선택된 서비스가 많아질수록 성능이 저하됩니다. <code style="color:var(--accent)">Set</code>으로 변환하면 O(1)이 됩니다.
+      </p>
+
+      <div class="code-block">
+        <div class="code-label bad">❌ Before — O(n) 반복 조회</div>
+        <pre><code><span class="cmt">// 렌더 중 7곳 이상에서 O(n) 탐색</span>
+<span class="kw">const</span> <span class="var">isSelected</span> <span class="op">=</span> <span class="var">selectedServiceIds</span>.<span class="fn">includes</span>(<span class="str">`epipe-</span>${<span class="var">representative</span>.serviceId}<span class="str">`</span>);</code></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-label good">✅ After — Set으로 O(1) 조회</div>
+        <pre><code><span class="cmt">// props 또는 useMemo로 Set 생성 (한 번만)</span>
+<span class="kw">const</span> <span class="var">selectedSet</span> <span class="op">=</span> <span class="fn">useMemo</span>(
+  () <span class="op">=></span> <span class="kw">new</span> <span class="fn">Set</span>(<span class="var">selectedServiceIds</span>),
+  [selectedServiceIds]
+);
+
+<span class="cmt">// 조회 시 O(1)</span>
+<span class="kw">const</span> <span class="var">isSelected</span> <span class="op">=</span> <span class="var">selectedSet</span>.<span class="fn">has</span>(<span class="str">`epipe-</span>${<span class="var">representative</span>.serviceId}<span class="str">`</span>);</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ISSUE 10 -->
+  <div class="issue-card low" id="issue-10">
+    <div class="issue-header" onclick="toggleCard('issue-10')">
+      <div class="issue-num">10</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">rendering-hoist-jsx</div>
+        <div class="issue-title">Folder Settings 모달 오버레이 — inline style 객체 렌더마다 재생성</div>
+        <div class="issue-subtitle">V3Page.tsx:575-617 — style={{ position: 'fixed', ... }} 매 렌더 신규 객체</div>
+      </div>
+      <div class="issue-toggle">▾</div>
+    </div>
+    <div class="issue-body">
+      <div class="code-block">
+        <div class="code-label bad">❌ Before — 렌더마다 새 style 객체</div>
+        <pre><code>{<span class="var">showFolderSettings</span> <span class="op">&&</span> (
+  <span class="tag">&lt;div</span> <span class="kw">style</span><span class="op">=</span>{{
+    position: <span class="str">'fixed'</span>, top: <span class="num">0</span>, left: <span class="num">0</span>, right: <span class="num">0</span>, bottom: <span class="num">0</span>,
+    backgroundColor: <span class="str">'rgba(0, 0, 0, 0.5)'</span>, <span class="cmt">// 매 렌더 새 객체</span>
+    display: <span class="str">'flex'</span>, alignItems: <span class="str">'center'</span>, justifyContent: <span class="str">'center'</span>,
+    zIndex: <span class="num">1000</span>
+  }}&gt;</span></code></pre>
+      </div>
+      <div class="code-block">
+        <div class="code-label good">✅ After — CSS 클래스로 이동</div>
+        <pre><code><span class="cmt">/* V3Page.css */</span>
+.<span class="var">modal-overlay</span> {
+  position: fixed;
+  inset: <span class="num">0</span>;
+  background: rgba(<span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span>, .<span class="num">5</span>);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: <span class="num">1000</span>;
+}
+
+<span class="cmt">// V3Page.tsx</span>
+{<span class="var">showFolderSettings</span> <span class="op">&&</span> (
+  <span class="tag">&lt;div</span> <span class="var">className</span><span class="op">=</span><span class="str">"modal-overlay"</span><span class="tag">&gt;</span>
+    ...
+  <span class="tag">&lt;/div&gt;</span>
+)}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PLAN TABLE ===== -->
+  <div class="section-header" style="margin-top: 48px;">
+    <span class="section-badge" style="background:#f1f5f9;color:#1e293b;border:1px solid var(--border)">📋 구현 계획</span>
+    <span class="section-title">우선순위별 작업 목록</span>
+    <div class="section-divider"></div>
+  </div>
+
+  <table class="plan-table">
+    <thead>
+      <tr>
+        <th>순서</th>
+        <th>규칙</th>
+        <th>작업 내용</th>
+        <th>영향 파일</th>
+        <th>난이도</th>
+        <th>우선순위</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="font-weight:700;">1</td>
+        <td><code>bundle-barrel-imports</code></td>
+        <td>lucide-react 직접 경로 import 변경 (12개 파일)</td>
+        <td><code>src/**/*.tsx</code></td>
+        <td><span class="diff-tag medium">중</span></td>
+        <td><span class="priority-dot critical"></span><strong style="color:var(--critical)">CRITICAL</strong></td>
+      </tr>
+      <tr>
+        <td style="font-weight:700;">2</td>
+        <td><code>bundle-dynamic-imports</code></td>
+        <td>mermaid 동적 import 전환</td>
+        <td><code>ServiceDiagram.tsx</code></td>
+        <td><span class="diff-tag medium">중</span></td>
+        <td><span class="priority-dot critical"></span><strong style="color:var(--critical)">CRITICAL</strong></td>
+      </tr>
+      <tr>
+        <td style="font-weight:700;">3</td>
+        <td><code>bundle-dynamic-imports</code></td>
+        <td>AIChatPanel, DictionaryEditor React.lazy 적용</td>
+        <td><code>ServiceListV3.tsx</code></td>
+        <td><span class="diff-tag easy">하</span></td>
+        <td><span class="priority-dot critical"></span><strong style="color:var(--critical)">CRITICAL</strong></td>
+      </tr>
+      <tr>
+        <td style="font-weight:700;">4</td>
+        <td>mermaid.initialize 이동</td>
+        <td>앱 진입점(main.tsx)에서 한 번만 초기화</td>
+        <td><code>main.tsx</code>, <code>ServiceDiagram.tsx</code></td>
+        <td><span class="diff-tag easy">하</span></td>
+        <td><span class="priority-dot medium"></span><strong style="color:var(--medium)">MEDIUM</strong></td>
+      </tr>
+      <tr>
+        <td style="font-weight:700;">5</td>
+        <td><code>rerender-memo</code></td>
+        <td>V3Page 렌더 타임 계산 6종 useMemo 적용</td>
+        <td><code>V3Page.tsx</code></td>
+        <td><span class="diff-tag medium">중</span></td>
+        <td><span class="priority-dot medium"></span><strong style="color:var(--medium)">MEDIUM</strong></td>
+      </tr>
+      <tr>
+        <td style="font-weight:700;">6</td>
+        <td><code>rerender-memo</code></td>
+        <td>handleToggleService, handleSetSelected useCallback 적용</td>
+        <td><code>V3Page.tsx</code></td>
+        <td><span class="diff-tag easy">하</span></td>
+        <td><span class="priority-dot medium"></span><strong style="color:var(--medium)">MEDIUM</strong></td>
+      </tr>
+      <tr>
+        <td style="font-weight:700;">7</td>
+        <td><code>rerender-functional-setstate</code></td>
+        <td>VPRN/IES 핸들러 functional updater 패턴 적용</td>
+        <td><code>V3Page.tsx</code>, <code>ServiceListV3.tsx</code></td>
+        <td><span class="diff-tag medium">중</span></td>
+        <td><span class="priority-dot medium"></span><strong style="color:var(--medium)">MEDIUM</strong></td>
+      </tr>
+      <tr>
+        <td style="font-weight:700;">8</td>
+        <td><code>js-index-maps</code></td>
+        <td>configByHostname Map 사전 구성</td>
+        <td><code>V3Page.tsx</code>, <code>ServiceListV3.tsx</code></td>
+        <td><span class="diff-tag easy">하</span></td>
+        <td><span class="priority-dot low"></span><strong style="color:var(--low)">LOW-MED</strong></td>
+      </tr>
+      <tr>
+        <td style="font-weight:700;">9</td>
+        <td><code>js-combine-iterations</code></td>
+        <td>groupedServices 단일 순회로 통합</td>
+        <td><code>ServiceListV3.tsx</code></td>
+        <td><span class="diff-tag easy">하</span></td>
+        <td><span class="priority-dot low"></span><strong style="color:var(--low)">LOW-MED</strong></td>
+      </tr>
+      <tr>
+        <td style="font-weight:700;">10</td>
+        <td><code>js-set-map-lookups</code></td>
+        <td>selectedServiceIds → selectedSet (useMemo)</td>
+        <td><code>ServiceListV3.tsx</code></td>
+        <td><span class="diff-tag easy">하</span></td>
+        <td><span class="priority-dot low"></span><strong style="color:var(--low)">LOW-MED</strong></td>
+      </tr>
+      <tr>
+        <td style="font-weight:700;">11</td>
+        <td><code>rendering-hoist-jsx</code></td>
+        <td>모달 오버레이 inline style → CSS 클래스</td>
+        <td><code>V3Page.tsx</code>, <code>V3Page.css</code></td>
+        <td><span class="diff-tag easy">하</span></td>
+        <td><span class="priority-dot low"></span><strong style="color:var(--low)">LOW</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ===== GOOD PRACTICES ===== -->
+  <div class="section-header" style="margin-top: 48px;">
+    <span class="section-badge good">✅ 잘 구현된 부분</span>
+    <span class="section-title">현재 Best Practices 준수 항목</span>
+    <div class="section-divider"></div>
+  </div>
+
+  <div class="good-grid">
+    <div class="good-item">
+      <div class="good-icon">⚡</div>
+      <div class="good-text">
+        <strong>async-parallel — Promise.all 병렬 로드</strong>
+        <span>config-file-selected 이벤트 핸들러에서 여러 config 파일을 Promise.all로 병렬 fetch 처리</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">🔒</div>
+      <div class="good-text">
+        <strong>rerender-functional-setstate — handleToggleService</strong>
+        <span>V3Page의 handleToggleService에서 setSelectedServiceIds(prev =&gt; ...) 함수형 업데이트 올바르게 사용</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">🧠</div>
+      <div class="good-text">
+        <strong>useMemo — configSummary, DYNAMIC_EXAMPLES</strong>
+        <span>AI 패널용 configSummary와 동적 검색 예시를 useMemo로 메모이제이션하여 불필요한 재계산 방지</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">🔗</div>
+      <div class="good-text">
+        <strong>useCallback — handleAIResponse, filterIESInterfaces</strong>
+        <span>AI 응답 핸들러 및 인터페이스 필터 함수를 useCallback으로 안정적 참조 유지</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">🏃</div>
+      <div class="good-text">
+        <strong>js-early-exit — labeled break 패턴</strong>
+        <span>동적 검색 예시 생성 시 outer1:, outer2: labeled break로 조건 만족 즉시 순회 중단</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">🗺️</div>
+      <div class="good-text">
+        <strong>js-set-map-lookups — remoteDeviceMap, haIps</strong>
+        <span>원격 장비 조회 및 HA IP 집합에 Map/Set을 사용하여 O(1) 조회 구현</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">🌐</div>
+      <div class="good-text">
+        <strong>Demo 환경 감지 — WebSocket 비활성화</strong>
+        <span>hostname 기반 Demo/Cloudflare/Vercel 환경 감지로 불필요한 WebSocket 연결 시도 방지</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">⏱️</div>
+      <div class="good-text">
+        <strong>AbortController — AI API 타임아웃</strong>
+        <span>chatApi.ts에서 60초 타임아웃 + AbortController로 요청 취소 및 메모리 누수 방지</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="report-footer">
+    <p>Nokia Config Visualizer — React Performance Audit Report</p>
+    <p style="margin-top:4px;">감사 기준: <strong>Vercel React Best Practices</strong> (45 rules, 8 categories) &nbsp;·&nbsp; 생성일: 2026-02-21</p>
+  </footer>
+
+</div>
+
+<script>
+  function toggleCard(id) {
+    const card = document.getElementById(id);
+    if (card) card.classList.toggle('open');
+  }
+
+  // 페이지 로드 시 CRITICAL 항목 자동 펼침
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.issue-card.critical').forEach(card => {
+      card.classList.add('open');
+    });
+  });
+</script>
+</body>
+</html>

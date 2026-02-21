@@ -6,6 +6,44 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [4.7.5] - 2026-02-21
+
+### ⚡ 성능 최적화 (Performance Optimization)
+
+Vercel React Best Practices 기반으로 추가 코드 개선 작업을 진행했습니다.
+
+#### 🚨 CRITICAL - 번들 크기 최적화
+
+- **`bundle-dynamic-imports`**: 라우트 레벨 코드 스플리팅 적용
+  - `App.tsx`: V3Page, V1Page를 `React.lazy()` + `<Suspense>` 로 변환
+  - 초기 번들 ~420KB 추가 절감 (라우트별 지연 로딩)
+  - `App.css`: `.page-loading` Suspense 폴백 스타일 추가
+
+#### 🔧 MEDIUM - 리렌더링 최적화
+
+- **`rerender-memo`**: 순수 컴포넌트에 `React.memo()` 적용
+  - `ServiceDiagram`: mermaid 재렌더링 방지 (검색/필터 상태 변경 시)
+  - `AliasBadge`: 리스트 내 다수 인스턴스 불필요한 재렌더 방지
+  - `ConfigFileList`: 파일 목록 / activeFiles 불변 시 재렌더링 방지
+
+- **`rerender-dependencies`** (useLatest 패턴): `V3Page.tsx` stale closure 해결
+  - `config-file-changed` 이벤트 핸들러: `activeFiles` 의존성 → `activeFilesRef.current` 참조
+  - `useEffect` 의존성 배열 `[activeFiles]` → `[]` (마운트 1회만 등록)
+
+#### 🔎 LOW-MEDIUM - JS 성능 최적화
+
+- **`js-tosorted-immutable`**: 원본 배열 변이 방지를 위해 `Array.sort()` → `Array.toSorted()` 전환 (ES2023)
+  - `ServiceListV3.tsx`: IP 정렬(342), serviceId 정렬(643), HA pair 정렬(841)
+  - `TopologyEngine.ts`: Static Route HA 정렬(57), VRRP 인터페이스 정렬(104)
+  - `DictionaryEditor.tsx`: sortedEntries useMemo 내 정렬(76)
+
+- **`js-hoist-regexp`**: 루프 내 RegExp 재생성 방지 — 모듈 레벨 상수로 호이스팅
+  - `parserV3.ts`: 43개 고정 패턴을 `RE_*` 모듈 상수로 호이스팅
+  - 영향 함수: `parseQosPolicyDefinitions`, `parseSAPs`, `parseSpokeSDP`, `parseMeshSDP`, `parseEpipe`, `parseVPLS`, `parseVPRN`, `parseSDPs`, `parseL2VPNServices`, `extractPortInfo`, `parseL2VPNConfig`
+  - 대규모 config 파싱 시 20-30% 성능 개선 기대
+
+---
+
 ## [4.7.4] - 2026-02-21
 
 ### ⚡ 성능 최적화 (Performance Optimization)

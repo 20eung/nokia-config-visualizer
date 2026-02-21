@@ -54,7 +54,7 @@ export const analyzeTopology = (topology: NetworkTopology): NetworkTopology => {
 
     for (const [prefix, hops] of Object.entries(nextHopGroups)) {
         if (hops.size === 2) {
-            const [hop1, hop2] = Array.from(hops).sort((a, b) => {
+            const [hop1, hop2] = Array.from(hops).toSorted((a, b) => {
                 const numA = ipToLong(a);
                 const numB = ipToLong(b);
                 return numA - numB;
@@ -101,7 +101,7 @@ export const analyzeTopology = (topology: NetworkTopology): NetworkTopology => {
     // Add VRRP pairs to detectedPairs
     for (const [vip, interfaces] of Object.entries(vrrpGroups)) {
         if (interfaces.length === 2) {
-            const [intf1, intf2] = interfaces.sort((a, b) => {
+            const [intf1, intf2] = interfaces.toSorted((a, b) => {
                 const numA = ipToLong(a.ip);
                 const numB = ipToLong(b.ip);
                 return numA - numB;

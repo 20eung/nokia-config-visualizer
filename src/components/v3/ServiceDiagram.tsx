@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { toBlob } from 'html-to-image';
 
 // mermaid 초기화는 앱 전체에서 단 한 번만 실행 (bundle-dynamic-imports + rendering-hoist-jsx)
@@ -21,7 +21,8 @@ interface ServiceDiagramProps {
     diagramName?: string;
 }
 
-export function ServiceDiagram({ service, diagram, hostname, diagramName }: ServiceDiagramProps) {
+// rerender-memo: diagram/service props 불변 시 재렌더링 방지 (mermaid async 렌더링 비용 절감)
+export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, hostname, diagramName }: ServiceDiagramProps) {
     const diagramRef = useRef<HTMLDivElement>(null);
     const [showCode, setShowCode] = useState(false);
     const [zoom, setZoom] = useState(1);
@@ -205,4 +206,4 @@ export function ServiceDiagram({ service, diagram, hostname, diagramName }: Serv
             )}
         </div>
     );
-}
+});

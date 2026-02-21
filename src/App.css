@@ -792,3 +792,13 @@ body {
 .device-header .icon-server {
   color: var(--primary-color);
 }
+
+/* bundle-dynamic-imports: Suspense fallback loading indicator */
+.page-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}

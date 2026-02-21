@@ -22,6 +22,48 @@ import type {
 // Use NokiaService from v2 types which now includes IES
 export type NokiaServiceV3 = NokiaService;
 
+// js-hoist-regexp: 루프 내 RegExp 재생성 방지 — 모듈 레벨 상수
+const RE_DESCRIPTION = /description\s+"([^"]+)"/i;
+const RE_SERVICE_NAME = /service-name\s+"([^"]+)"/i;
+const RE_SERVICE_MTU = /service-mtu\s+(\d+)/i;
+const RE_FDB_TABLE_SIZE = /fdb-table-size\s+(\d+)/i;
+const RE_MAC_MOVE = /mac-move\b/i;
+const RE_ADDRESS = /address\s+([\d.\/]+)/i;
+const RE_MTU = /mtu\s+(\d+)/i;
+const RE_PORT = /port\s+([\w\/-]+)/i;
+const RE_SAP_CREATE = /sap\s+([\w\/-]+(?::\d+)?)\s+create/i;
+const RE_SPOKE_SDP = /spoke-sdp\s+(\d+:\d+)/i;
+const RE_VPLS = /vpls\s+"([^"]+)"/i;
+const RE_VRRP = /vrrp\s+(\d+)/i;
+const RE_VRRP_BACKUP = /backup\s+([\d.]+)/i;
+const RE_PRIORITY = /priority\s+(\d+)/i;
+const RE_INGRESS_QOS_MULTI = /ingress[\s\S]*?qos\s+(\d+)/i;
+const RE_EGRESS_QOS_MULTI = /egress[\s\S]*?qos\s+(\d+)/i;
+const RE_INGRESS_BLOCK = /ingress\s+([\s\S]*?)\s+exit/i;
+const RE_EGRESS_BLOCK = /egress\s+([\s\S]*?)\s+exit/i;
+const RE_QOS_ID = /qos\s+(\d+)/i;
+const RE_INGRESS_QOS_SIMPLE = /ingress\s+qos\s+(\d+)/i;
+const RE_EGRESS_QOS_SIMPLE = /egress\s+qos\s+(\d+)/i;
+const RE_RATE_LINE = /^rate\s+(.*)/i;
+const RE_PIR_VALUE = /pir\s+(\d+)/i;
+const RE_FIRST_NUMBER = /^(\d+)/;
+const RE_SAP_LLF = /ethernet\s[\s\S]*?llf/i;
+const RE_SAP_EXIT = /^\s+exit\b/m;
+const RE_SERVICE_START = /^(epipe|vpls|vprn|ies)\s+(\d+)(?:\s+name\s+"([^"]+)")?\s+customer\s+(\d+).*\s+create/i;
+const RE_STATIC_ROUTE_ENTRY = /static-route-entry\s+([\d.\/]+)/;
+const RE_NEXT_HOP = /next-hop\s+([\d.]+)/;
+const RE_FAR_END = /far-end\s+([\d.]+)/i;
+const RE_LSP = /lsp\s+"([^"]+)"/i;
+const RE_PORT_PHYSICAL = /^port\s+(\d+\/\d+\/\d+(?:\.\d+)?)/;
+const RE_PORT_DESCRIPTION = /^description\s+"([^"]+)"/;
+const RE_ETHERNET_MODE = /^mode\s+(\S+)/;
+const RE_ETHERNET_ENCAP = /^encap-type\s+(\S+)/;
+const RE_ETHERNET_MTU = /^mtu\s+(\d+)/;
+const RE_ETHERNET_SPEED = /^speed\s+(\S+)/;
+const RE_ETHERNET_AUTO = /^autonegotiate\s+(\S+)/;
+const RE_ETHERNET_QP = /^queue-policy\s+"?([^"]+)"?/;
+const RE_ETHERNET_ADMIN = /^admin-status\s+(\S+)/;
+
 export interface ParsedConfigV3 {
     hostname: string;
     systemIp: string;
@@ -163,21 +205,21 @@ export function parseQosPolicyDefinitions(configText: string): Map<string, { rat
             // rate 라인 파싱
             // 패턴: "rate 45000", "rate 45000 cir 45000", "rate cir 2000 pir 2000",
             //        "rate cir max", "rate max cir max"
-            const rateMatch = trimmed.match(/^rate\s+(.*)/i);
+            const rateMatch = trimmed.match(RE_RATE_LINE);
             if (rateMatch) {
                 const rateStr = rateMatch[1];
                 if (rateStr.includes('max')) {
                     isMax = true;
                 }
                 // PIR 추출: "pir <number>" 우선
-                const pirMatch = rateStr.match(/pir\s+(\d+)/i);
+                const pirMatch = rateStr.match(RE_PIR_VALUE);
                 if (pirMatch) {
                     const rate = parseInt(pirMatch[1]);
                     if (rate > maxRate) maxRate = rate;
                     continue;
                 }
                 // "rate <number>" (첫 번째 숫자 = PIR)
-                const numMatch = rateStr.match(/^(\d+)/);
+                const numMatch = rateStr.match(RE_FIRST_NUMBER);
                 if (numMatch) {
                     const rate = parseInt(numMatch[1]);
                     if (rate > maxRate) maxRate = rate;
@@ -271,7 +313,7 @@ export function parseSAPs(serviceContent: string): SAP[] {
         const vlanId = parts.length > 1 ? parseInt(parts[1]) : 0;
 
         // Description 추출
-        const descMatch = content.match(/description\s+"([^"]+)"/i);
+        const descMatch = content.match(RE_DESCRIPTION);
         const description = descMatch ? descMatch[1] : '';
 
         // QoS 정책 추출
@@ -279,12 +321,12 @@ export function parseSAPs(serviceContent: string): SAP[] {
         const egressQos = parseQosPolicy(content, 'egress');
 
         // LLF (Link Loss Forwarding) 감지
-        const llf = /ethernet\s[\s\S]*?llf/i.test(content);
+        const llf = RE_SAP_LLF.test(content);
 
         // Admin state (기본값: up)
         // SAP 자체의 shutdown/no shutdown만 확인하기 위해 SAP의 exit까지만 검사
         // (마지막 SAP의 경우 서비스 레벨 "no shutdown"이 content에 포함될 수 있으므로)
-        const exitIdx = content.search(/^\s+exit\b/m);
+        const exitIdx = content.search(RE_SAP_EXIT);
         const sapContent = exitIdx !== -1 ? content.substring(0, exitIdx) : content;
         const adminState: AdminState = sapContent.includes('shutdown') && !sapContent.includes('no shutdown') ? 'down' : 'up';
 
@@ -329,7 +371,7 @@ export function parseSpokeSDP(serviceContent: string): SpokeSDP[] {
     for (const match of matches) {
         const [, sdpIdStr, vcIdStr, content] = match;
 
-        const descMatch = content.match(/description\s+"([^"]+)"/i);
+        const descMatch = content.match(RE_DESCRIPTION);
         const description = descMatch ? descMatch[1] : '';
 
         spokeSdps.push({
@@ -355,7 +397,7 @@ export function parseMeshSDP(serviceContent: string): MeshSDP[] {
     for (const match of matches) {
         const [, sdpIdStr, vcIdStr, content] = match;
 
-        const descMatch = content.match(/description\s+"([^"]+)"/i);
+        const descMatch = content.match(RE_DESCRIPTION);
         const description = descMatch ? descMatch[1] : '';
 
         meshSdps.push({
@@ -378,16 +420,16 @@ export function parseEpipe(
     serviceName?: string
 ): EpipeService {
     // Description 추출
-    const descMatch = content.match(/description\s+"([^"]+)"/i);
+    const descMatch = content.match(RE_DESCRIPTION);
     const description = descMatch ? descMatch[1] : '';
 
     // Service Name 추출 (Explicit command inside block: service-name "...")
-    const nameMatch = content.match(/service-name\s+"([^"]+)"/i);
+    const nameMatch = content.match(RE_SERVICE_NAME);
     // If passed via arg (rarely used now) or found in content
     const finalServiceName = nameMatch ? nameMatch[1] : serviceName;
 
     // Service MTU 추출
-    const mtuMatch = content.match(/service-mtu\s+(\d+)/i);
+    const mtuMatch = content.match(RE_SERVICE_MTU);
     const serviceMtu = mtuMatch ? parseInt(mtuMatch[1]) : undefined;
 
     // Admin state - 서비스 최상위 레벨의 shutdown/no shutdown만 확인
@@ -422,23 +464,23 @@ export function parseVPLS(
     serviceName?: string
 ): VPLSService {
     // Description 추출
-    const descMatch = content.match(/description\s+"([^"]+)"/i);
+    const descMatch = content.match(RE_DESCRIPTION);
     const description = descMatch ? descMatch[1] : '';
 
     // Service Name 추출
-    const nameMatch = content.match(/service-name\s+"([^"]+)"/i);
+    const nameMatch = content.match(RE_SERVICE_NAME);
     const finalServiceName = nameMatch ? nameMatch[1] : serviceName;
 
     // Service MTU 추출
-    const mtuMatch = content.match(/service-mtu\s+(\d+)/i);
+    const mtuMatch = content.match(RE_SERVICE_MTU);
     const serviceMtu = mtuMatch ? parseInt(mtuMatch[1]) : undefined;
 
     // FDB table size 추출
-    const fdbMatch = content.match(/fdb-table-size\s+(\d+)/i);
+    const fdbMatch = content.match(RE_FDB_TABLE_SIZE);
     const fdbSize = fdbMatch ? parseInt(fdbMatch[1]) : undefined;
 
     // MAC-MOVE 감지
-    const macMoveShutdown = /mac-move\b/i.test(content);
+    const macMoveShutdown = RE_MAC_MOVE.test(content);
 
     // Admin state - 서비스 최상위 레벨의 shutdown/no shutdown만 확인
     const adminState = detectServiceAdminState(content);
@@ -478,11 +520,11 @@ export function parseVPRN(
     serviceName?: string
 ): VPRNService {
     // Description 추출
-    const descMatch = content.match(/description\s+"([^"]+)"/i);
+    const descMatch = content.match(RE_DESCRIPTION);
     const description = descMatch ? descMatch[1] : '';
 
     // Service Name 추출
-    const nameMatch = content.match(/service-name\s+"([^"]+)"/i);
+    const nameMatch = content.match(RE_SERVICE_NAME);
     const finalServiceName = nameMatch ? nameMatch[1] : serviceName;
 
     // AS & RD 추출
@@ -505,21 +547,21 @@ export function parseVPRN(
     for (const match of ifMatches) {
         const [, ifName, ifContent] = match;
 
-        const ipMatch = ifContent.match(/address\s+([\d.\/]+)/i);
-        const sapMatch = ifContent.match(/sap\s+([\w\/-]+(?::\d+)?)\s+create/i);
-        const portMatch = sapMatch || ifContent.match(/port\s+([\w\/-]+)/i);
-        const descMatch = ifContent.match(/description\s+"([^"]+)"/i);
-        const mtuMatch = ifContent.match(/mtu\s+(\d+)/i);
-        const vplsMatch = ifContent.match(/vpls\s+"([^"]+)"/i); // Routed VPLS binding
-        const spokeSdpMatch = ifContent.match(/spoke-sdp\s+(\d+:\d+)/i);
+        const ipMatch = ifContent.match(RE_ADDRESS);
+        const sapMatch = ifContent.match(RE_SAP_CREATE);
+        const portMatch = sapMatch || ifContent.match(RE_PORT);
+        const descMatch = ifContent.match(RE_DESCRIPTION);
+        const mtuMatch = ifContent.match(RE_MTU);
+        const vplsMatch = ifContent.match(RE_VPLS); // Routed VPLS binding
+        const spokeSdpMatch = ifContent.match(RE_SPOKE_SDP);
 
-        const vrrpMatch = ifContent.match(/vrrp\s+(\d+)/i);
-        const vrrpBackupMatch = ifContent.match(/backup\s+([\d.]+)/i);
-        const vrrpPriorityMatch = ifContent.match(/priority\s+(\d+)/i);
+        const vrrpMatch = ifContent.match(RE_VRRP);
+        const vrrpBackupMatch = ifContent.match(RE_VRRP_BACKUP);
+        const vrrpPriorityMatch = ifContent.match(RE_PRIORITY);
 
         // SAP 블록 내 ingress/egress QoS ID 파싱
-        const ingressQosMatch = ifContent.match(/ingress[\s\S]*?qos\s+(\d+)/i);
-        const egressQosMatch = ifContent.match(/egress[\s\S]*?qos\s+(\d+)/i);
+        const ingressQosMatch = ifContent.match(RE_INGRESS_QOS_MULTI);
+        const egressQosMatch = ifContent.match(RE_EGRESS_QOS_MULTI);
 
         interfaces.push({
             interfaceName: ifName,
@@ -784,7 +826,7 @@ export function parseVPRN(
 
     for (const line of lines) {
         // static-route-entry start
-        const entryMatch = line.match(/static-route-entry\s+([\d.\/]+)/);
+        const entryMatch = line.match(RE_STATIC_ROUTE_ENTRY);
         if (entryMatch) {
             currentPrefix = entryMatch[1];
             entryIndent = line.search(/\S/); // Count leading spaces
@@ -804,7 +846,7 @@ export function parseVPRN(
             }
 
             // Look for next-hop
-            const nhMatch = trimLine.match(/next-hop\s+([\d.]+)/);
+            const nhMatch = trimLine.match(RE_NEXT_HOP);
             if (nhMatch) {
                 staticRoutes.push({ prefix: currentPrefix, nextHop: nhMatch[1] });
             }
@@ -852,7 +894,7 @@ export function parseL2VPNServices(configText: string): NokiaServiceV3[] {
         // 7750 SR: epipe 1026 name "..." customer 1 create
         // 7210 SAS: epipe 1543 customer 1 svc-sap-type any create
         // IES: ies 10 customer 1 create
-        const match = trimmed.match(/^(epipe|vpls|vprn|ies)\s+(\d+)(?:\s+name\s+"([^"]+)")?\s+customer\s+(\d+).*\s+create/i);
+        const match = trimmed.match(RE_SERVICE_START);
         if (match) {
             const type = match[1].toLowerCase();
             const serviceId = parseInt(match[2]);
@@ -1075,7 +1117,7 @@ export function extractPortInfo(configText: string): Map<string, PortInfo> {
         const indent = line.length - line.trimStart().length;
 
         // Detect physical port block start (slot/mda/port format only)
-        const portMatch = trimmed.match(/^port\s+(\d+\/\d+\/\d+(?:\.\d+)?)/);
+        const portMatch = trimmed.match(RE_PORT_PHYSICAL);
         if (portMatch && !currentPort) {
             currentPort = portMatch[1];
             currentPortIndent = indent;
@@ -1094,7 +1136,7 @@ export function extractPortInfo(configText: string): Map<string, PortInfo> {
 
             // Port-level description
             if (!inEthernet && trimmed.startsWith('description ')) {
-                const descMatch = trimmed.match(/^description\s+"([^"]+)"/);
+                const descMatch = trimmed.match(RE_PORT_DESCRIPTION);
                 if (descMatch) {
                     portDescription = descMatch[1];
                 }
@@ -1116,27 +1158,27 @@ export function extractPortInfo(configText: string): Map<string, PortInfo> {
                     continue;
                 }
 
-                const modeMatch = trimmed.match(/^mode\s+(\S+)/);
+                const modeMatch = trimmed.match(RE_ETHERNET_MODE);
                 if (modeMatch && ethernet) ethernet.mode = modeMatch[1];
 
-                const encapMatch = trimmed.match(/^encap-type\s+(\S+)/);
+                const encapMatch = trimmed.match(RE_ETHERNET_ENCAP);
                 if (encapMatch && ethernet) ethernet.encapType = encapMatch[1];
 
-                const mtuMatch = trimmed.match(/^mtu\s+(\d+)/);
+                const mtuMatch = trimmed.match(RE_ETHERNET_MTU);
                 if (mtuMatch && ethernet) ethernet.mtu = parseInt(mtuMatch[1]);
 
-                const speedMatch = trimmed.match(/^speed\s+(\S+)/);
+                const speedMatch = trimmed.match(RE_ETHERNET_SPEED);
                 if (speedMatch && ethernet) ethernet.speed = speedMatch[1];
 
-                const autoMatch = trimmed.match(/^autonegotiate\s+(\S+)/);
+                const autoMatch = trimmed.match(RE_ETHERNET_AUTO);
                 if (autoMatch && ethernet) ethernet.autonegotiate = autoMatch[1];
 
                 // network sub-block: queue-policy
-                const nqpMatch = trimmed.match(/^queue-policy\s+"?([^"]+)"?/);
+                const nqpMatch = trimmed.match(RE_ETHERNET_QP);
                 if (nqpMatch && ethernet) ethernet.networkQueuePolicy = nqpMatch[1];
 
                 // lldp sub-block: admin-status
-                const lldpMatch = trimmed.match(/^admin-status\s+(\S+)/);
+                const lldpMatch = trimmed.match(RE_ETHERNET_ADMIN);
                 if (lldpMatch && ethernet) ethernet.lldp = lldpMatch[1];
             }
         }
@@ -1178,15 +1220,15 @@ export function parseSDPs(configText: string): SDP[] {
         const [, sdpIdStr, deliveryType, content] = match;
 
         // Far-End IP 추출
-        const farEndMatch = content.match(/far-end\s+([\d.]+)/i);
+        const farEndMatch = content.match(RE_FAR_END);
         const farEnd = farEndMatch ? farEndMatch[1] : '';
 
         // LSP 이름 추출
-        const lspMatch = content.match(/lsp\s+"([^"]+)"/i);
+        const lspMatch = content.match(RE_LSP);
         const lspName = lspMatch ? lspMatch[1] : undefined;
 
         // Description 추출
-        const descMatch = content.match(/description\s+"([^"]+)"/i);
+        const descMatch = content.match(RE_DESCRIPTION);
         const description = descMatch ? descMatch[1] : '';
 
         // Admin state
@@ -1403,41 +1445,41 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
                 const ifContent = lines.slice(blockStart, blockEnd + 1).join('\n');
 
                 // Parsing Regex
-                const ipMatch = ifContent.match(/address\s+([\d.\/]+)/i);
-                const sapMatch = ifContent.match(/sap\s+([\w\/-]+(?::\d+)?)\s+create/i);
-                const portMatch = ifContent.match(/port\s+([\w\/-]+)/i) || sapMatch;
+                const ipMatch = ifContent.match(RE_ADDRESS);
+                const sapMatch = ifContent.match(RE_SAP_CREATE);
+                const portMatch = ifContent.match(RE_PORT) || sapMatch;
                 const descMatch = ifContent.match(/description\s+"?([^"\n]+)"?/);
-                const mtuMatch = ifContent.match(/mtu\s+(\d+)/i);
-                const vplsMatch = ifContent.match(/vpls\s+"([^"]+)"/i);
-                const spokeSdpMatch = ifContent.match(/spoke-sdp\s+(\d+:\d+)/i);
+                const mtuMatch = ifContent.match(RE_MTU);
+                const vplsMatch = ifContent.match(RE_VPLS);
+                const spokeSdpMatch = ifContent.match(RE_SPOKE_SDP);
 
                 // QoS Parsing (Ingress/Egress separation)
                 let inQos: string | undefined;
                 let outQos: string | undefined;
 
                 // Try to capture ingress block
-                const ingressBlock = ifContent.match(/ingress\s+([\s\S]*?)\s+exit/i);
+                const ingressBlock = ifContent.match(RE_INGRESS_BLOCK);
                 if (ingressBlock) {
-                    const qMatch = ingressBlock[1].match(/qos\s+(\d+)/i);
+                    const qMatch = ingressBlock[1].match(RE_QOS_ID);
                     if (qMatch) inQos = qMatch[1];
                 } else {
-                    const qMatch = ifContent.match(/ingress\s+qos\s+(\d+)/i);
+                    const qMatch = ifContent.match(RE_INGRESS_QOS_SIMPLE);
                     if (qMatch) inQos = qMatch[1];
                 }
 
                 // Try to capture egress block
-                const egressBlock = ifContent.match(/egress\s+([\s\S]*?)\s+exit/i);
+                const egressBlock = ifContent.match(RE_EGRESS_BLOCK);
                 if (egressBlock) {
-                    const qMatch = egressBlock[1].match(/qos\s+(\d+)/i);
+                    const qMatch = egressBlock[1].match(RE_QOS_ID);
                     if (qMatch) outQos = qMatch[1];
                 } else {
-                    const qMatch = ifContent.match(/egress\s+qos\s+(\d+)/i);
+                    const qMatch = ifContent.match(RE_EGRESS_QOS_SIMPLE);
                     if (qMatch) outQos = qMatch[1];
                 }
 
                 // Fallback generic qos if specific direction not found
                 if (!inQos && !outQos) {
-                    const genericQos = ifContent.match(/qos\s+(\d+)/i);
+                    const genericQos = ifContent.match(RE_QOS_ID);
                     if (genericQos) inQos = genericQos[1];
                 }
 
@@ -1535,7 +1577,7 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
 
     for (const line of allLines) {
         // static-route-entry start
-        const entryMatch = line.match(/static-route-entry\s+([\d.\/]+)/);
+        const entryMatch = line.match(RE_STATIC_ROUTE_ENTRY);
         if (entryMatch) {
             currentPrefix = entryMatch[1];
             entryIndent = line.search(/\S/); // Count leading spaces
@@ -1553,7 +1595,7 @@ export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
             }
 
             // Look for next-hop
-            const nhMatch = trimLine.match(/next-hop\s+([\d.]+)/);
+            const nhMatch = trimLine.match(RE_NEXT_HOP);
             if (nhMatch) {
                 staticRoutes.push({ prefix: currentPrefix, nextHop: nhMatch[1] });
                 // Note: Do NOT reset currentPrefix here, as there might be multiple next-hops

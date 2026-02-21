@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { memo, useState, useRef, useEffect } from 'react';
 import type { MatchedEntry } from '../../services/chatApi';
 import './AliasBadge.css';
 
@@ -15,7 +15,8 @@ interface AliasBadgeProps {
  * - Keyboard accessible (Tab, Enter, Space, Escape)
  * - Matched alias highlighting
  */
-export function AliasBadge({ entry }: AliasBadgeProps) {
+// rerender-memo: entry props 불변 시 리스트 내 다수 인스턴스 재렌더링 방지
+export const AliasBadge = memo(function AliasBadge({ entry }: AliasBadgeProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const badgeRef = useRef<HTMLButtonElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -106,4 +107,4 @@ export function AliasBadge({ entry }: AliasBadgeProps) {
       )}
     </div>
   );
-}
+});

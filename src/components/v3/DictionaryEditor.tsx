@@ -73,7 +73,7 @@ export function DictionaryEditor({
 
   const sortedEntries = useMemo(() => {
     if (!sortField) return entries;
-    return [...entries].sort((a, b) => {
+    return entries.toSorted((a, b) => {
       let va: string;
       let vb: string;
       if (sortField === 'searchAliases') {
