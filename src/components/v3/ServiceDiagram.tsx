@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import mermaid from 'mermaid';
 import { toBlob } from 'html-to-image';
-import { Code, ZoomIn, ZoomOut, Maximize2, BarChart3, Copy, Check } from 'lucide-react';
+
+// mermaid 초기화는 앱 전체에서 단 한 번만 실행 (bundle-dynamic-imports + rendering-hoist-jsx)
+let mermaidInitialized = false;
+import Code from 'lucide-react/dist/esm/icons/code';
+import ZoomIn from 'lucide-react/dist/esm/icons/zoom-in';
+import ZoomOut from 'lucide-react/dist/esm/icons/zoom-out';
+import Maximize2 from 'lucide-react/dist/esm/icons/maximize-2';
+import BarChart3 from 'lucide-react/dist/esm/icons/bar-chart-3';
+import Copy from 'lucide-react/dist/esm/icons/copy';
+import Check from 'lucide-react/dist/esm/icons/check';
 import type { L2VPNService } from '../../types/services';
 import { GrafanaExportModal } from '../v3/GrafanaExportModal';
 import './ServiceDiagram.css';
@@ -22,20 +30,22 @@ export function ServiceDiagram({ service, diagram, hostname, diagramName }: Serv
 
     useEffect(() => {
         if (diagramRef.current && diagram) {
-            // Mermaid 초기화
-            mermaid.initialize({
-                startOnLoad: true,
-                theme: 'default',
-                securityLevel: 'loose',
-                flowchart: {
-                    useMaxWidth: false, // Let CSS control the width
-                    htmlLabels: true,
-                    curve: 'basis',
-                },
-            });
-
-            // 다이어그램 렌더링
+            // 다이어그램 렌더링 (mermaid 동적 import - 첫 렌더링 시점에 lazy load)
             const renderDiagram = async () => {
+                const { default: mermaid } = await import('mermaid');
+                if (!mermaidInitialized) {
+                    mermaid.initialize({
+                        startOnLoad: false,
+                        theme: 'default',
+                        securityLevel: 'loose',
+                        flowchart: {
+                            useMaxWidth: false,
+                            htmlLabels: true,
+                            curve: 'basis',
+                        },
+                    });
+                    mermaidInitialized = true;
+                }
                 try {
                     // Use serviceId AND hostname AND random string to ensure uniqueness
                     // Replace special chars in hostname for ID safety

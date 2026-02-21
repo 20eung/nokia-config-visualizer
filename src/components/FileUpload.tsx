@@ -1,5 +1,5 @@
 import React, { type ChangeEvent, useState } from 'react';
-import { Upload } from 'lucide-react';
+import Upload from 'lucide-react/dist/esm/icons/upload';
 import { FilePreviewModal } from './FilePreviewModal';
 
 interface FileUploadProps {

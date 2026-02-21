@@ -26,6 +26,7 @@ configs/*
 # Sensitive config files
 docs/202*
 docs/*.zip
+docs/consol_log.txt
 
 # Screenshots (sensitive info)
 screenshot/

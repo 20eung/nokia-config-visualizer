@@ -5,7 +5,10 @@
  */
 
 import React from 'react';
-import { FileText, RefreshCw, AlertCircle, FolderOpen } from 'lucide-react';
+import FileText from 'lucide-react/dist/esm/icons/file-text';
+import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw';
+import AlertCircle from 'lucide-react/dist/esm/icons/alert-circle';
+import FolderOpen from 'lucide-react/dist/esm/icons/folder-open';
 import type { ConfigFileListProps } from '../../types/configWebSocket';
 import { FileUpload } from '../FileUpload';
 import './ConfigFileList.css';

@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, FileText, Check, AlertCircle, Plus } from 'lucide-react';
+import X from 'lucide-react/dist/esm/icons/x';
+import FileText from 'lucide-react/dist/esm/icons/file-text';
+import Check from 'lucide-react/dist/esm/icons/check';
+import AlertCircle from 'lucide-react/dist/esm/icons/alert-circle';
+import Plus from 'lucide-react/dist/esm/icons/plus';
 
 interface FilePreviewModalProps {
     files: File[];

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
-import { Bot, X } from 'lucide-react';
+import Bot from 'lucide-react/dist/esm/icons/bot';
+import X from 'lucide-react/dist/esm/icons/x';
 import { sendChatMessage, type ChatResponse } from '../../services/chatApi';
 import type { ConfigSummary } from '../../utils/configSummaryBuilder';
 import type { DictionaryCompact } from '../../types/dictionary';

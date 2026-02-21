@@ -1,5 +1,12 @@
 import { useState, useRef, useMemo } from 'react';
-import { Sparkles, X, Plus, Trash2, ArrowUp, ArrowDown, Eraser, RotateCcw } from 'lucide-react';
+import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
+import X from 'lucide-react/dist/esm/icons/x';
+import Plus from 'lucide-react/dist/esm/icons/plus';
+import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
+import ArrowUp from 'lucide-react/dist/esm/icons/arrow-up';
+import ArrowDown from 'lucide-react/dist/esm/icons/arrow-down';
+import Eraser from 'lucide-react/dist/esm/icons/eraser';
+import RotateCcw from 'lucide-react/dist/esm/icons/rotate-ccw';
 import type { ParsedConfigV3 } from '../../utils/v3/parserV3';
 import type { NameDictionary, DictionaryEntry } from '../../types/dictionary';
 import { getUniqueDescriptions } from '../../utils/descriptionExtractor';

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { parseL2VPNConfig } from '../utils/v3/parserV3';
 import { generateServiceDiagram } from '../utils/v3/mermaidGeneratorV3';
 import type { ParsedConfigV3 } from '../utils/v3/parserV3';
@@ -6,7 +6,11 @@ import type { NokiaService, IESService, VPRNService, EpipeService } from '../typ
 import { ServiceListV3 } from '../components/v3/ServiceListV3';
 import { ServiceDiagram } from '../components/v3/ServiceDiagram';
 import { FileUpload } from '../components/FileUpload';
-import { PanelLeft, PanelLeftClose, FolderOpen, Folder as FolderIcon, X } from 'lucide-react';
+import PanelLeft from 'lucide-react/dist/esm/icons/panel-left';
+import PanelLeftClose from 'lucide-react/dist/esm/icons/panel-left-close';
+import FolderOpen from 'lucide-react/dist/esm/icons/folder-open';
+import FolderIcon from 'lucide-react/dist/esm/icons/folder';
+import X from 'lucide-react/dist/esm/icons/x';
 import { convertIESToV1Format, generateCrossDeviceIESDiagrams } from '../utils/v1IESAdapter';
 // === Auto Config Loading (auto-config-loading) ===
 import { useConfigWebSocket } from '../hooks/useConfigWebSocket';
@@ -164,17 +168,22 @@ export function V3Page() {
         };
     }, [activeFiles]); // activeFiles 의존성 추가
 
-    const handleToggleService = (serviceKey: string) => {
+    // useCallback으로 참조 안정화 → ServiceListV3 불필요 리렌더 방지 (rerender-memo)
+    const handleToggleService = useCallback((serviceKey: string) => {
         setSelectedServiceIds(prev =>
             prev.includes(serviceKey)
                 ? prev.filter(key => key !== serviceKey)
                 : [...prev, serviceKey]
         );
-    };
+    }, []); // 의존성 없음 — 함수형 setState 덕분
 
-    const handleSetSelected = (serviceKeys: string[]) => {
-        setSelectedServiceIds(serviceKeys);
-    };
+    // functional updater 지원으로 확장 → stale closure 방지 (rerender-functional-setstate)
+    const handleSetSelected = useCallback(
+        (updater: string[] | ((prev: string[]) => string[])) => {
+            setSelectedServiceIds(updater);
+        },
+        []
+    );
 
     const startResizing = (mouseDownEvent: React.MouseEvent) => {
         mouseDownEvent.preventDefault();
@@ -209,90 +218,108 @@ export function V3Page() {
         };
     }, [isResizing]);
 
-    const allServices = configs.flatMap(c =>
-        c.services.map(s => {
-            const serviceWithHostname = { ...s, _hostname: c.hostname };
+    // configs가 변경될 때만 재계산 (rerender-memo)
+    const allServices = useMemo(() =>
+        configs.flatMap(c =>
+            c.services.map(s => {
+                const serviceWithHostname = { ...s, _hostname: c.hostname };
 
-            // SAP와 Interface에도 _hostname 전파 (Grafana 쿼리문 생성용)
-            if ('saps' in serviceWithHostname && serviceWithHostname.saps) {
-                serviceWithHostname.saps = serviceWithHostname.saps.map(sap => ({ ...sap, _hostname: c.hostname }));
-            }
-            if ('interfaces' in serviceWithHostname && serviceWithHostname.interfaces) {
-                serviceWithHostname.interfaces = serviceWithHostname.interfaces.map(intf => ({ ...intf, _hostname: c.hostname }));
-            }
+                // SAP와 Interface에도 _hostname 전파 (Grafana 쿼리문 생성용)
+                if ('saps' in serviceWithHostname && serviceWithHostname.saps) {
+                    serviceWithHostname.saps = serviceWithHostname.saps.map(sap => ({ ...sap, _hostname: c.hostname }));
+                }
+                if ('interfaces' in serviceWithHostname && serviceWithHostname.interfaces) {
+                    serviceWithHostname.interfaces = serviceWithHostname.interfaces.map(intf => ({ ...intf, _hostname: c.hostname }));
+                }
 
-            return serviceWithHostname;
-        })
+                return serviceWithHostname;
+            })
+        ),
+        [configs]
     );
 
-    const selectedServices = ((allServices as any[]).flatMap(s => {
-        if (s.serviceType === 'ies') {
-            const hostname = (s as any)._hostname;
+    // allServices 또는 selectedServiceIds가 변경될 때만 재계산 (rerender-memo)
+    const selectedServices = useMemo(() =>
+        ((allServices as any[]).flatMap(s => {
+            if (s.serviceType === 'ies') {
+                const hostname = (s as any)._hostname;
 
-            if (selectedServiceIds.includes(`ies-${hostname}`)) {
+                if (selectedServiceIds.includes(`ies-${hostname}`)) {
+                    return [s];
+                }
+
+                const prefix = `ies___${hostname}___`;
+                const selectedInterfaceKeys = selectedServiceIds.filter(id => id.startsWith(prefix));
+
+                if (selectedInterfaceKeys.length > 0) {
+                    const selectedInterfaceNames = new Set(
+                        selectedInterfaceKeys.map(key => key.replace(prefix, ''))
+                    );
+
+                    const iesService = s as IESService & { _hostname: string };
+                    const filteredService = {
+                        ...iesService,
+                        interfaces: iesService.interfaces.filter((intf: any) => selectedInterfaceNames.has(intf.interfaceName))
+                    };
+                    return [filteredService];
+                }
+                return [];
+            }
+
+            if (s.serviceType === 'vprn') {
+                const hostname = (s as any)._hostname;
+                const serviceId = s.serviceId;
+
+                // Full service selection
+                if (selectedServiceIds.includes(`vprn-${serviceId}`)) {
+                    return [s];
+                }
+
+                // Individual interface selection
+                const prefix = `vprn___${serviceId}___${hostname}___`;
+                const selectedInterfaceKeys = selectedServiceIds.filter(id => id.startsWith(prefix));
+
+                if (selectedInterfaceKeys.length > 0) {
+                    const selectedInterfaceNames = new Set(
+                        selectedInterfaceKeys.map(key => key.replace(prefix, ''))
+                    );
+
+                    const vprnService = s as VPRNService & { _hostname: string };
+                    const filteredService = {
+                        ...vprnService,
+                        interfaces: vprnService.interfaces.filter((intf: any) => selectedInterfaceNames.has(intf.interfaceName))
+                    };
+                    return [filteredService];
+                }
+                return [];
+            }
+
+            if (selectedServiceIds.includes(`${s.serviceType}-${s.serviceId}`)) {
                 return [s];
             }
-
-            const prefix = `ies___${hostname}___`;
-            const selectedInterfaceKeys = selectedServiceIds.filter(id => id.startsWith(prefix));
-
-            if (selectedInterfaceKeys.length > 0) {
-                const selectedInterfaceNames = new Set(
-                    selectedInterfaceKeys.map(key => key.replace(prefix, ''))
-                );
-
-                const iesService = s as IESService & { _hostname: string };
-                const filteredService = {
-                    ...iesService,
-                    interfaces: iesService.interfaces.filter((intf: any) => selectedInterfaceNames.has(intf.interfaceName))
-                };
-                return [filteredService];
-            }
             return [];
-        }
+        })) as (NokiaService & { _hostname: string })[],
+        [allServices, selectedServiceIds]
+    );
 
-        if (s.serviceType === 'vprn') {
-            const hostname = (s as any)._hostname;
-            const serviceId = s.serviceId;
-
-            // Full service selection
-            if (selectedServiceIds.includes(`vprn-${serviceId}`)) {
-                return [s];
+    // configs가 변경될 때만 Map 재생성 (rerender-memo)
+    const remoteDeviceMap = useMemo(() => {
+        const map = new Map<string, string>();
+        configs.forEach(c => {
+            if (c.systemIp && c.hostname) {
+                map.set(c.systemIp, c.hostname);
             }
+        });
+        return map;
+    }, [configs]);
 
-            // Individual interface selection
-            const prefix = `vprn___${serviceId}___${hostname}___`;
-            const selectedInterfaceKeys = selectedServiceIds.filter(id => id.startsWith(prefix));
+    // configs가 변경될 때만 Map 재생성 (js-index-maps: O(n²) → O(n+m))
+    const configByHostname = useMemo(() =>
+        new Map(configs.map(c => [c.hostname, c])),
+        [configs]
+    );
 
-            if (selectedInterfaceKeys.length > 0) {
-                const selectedInterfaceNames = new Set(
-                    selectedInterfaceKeys.map(key => key.replace(prefix, ''))
-                );
-
-                const vprnService = s as VPRNService & { _hostname: string };
-                const filteredService = {
-                    ...vprnService,
-                    interfaces: vprnService.interfaces.filter((intf: any) => selectedInterfaceNames.has(intf.interfaceName))
-                };
-                return [filteredService];
-            }
-            return [];
-        }
-
-        if (selectedServiceIds.includes(`${s.serviceType}-${s.serviceId}`)) {
-            return [s];
-        }
-        return [];
-    })) as (NokiaService & { _hostname: string })[];
-
-    const remoteDeviceMap = new Map<string, string>();
-    configs.forEach(c => {
-        if (c.systemIp && c.hostname) {
-            remoteDeviceMap.set(c.systemIp, c.hostname);
-        }
-    });
-
-    const serviceGroups = selectedServices.reduce((acc, service) => {
+    const serviceGroups = useMemo(() => selectedServices.reduce((acc, service) => {
         let key = `${service.serviceType}-${service.serviceId}`;
 
         if (service.serviceType === 'ies') {
@@ -305,7 +332,7 @@ export function V3Page() {
         }
         acc[key].push(service);
         return acc;
-    }, {} as Record<string, typeof selectedServices>);
+    }, {} as Record<string, typeof selectedServices>), [selectedServices]);
 
     type DiagramItem = {
         service: NokiaService & { _hostname: string };
@@ -320,14 +347,16 @@ export function V3Page() {
     // IES는 호스트별로 분리되어 있으므로, 모든 IES 그룹을 통합하여
     // 크로스 디바이스 HA 페어를 감지합니다.
     // ==================================================
-    const iesGroupEntries = Object.entries(serviceGroups).filter(
-        ([, group]) => group[0].serviceType === 'ies'
+    const iesGroupEntries = useMemo(() =>
+        Object.entries(serviceGroups).filter(([, group]) => group[0].serviceType === 'ies'),
+        [serviceGroups]
     );
-    const nonIesGroupEntries = Object.entries(serviceGroups).filter(
-        ([, group]) => group[0].serviceType !== 'ies'
+    const nonIesGroupEntries = useMemo(() =>
+        Object.entries(serviceGroups).filter(([, group]) => group[0].serviceType !== 'ies'),
+        [serviceGroups]
     );
 
-    const iesDiagrams: DiagramItem[] = (() => {
+    const iesDiagrams: DiagramItem[] = useMemo(() => {
         if (iesGroupEntries.length === 0) return [];
 
         // 각 IES 호스트별로 V1 디바이스 변환 + 선택된 인터페이스 수집
@@ -351,8 +380,8 @@ export function V3Page() {
                 interfaces: mergedInterfaces,
             };
 
-            // 동일 config 내 모든 IES 서비스의 Static Routes 수집
-            const parentConfig = configs.find(c => c.hostname === hostname);
+            // 동일 config 내 모든 IES 서비스의 Static Routes 수집 (O(1) Map 조회)
+            const parentConfig = configByHostname.get(hostname);
             const aggregatedStaticRoutes: Array<{ prefix: string; nextHop: string }> = [];
 
             if (parentConfig) {
@@ -427,12 +456,12 @@ export function V3Page() {
                 description: d.description
             };
         });
-    })();
+    }, [iesGroupEntries, configByHostname, selectedServiceIds]);
 
-    const nonIesDiagrams: DiagramItem[] = nonIesGroupEntries.flatMap<DiagramItem>(([, group]) => {
+    const nonIesDiagrams: DiagramItem[] = useMemo(() => nonIesGroupEntries.flatMap<DiagramItem>(([, group]) => {
         const servicesWithContext = group.map(service => {
             const hostname = (service as any)._hostname || 'Unknown';
-            const parentConfig = configs.find(c => c.hostname === hostname);
+            const parentConfig = configByHostname.get(hostname); // O(1) Map 조회 (js-index-maps)
             return {
                 service,
                 hostname: hostname,
@@ -532,9 +561,12 @@ export function V3Page() {
             diagramName: undefined,
             description: undefined
         }];
-    });
+    }), [nonIesGroupEntries, configByHostname, remoteDeviceMap]);
 
-    const diagrams: DiagramItem[] = [...iesDiagrams, ...nonIesDiagrams];
+    const diagrams: DiagramItem[] = useMemo(() =>
+        [...iesDiagrams, ...nonIesDiagrams],
+        [iesDiagrams, nonIesDiagrams]
+    );
 
     return (
         <div className="v2-page">
@@ -573,41 +605,11 @@ export function V3Page() {
 
             {/* === Auto Config Loading: Folder Settings Modal (auto-config-loading) === */}
             {showFolderSettings && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000
-                }}>
-                    <div style={{
-                        position: 'relative',
-                        backgroundColor: '#fff',
-                        borderRadius: '8px',
-                        maxWidth: '700px',
-                        width: '90%',
-                        maxHeight: '90vh',
-                        overflow: 'auto'
-                    }}>
+                <div className="modal-overlay">
+                    <div className="modal-content">
                         <button
                             onClick={() => setShowFolderSettings(false)}
-                            style={{
-                                position: 'absolute',
-                                top: '16px',
-                                right: '16px',
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: '4px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                color: '#666'
-                            }}
+                            className="modal-close-btn"
                         >
                             <X size={24} />
                         </button>

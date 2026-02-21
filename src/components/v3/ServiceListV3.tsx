@@ -1,14 +1,20 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from 'react';
 import type { ParsedConfigV3, NokiaServiceV3 } from '../../utils/v3/parserV3';
 import type { IESService, VPRNService, L3Interface } from '../../types/services';
 import type { NameDictionary } from '../../types/dictionary';
-import { ChevronDown, ChevronRight, BookOpen } from 'lucide-react';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
+import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import { findPeerAndRoutes } from '../../utils/mermaidGenerator';
 import { convertIESToV1Format } from '../../utils/v1IESAdapter';
 import { convertVPRNToV1Format } from '../../utils/v1VPRNAdapter';
 import { isValidIPv4, parseNetwork, isIpInSubnet, type SubnetMatch } from '../../utils/ipUtils';
-import { AIChatPanel } from './AIChatPanel';
-import { DictionaryEditor } from './DictionaryEditor';
+const AIChatPanel = lazy(() =>
+    import('./AIChatPanel').then(m => ({ default: m.AIChatPanel }))
+);
+const DictionaryEditor = lazy(() =>
+    import('./DictionaryEditor').then(m => ({ default: m.DictionaryEditor }))
+);
 import { buildConfigSummary, type ConfigSummary } from '../../utils/configSummaryBuilder';
 import { toDictionaryCompact } from '../../utils/dictionaryStorage';
 import { loadDictionaryFromServer } from '../../services/dictionaryApi';
@@ -20,7 +26,7 @@ interface ServiceListProps {
     configs: ParsedConfigV3[];
     selectedServiceIds: string[];
     onToggleService: (serviceKey: string) => void;
-    onSetSelected: (serviceKeys: string[]) => void;
+    onSetSelected: (updater: string[] | ((prev: string[]) => string[])) => void;
 }
 
 /**
@@ -49,6 +55,9 @@ export function ServiceListV3({
     const [aiEnabled, setAiEnabled] = useState(false);
     const [showDictionaryEditor, setShowDictionaryEditor] = useState(false);
     const [dictionary, setDictionary] = useState<NameDictionary | null>(null);
+
+    // selectedServiceIds → Set으로 O(1) 조회 (js-set-map-lookups)
+    const selectedSet = useMemo(() => new Set(selectedServiceIds), [selectedServiceIds]);
 
     // ConfigSummary 메모이제이션 (AI 패널용)
     const configSummary = useMemo<ConfigSummary | null>(() => {
@@ -651,11 +660,24 @@ export function ServiceListV3({
         return acc;
     }, {} as Record<string, NokiaServiceV3[]>);
 
-    // 타입별 그룹화 (그룹화된 서비스 기준)
-    const epipeServices = Object.values(groupedServices).filter(group => group[0].serviceType === 'epipe');
-    const vplsServices = Object.values(groupedServices).filter(group => group[0].serviceType === 'vpls');
-    const vprnServices = Object.values(groupedServices).filter(group => group[0].serviceType === 'vprn');
-    const iesServices = Object.values(groupedServices).filter(group => group[0].serviceType === 'ies');
+    // 타입별 그룹화 — 1회 순회로 통합 (js-combine-iterations: 4회 → 1회)
+    const { epipeServices, vplsServices, vprnServices, iesServices } = useMemo(() => {
+        const result = {
+            epipeServices: [] as NokiaServiceV3[][],
+            vplsServices: [] as NokiaServiceV3[][],
+            vprnServices: [] as NokiaServiceV3[][],
+            iesServices: [] as NokiaServiceV3[][],
+        };
+        for (const group of Object.values(groupedServices)) {
+            switch (group[0].serviceType) {
+                case 'epipe': result.epipeServices.push(group); break;
+                case 'vpls':  result.vplsServices.push(group);  break;
+                case 'vprn':  result.vprnServices.push(group);  break;
+                case 'ies':   result.iesServices.push(group);   break;
+            }
+        }
+        return result;
+    }, [groupedServices]);
 
     // IES 전체 인터페이스 개수 (호스트별 그룹이므로 interface 개수를 따로 계산)
     const iesInterfaceCount = iesServices.reduce((acc, group) => {
@@ -666,13 +688,13 @@ export function ServiceListV3({
 
     // 선택된 서비스의 Type별 갯수 계산 (v4.5.0)
     const selectedEpipeCount = epipeServices.filter(group =>
-        selectedServiceIds.includes(`${group[0].serviceType}-${group[0].serviceId}`)
+        selectedSet.has(`${group[0].serviceType}-${group[0].serviceId}`)
     ).length;
     const selectedVplsCount = vplsServices.filter(group =>
-        selectedServiceIds.includes(`${group[0].serviceType}-${group[0].serviceId}`)
+        selectedSet.has(`${group[0].serviceType}-${group[0].serviceId}`)
     ).length;
     const selectedVprnCount = vprnServices.filter(group =>
-        selectedServiceIds.includes(`${group[0].serviceType}-${group[0].serviceId}`)
+        selectedSet.has(`${group[0].serviceType}-${group[0].serviceId}`)
     ).length;
 
     // 선택된 IES 인터페이스 개수 계산
@@ -680,7 +702,7 @@ export function ServiceListV3({
         const hostname = (group[0] as any)._hostname || 'Unknown';
         const fullHostKey = `ies-${hostname}`;
 
-        if (selectedServiceIds.includes(fullHostKey)) {
+        if (selectedSet.has(fullHostKey)) {
             // 전체 호스트가 선택된 경우, 모든 인터페이스 카운트
             return acc + group.reduce((sum, service) => {
                 return sum + ((service as IESService).interfaces?.length || 0);
@@ -953,14 +975,16 @@ export function ServiceListV3({
             </div>
 
             {/* AI 채팅 / 검색 */}
-            <AIChatPanel
-                configSummary={configSummary}
-                onAIResponse={handleAIResponse}
-                aiEnabled={aiEnabled}
-                onToggleAI={() => setAiEnabled(prev => !prev)}
-                dictionary={dictionaryCompact}
-                filterType={filterType}
-            />
+            <Suspense fallback={null}>
+                <AIChatPanel
+                    configSummary={configSummary}
+                    onAIResponse={handleAIResponse}
+                    aiEnabled={aiEnabled}
+                    onToggleAI={() => setAiEnabled(prev => !prev)}
+                    dictionary={dictionaryCompact}
+                    filterType={filterType}
+                />
+            </Suspense>
             {aiEnabled && configs.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px 4px' }}>
                     <button
@@ -1095,12 +1119,12 @@ export function ServiceListV3({
                                     return (
                                         <div
                                             key={representative.serviceId}
-                                            className={`service-item ${selectedServiceIds.includes(`${representative.serviceType}-${representative.serviceId}`) ? 'selected' : ''}`}
+                                            className={`service-item ${selectedSet.has(`${representative.serviceType}-${representative.serviceId}`) ? 'selected' : ''}`}
                                             onClick={() => onToggleService(`${representative.serviceType}-${representative.serviceId}`)}
                                         >
                                             <input
                                                 type="checkbox"
-                                                checked={selectedServiceIds.includes(`${representative.serviceType}-${representative.serviceId}`)}
+                                                checked={selectedSet.has(`${representative.serviceType}-${representative.serviceId}`)}
                                                 onChange={() => { }}
                                                 className="service-checkbox"
                                             />
@@ -1171,12 +1195,12 @@ export function ServiceListV3({
                                     return (
                                         <div
                                             key={representative.serviceId}
-                                            className={`service-item ${selectedServiceIds.includes(`${representative.serviceType}-${representative.serviceId}`) ? 'selected' : ''}`}
+                                            className={`service-item ${selectedSet.has(`${representative.serviceType}-${representative.serviceId}`) ? 'selected' : ''}`}
                                             onClick={() => onToggleService(`${representative.serviceType}-${representative.serviceId}`)}
                                         >
                                             <input
                                                 type="checkbox"
-                                                checked={selectedServiceIds.includes(`${representative.serviceType}-${representative.serviceId}`)}
+                                                checked={selectedSet.has(`${representative.serviceType}-${representative.serviceId}`)}
                                                 onChange={() => { }}
                                                 className="service-checkbox"
                                             />
@@ -1249,9 +1273,9 @@ export function ServiceListV3({
 
                                     // Calculate Selection State
                                     const fullServiceKey = `vprn-${serviceId}`;
-                                    const isFullServiceSelected = selectedServiceIds.includes(fullServiceKey);
+                                    const isFullServiceSelected = selectedSet.has(fullServiceKey);
                                     const selectedCount = allInterfaces.filter(intf =>
-                                        isFullServiceSelected || selectedServiceIds.includes(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`)
+                                        isFullServiceSelected || selectedSet.has(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`)
                                     ).length;
                                     const isAllSelected = allInterfaces.length > 0 && selectedCount === allInterfaces.length;
                                     const isPartialSelected = selectedCount > 0 && selectedCount < allInterfaces.length;
@@ -1262,46 +1286,43 @@ export function ServiceListV3({
                                         setExpandedVPRNServices(prev => ({ ...prev, [serviceKey]: !prev[serviceKey] }));
                                     };
 
+                                    // functional updater 패턴 — stale closure 방지 (rerender-functional-setstate)
                                     const handleServiceSelect = (e: React.MouseEvent) => {
                                         e.stopPropagation();
-                                        let newSelected = [...selectedServiceIds];
-
-                                        // Remove full service key and all specific keys for this service
-                                        newSelected = newSelected.filter(id =>
-                                            id !== fullServiceKey && !id.startsWith(`vprn___${serviceId}___${hostname}___`)
-                                        );
-
-                                        if (!isAllSelected) {
-                                            // Select All: Add individual keys for granular control
-                                            allInterfaces.forEach(intf => {
-                                                newSelected.push(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`);
-                                            });
-                                        }
-                                        onSetSelected(newSelected);
+                                        onSetSelected(prev => {
+                                            let newSelected = prev.filter(id =>
+                                                id !== fullServiceKey && !id.startsWith(`vprn___${serviceId}___${hostname}___`)
+                                            );
+                                            if (!isAllSelected) {
+                                                // Select All: Add individual keys for granular control
+                                                allInterfaces.forEach(intf => {
+                                                    newSelected.push(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`);
+                                                });
+                                            }
+                                            return newSelected;
+                                        });
                                     };
 
                                     const handleInterfaceToggle = (interfaceName: string) => {
                                         const specificKey = `vprn___${serviceId}___${hostname}___${interfaceName}`;
-                                        let newSelected = [...selectedServiceIds];
-
-                                        // If full service currently selected, explode it
-                                        if (newSelected.includes(fullServiceKey)) {
-                                            newSelected = newSelected.filter(id => id !== fullServiceKey);
-                                            // Add all other interfaces
-                                            allInterfaces.forEach(intf => {
-                                                if (intf.interfaceName !== interfaceName) {
-                                                    newSelected.push(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`);
-                                                }
-                                            });
-                                            // Don't add specificKey (we are toggling it OFF)
-                                        } else {
-                                            if (newSelected.includes(specificKey)) {
-                                                newSelected = newSelected.filter(id => id !== specificKey);
-                                            } else {
-                                                newSelected.push(specificKey);
+                                        onSetSelected(prev => {
+                                            // If full service currently selected, explode it
+                                            if (prev.includes(fullServiceKey)) {
+                                                const newSelected = prev.filter(id => id !== fullServiceKey);
+                                                // Add all other interfaces
+                                                allInterfaces.forEach(intf => {
+                                                    if (intf.interfaceName !== interfaceName) {
+                                                        newSelected.push(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`);
+                                                    }
+                                                });
+                                                // Don't add specificKey (we are toggling it OFF)
+                                                return newSelected;
                                             }
-                                        }
-                                        onSetSelected(newSelected);
+                                            if (prev.includes(specificKey)) {
+                                                return prev.filter(id => id !== specificKey);
+                                            }
+                                            return [...prev, specificKey];
+                                        });
                                     };
 
                                     return (
@@ -1339,7 +1360,7 @@ export function ServiceListV3({
                                             {isServiceExpanded && (
                                                 <div className="subgroup-items" style={{ padding: '8px' }}>
                                                     {allInterfaces.map((intf) => {
-                                                        const isSelected = isFullServiceSelected || selectedServiceIds.includes(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`);
+                                                        const isSelected = isFullServiceSelected || selectedSet.has(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`);
                                                         return (
                                                             <div
                                                                 key={`${hostname}-vprn-${serviceId}-${intf.interfaceName}`}
@@ -1419,9 +1440,9 @@ export function ServiceListV3({
                                     const isHostExpanded = expandedIESHosts[hostname];
 
                                     // Calculate Selection State
-                                    const isFullHostSelected = selectedServiceIds.includes(fullHostKey);
+                                    const isFullHostSelected = selectedSet.has(fullHostKey);
                                     const selectedCount = allInterfaces.filter(intf =>
-                                        isFullHostSelected || selectedServiceIds.includes(`ies___${hostname}___${intf.interfaceName}`)
+                                        isFullHostSelected || selectedSet.has(`ies___${hostname}___${intf.interfaceName}`)
                                     ).length;
                                     const isAllSelected = allInterfaces.length > 0 && selectedCount === allInterfaces.length;
                                     const isPartialSelected = selectedCount > 0 && selectedCount < allInterfaces.length;
@@ -1432,46 +1453,43 @@ export function ServiceListV3({
                                         setExpandedIESHosts(prev => ({ ...prev, [hostname]: !prev[hostname] }));
                                     };
 
+                                    // functional updater 패턴 — stale closure 방지 (rerender-functional-setstate)
                                     const handleHostSelect = (e: React.MouseEvent) => {
                                         e.stopPropagation();
-                                        let newSelected = [...selectedServiceIds];
-
-                                        // Remove full host key and all specific keys for this host
-                                        newSelected = newSelected.filter(id =>
-                                            id !== fullHostKey && !id.startsWith(`ies___${hostname}___`)
-                                        );
-
-                                        if (!isAllSelected) {
-                                            // Select All: Add individual keys for granular control
-                                            allInterfaces.forEach(intf => {
-                                                newSelected.push(`ies___${hostname}___${intf.interfaceName}`);
-                                            });
-                                        }
-                                        onSetSelected(newSelected);
+                                        onSetSelected(prev => {
+                                            let newSelected = prev.filter(id =>
+                                                id !== fullHostKey && !id.startsWith(`ies___${hostname}___`)
+                                            );
+                                            if (!isAllSelected) {
+                                                // Select All: Add individual keys for granular control
+                                                allInterfaces.forEach(intf => {
+                                                    newSelected.push(`ies___${hostname}___${intf.interfaceName}`);
+                                                });
+                                            }
+                                            return newSelected;
+                                        });
                                     };
 
                                     const handleInterfaceToggle = (interfaceName: string) => {
                                         const specificKey = `ies___${hostname}___${interfaceName}`;
-                                        let newSelected = [...selectedServiceIds];
-
-                                        // If full host currently selected, explode it
-                                        if (newSelected.includes(fullHostKey)) {
-                                            newSelected = newSelected.filter(id => id !== fullHostKey);
-                                            // Add all other interfaces
-                                            allInterfaces.forEach(intf => {
-                                                if (intf.interfaceName !== interfaceName) {
-                                                    newSelected.push(`ies___${hostname}___${intf.interfaceName}`);
-                                                }
-                                            });
-                                            // Don't add specificKey (we are toggling it OFF)
-                                        } else {
-                                            if (newSelected.includes(specificKey)) {
-                                                newSelected = newSelected.filter(id => id !== specificKey);
-                                            } else {
-                                                newSelected.push(specificKey);
+                                        onSetSelected(prev => {
+                                            // If full host currently selected, explode it
+                                            if (prev.includes(fullHostKey)) {
+                                                const newSelected = prev.filter(id => id !== fullHostKey);
+                                                // Add all other interfaces
+                                                allInterfaces.forEach(intf => {
+                                                    if (intf.interfaceName !== interfaceName) {
+                                                        newSelected.push(`ies___${hostname}___${intf.interfaceName}`);
+                                                    }
+                                                });
+                                                // Don't add specificKey (we are toggling it OFF)
+                                                return newSelected;
                                             }
-                                        }
-                                        onSetSelected(newSelected);
+                                            if (prev.includes(specificKey)) {
+                                                return prev.filter(id => id !== specificKey);
+                                            }
+                                            return [...prev, specificKey];
+                                        });
                                     };
 
                                     return (
@@ -1501,7 +1519,7 @@ export function ServiceListV3({
                                                 <div className="subgroup-items" style={{ padding: '8px' }}>
                                                     {/* Quick Filters (Optional, can add later) */}
                                                     {allInterfaces.map((intf) => {
-                                                        const isSelected = isFullHostSelected || selectedServiceIds.includes(`ies___${hostname}___${intf.interfaceName}`);
+                                                        const isSelected = isFullHostSelected || selectedSet.has(`ies___${hostname}___${intf.interfaceName}`);
                                                         return (
                                                             <div
                                                                 key={`${hostname}-${intf._parentService.serviceId}-${intf.interfaceName}`}
@@ -1559,12 +1577,14 @@ export function ServiceListV3({
 
             {/* Dictionary Editor 모달 */}
             {showDictionaryEditor && (
-                <DictionaryEditor
-                    configs={configs}
-                    dictionary={dictionary}
-                    onSave={(dict) => setDictionary(dict)}
-                    onClose={() => setShowDictionaryEditor(false)}
-                />
+                <Suspense fallback={null}>
+                    <DictionaryEditor
+                        configs={configs}
+                        dictionary={dictionary}
+                        onSave={(dict) => setDictionary(dict)}
+                        onClose={() => setShowDictionaryEditor(false)}
+                    />
+                </Suspense>
             )}
         </div>
     );
