@@ -295,11 +295,14 @@ rm .git/hooks/post-commit
 | v4.4.0 | 2026-02-16 | 3-Field Dictionary (name, configKeywords, searchAliases), 양방향 검색 |
 | v4.4.0+ | 2026-02-18 | 환경변수 중앙 관리 (config.ts), 동적 버전 관리 (package.json) |
 | v4.6.1 | 2026-02-19 | AND/OR 검색 catch-all 강화, 백엔드 TypeScript 오류 수정 |
+| v4.7.0 | 2026-02-20 | 자동 Config 로딩 (chokidar + WebSocket), 멀티파일 선택, 사이드바 개선 |
+| v4.7.1 | 2026-02-20 | Demo 환경에서 WebSocket 연결 시도 방지 |
+| v4.7.4 | 2026-02-21 | React 성능 최적화 (bundle-barrel-imports, dynamic-imports, useMemo/useCallback, Set/Map) |
 
 상세 변경 이력은 `CHANGELOG.md` 참조.
 
 ---
 
-**Last Updated**: 2026-02-19
-**Current Version**: v4.6.1 (Auto-versioning enabled)
+**Last Updated**: 2026-02-21
+**Current Version**: v4.7.4 (Auto-versioning enabled)
 **Branch**: v4-development

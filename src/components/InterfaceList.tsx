@@ -1,7 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import type { NokiaDevice, NetworkTopology } from '../types';
 import { findPeerAndRoutes } from '../utils/mermaidGenerator';
-import { CheckSquare, Square, Network, Search, Server, ChevronDown, ChevronRight } from 'lucide-react';
+import CheckSquare from 'lucide-react/dist/esm/icons/check-square';
+import Square from 'lucide-react/dist/esm/icons/square';
+import Network from 'lucide-react/dist/esm/icons/network';
+import Search from 'lucide-react/dist/esm/icons/search';
+import Server from 'lucide-react/dist/esm/icons/server';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 
 interface InterfaceListProps {
     devices: NokiaDevice[];

@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { FileText, ChevronDown } from 'lucide-react';
+import FileText from 'lucide-react/dist/esm/icons/file-text';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 
 interface ConfigSelectorProps {
     onConfigLoaded: (contents: string[]) => void;

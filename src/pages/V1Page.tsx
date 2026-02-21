@@ -6,7 +6,7 @@ import { FileUpload } from '../components/FileUpload';
 import { ConfigSelector } from '../components/ConfigSelector';
 import { InterfaceList } from '../components/InterfaceList';
 import { DiagramViewer } from '../components/DiagramViewer';
-import { Menu } from 'lucide-react';
+import Menu from 'lucide-react/dist/esm/icons/menu';
 import './V1Page.css';
 
 export function V1Page() {

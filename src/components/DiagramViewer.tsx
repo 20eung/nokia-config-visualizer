@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import mermaid from 'mermaid';
 import { toPng } from 'html-to-image';
-import { ZoomIn, ZoomOut, Download, ChevronDown, Code, Copy, Check } from 'lucide-react';
+import ZoomIn from 'lucide-react/dist/esm/icons/zoom-in';
+import ZoomOut from 'lucide-react/dist/esm/icons/zoom-out';
+import Download from 'lucide-react/dist/esm/icons/download';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
+import Code from 'lucide-react/dist/esm/icons/code';
+import Copy from 'lucide-react/dist/esm/icons/copy';
+import Check from 'lucide-react/dist/esm/icons/check';
 
 interface DiagramViewerProps {
   diagrams: Array<{ name: string; code: string; description: string }>;
@@ -26,12 +32,8 @@ export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
   // Track which diagrams have been copied
   const [copiedFor, setCopiedFor] = useState<Set<number>>(new Set());
 
+  // mermaid 초기화는 앱 전체에서 단 한 번만 실행 (rendering-hoist-jsx)
   useEffect(() => {
-    if (diagrams.length === 0) {
-      setRenderedDiagrams([]);
-      return;
-    }
-
     mermaid.initialize({
       startOnLoad: false,
       theme: 'base',
@@ -50,6 +52,13 @@ export const DiagramViewer: React.FC<DiagramViewerProps> = ({ diagrams }) => {
         useMaxWidth: true,
       },
     });
+  }, []);
+
+  useEffect(() => {
+    if (diagrams.length === 0) {
+      setRenderedDiagrams([]);
+      return;
+    }
 
     const renderPromises = diagrams.map((diagram, index) => {
       const id = `mermaid-chart-${index}`;

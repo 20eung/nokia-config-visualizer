@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v4.7.2** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 + 자동 Config 로딩 + Mermaid 코드 생성 + Grafana 쿼리 생성
+> 🚀 **v4.7.4** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 + 자동 Config 로딩 + Mermaid 코드 생성 + Grafana 쿼리 생성
 
 ![Application Screenshot](./public/demo-main.png)
 
@@ -449,7 +449,31 @@ docker-compose up -d
 - `.env.example` 파일 참고
 - `docs/02-design/features/ai-chat-search.design.md` 참고
 
-## 6. 📂 프로젝트 구조
+## 6. ⚡ 성능 최적화 (v4.7.4)
+
+### 번들 크기 축소
+
+| 최적화 항목 | 변경 전 | 변경 후 |
+|------------|---------|---------|
+| lucide-react import | `from 'lucide-react'` (배럴) | `from 'lucide-react/dist/esm/icons/<icon>'` (직접 경로) |
+| mermaid 로딩 | 정적 import (초기 번들 포함) | `await import('mermaid')` (동적) |
+| AIChatPanel | 정적 import | `React.lazy()` + `<Suspense>` |
+| DictionaryEditor | 정적 import | `React.lazy()` + `<Suspense>` |
+
+### 리렌더링 감소
+
+- **useMemo 적용**: V3Page 10개, ServiceListV3 4개 파생 값 메모이제이션
+- **useCallback 적용**: `handleToggleService`, `handleSetSelected` 핸들러 안정화
+- **functional updater**: VPRN/IES 핸들러에 `setState(prev => ...)` 패턴 적용 (stale closure 방지)
+- **mermaid 초기화 1회**: 컴포넌트 마운트마다 중복 초기화 제거
+
+### 알고리즘 개선
+
+- **O(n²) → O(n)**: `configs.find()` 루프 → `Map` 기반 O(1) hostname 조회
+- **O(n) → O(1)**: `selectedServiceIds.includes()` → `Set.has()` (14개소)
+- **4회 → 1회 순회**: groupedServices 서비스 타입 분류 단일 패스 처리
+
+## 7. 📂 프로젝트 구조
 
 ```
 nokia-config-visualizer/

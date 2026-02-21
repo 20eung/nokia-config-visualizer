@@ -5,7 +5,9 @@
  */
 
 import React from 'react';
-import { Folder, Info, CheckCircle } from 'lucide-react';
+import Folder from 'lucide-react/dist/esm/icons/folder';
+import Info from 'lucide-react/dist/esm/icons/info';
+import CheckCircle from 'lucide-react/dist/esm/icons/check-circle';
 import './FolderPathSettings.css';
 
 export const FolderPathSettings: React.FC = () => {

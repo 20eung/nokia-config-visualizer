@@ -6,6 +6,72 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [4.7.4] - 2026-02-21
+
+### ⚡ 성능 최적화 (Performance Optimization)
+
+Vercel React Best Practices 기반으로 번들 크기 축소 및 런타임 성능을 대폭 개선했습니다.
+
+#### 🚨 CRITICAL - 번들 크기 최적화 (Bundle Size Optimization)
+
+- **`bundle-barrel-imports`**: lucide-react 배럴 임포트 → 직접 경로 임포트로 변경 (14개 파일)
+  - `from 'lucide-react'` → `from 'lucide-react/dist/esm/icons/<icon>'`
+  - Tree-shaking 활성화로 사용하지 않는 아이콘 번들에서 완전 제거
+  - 수정 파일: `V3Page.tsx`, `V1Page.tsx`, `ServiceListV3.tsx`, `ServiceDiagram.tsx`, `DiagramViewer.tsx`, `AIChatPanel.tsx`, `DictionaryEditor.tsx`, `GrafanaExportModal.tsx`, `ConfigFileList.tsx`, `FolderPathSettings.tsx`, `ConfigSelector.tsx`, `InterfaceList.tsx`, `FileUpload.tsx`, `FilePreviewModal.tsx`
+
+- **`bundle-dynamic-imports`**: 무거운 라이브러리 및 모달 컴포넌트 동적 임포트 적용
+  - `ServiceDiagram.tsx`: `import mermaid from 'mermaid'` (정적) → `await import('mermaid')` (동적)
+  - `ServiceListV3.tsx`: `AIChatPanel`, `DictionaryEditor` → `React.lazy()` + `<Suspense fallback={null}>` 적용
+  - 초기 번들에서 mermaid 및 무거운 모달 컴포넌트 제거
+
+#### 🔧 MEDIUM - 리렌더링 최적화 (Re-render Optimization)
+
+- **`rerender-memo`**: V3Page 렌더링 시마다 재계산되던 파생 값들에 `useMemo` 적용 (10개)
+  - `allServices`, `selectedServices`, `remoteDeviceMap`, `serviceGroups`
+  - `iesGroupEntries`, `nonIesGroupEntries`, `iesDiagrams`, `nonIesDiagrams`, `diagrams`
+  - `ServiceListV3.tsx`: `epipeServices`, `vplsServices`, `vprnServices`, `iesServices` 분류도 `useMemo` 적용
+
+- **`rerender-memo` (useCallback)**: V3Page 이벤트 핸들러에 `useCallback` 적용
+  - `handleToggleService`, `handleSetSelected` → `useCallback` 래핑으로 불필요한 하위 컴포넌트 리렌더 방지
+
+- **`rerender-functional-setstate`**: Stale closure 위험 핸들러 개선
+  - VPRN `handleServiceSelect`, `handleInterfaceToggle` → `onSetSelected(prev => ...)` functional updater 패턴 적용
+  - IES `handleHostSelect`, `handleInterfaceToggle` → 동일한 functional updater 패턴 적용
+
+- **`rendering-hoist-jsx`**: `mermaid.initialize()` 컴포넌트 마운트마다 중복 호출 제거
+  - `DiagramViewer.tsx`: `useEffect(fn, [diagrams])` 안에 있던 initialize 로직 → `useEffect(fn, [])` 분리
+  - `ServiceDiagram.tsx`: 모듈 레벨 `mermaidInitialized` 플래그로 최초 1회만 초기화
+
+#### 🔎 LOW-MEDIUM - JS 성능 최적화 (JavaScript Performance)
+
+- **`js-index-maps`**: `configs.find()` O(n) 선형 탐색 → Map O(1) 조회로 개선
+  - `configByHostname = useMemo(() => new Map(configs.map(c => [c.hostname, c])), [configs])`
+  - `iesDiagrams`, `nonIesDiagrams` 생성 시 `configByHostname.get()` 사용
+
+- **`js-set-map-lookups`**: `selectedServiceIds.includes()` O(n) → `Set.has()` O(1) 전환
+  - `selectedSet = useMemo(() => new Set(selectedServiceIds), [selectedServiceIds])`
+  - `ServiceListV3.tsx` 내 14개 `.includes()` 호출 전체 대체
+
+- **`js-combine-iterations`**: `Object.values(groupedServices).filter(type === X)` 4회 반복 → 단일 패스 처리
+  - switch 문 기반 단일 `for...of` 루프로 `epipe/vpls/vprn/ies` 분류 동시 처리
+
+#### 🎨 LOW - CSS 최적화 (Rendering Optimization)
+
+- **`rendering-hoist-jsx`**: 모달 인라인 style 객체 → CSS 클래스 분리 (`V3Page.tsx` / `V3Page.css`)
+  - `style={{position: 'fixed', inset: 0, ...}}` → `.modal-overlay` CSS 클래스
+  - `style={{background: '#fff', borderRadius: '8px', ...}}` → `.modal-content` CSS 클래스
+  - `style={{position: 'absolute', top: '16px', ...}}` → `.modal-close-btn` CSS 클래스
+  - 렌더링마다 새 객체 생성 방지 (참조 안정성 확보)
+
+### 🐛 버그 수정 (Bug Fixes)
+
+- **TypeScript TS7016 오류 수정**: lucide-react 직접 경로 임포트에 대한 타입 선언 추가
+  - `src/types/lucide-react-paths.d.ts` 생성: 와일드카드 ambient 모듈 선언
+  - `declare module 'lucide-react/dist/esm/icons/*'` 패턴 적용
+  - Docker 환경 `tsc -b` 빌드 오류 해결 (최상위 import 제거 → declare module 내부로 이동)
+
+---
+
 ## [4.7.1] - 2026-02-20
 
 ### 🐛 버그 수정 (Bug Fixes)

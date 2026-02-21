@@ -4,7 +4,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { X, Copy } from 'lucide-react';
+import X from 'lucide-react/dist/esm/icons/x';
+import Copy from 'lucide-react/dist/esm/icons/copy';
 import { generateGrafanaQueries } from '../../utils/grafana/queryGenerator';
 import type { NokiaService } from '../../types/services';
 import type { GrafanaQuery } from '../../types/grafana';
