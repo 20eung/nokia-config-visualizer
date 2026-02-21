@@ -6,6 +6,56 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [4.8.0] - 2026-02-21
+
+### 🤖 NCV AI Collaboration Platform
+
+Nokia Config Visualizer를 AI 협업 미들웨어로 확장하는 플랫폼 기능을 추가했습니다.
+
+#### Feature 1: Structured JSON Output API
+
+- **ConfigStore** (`server/src/services/configStore.ts`): 파싱된 Config 결과를 In-Memory Map으로 관리하는 싱글톤 저장소
+- **NCV REST API** (`server/src/routes/ncv.ts`): 8개 엔드포인트 신규 추가
+  - `POST /api/ncv/analyze` — 프론트엔드 파싱 결과 백엔드 동기화
+  - `GET /api/ncv/services` — 서비스 목록 (type/hostname/q 필터)
+  - `GET /api/ncv/services/:serviceKey` — 서비스 상세 조회
+  - `GET /api/ncv/topology` — 토폴로지 (JSON/Mermaid)
+  - `GET /api/ncv/devices` — 장비 목록
+  - `GET /api/ncv/search` — 키워드 검색
+  - `GET /api/ncv/export` — 전체 데이터 내보내기 (JSON/Mermaid)
+  - `GET /api/ncv/stats` — 시스템 통계
+- **useConfigSync** (`src/hooks/useConfigSync.ts`): Config 로드 시 백엔드 자동 동기화 React 훅
+- **V3Page 통합**: `useConfigSync(parsedConfigs)` 1줄 추가로 자동 활성화
+
+#### Feature 2: MCP Server (Model Context Protocol)
+
+- **MCP 도구 정의** (`server/src/services/mcpTools.ts`): 7개 도구 스펙 (get_services, get_service_detail, get_topology, search_config, get_devices, get_stats, get_ha_pairs)
+- **stdio MCP 서버** (`server/src/mcp-server.ts`): Claude Desktop, Cursor 등에서 직접 연결 가능한 독립 실행 서버
+- **HTTP MCP 엔드포인트** (`POST/GET /mcp`): 웹 기반 AI 에이전트용 HTTP transport
+
+#### Feature 3: Semantic Search (RAG Indexing)
+
+- **청크 빌더** (`server/src/services/chunkBuilder.ts`): 서비스 데이터 → 자연어 텍스트 청크 변환
+- **임베딩 서비스** (`server/src/services/embeddingService.ts`): Amazon Titan Embed Text v2 (Bedrock) 기반 벡터 생성
+- **RAG 인덱서** (`server/src/services/ragIndexer.ts`): vectra 로컬 파일 기반 벡터 DB
+- **RAG 엔드포인트**:
+  - `POST /api/ncv/index` — 벡터 인덱스 빌드 트리거
+  - `POST /api/ncv/semantic-search` — 자연어 시맨틱 검색
+  - `GET /api/ncv/index/status` — 인덱스 상태 조회
+- **AI 챗봇 개선**: `claudeClient.ts`에 RAG 컨텍스트 자동 주입 파라미터 추가
+
+#### 설정 & 인프라
+
+- **환경변수** (`server/src/config.ts`): RAG 관련 설정 추가 (`RAG_INDEX_PATH`, `EMBEDDING_MODEL`)
+- **Docker** (`server/Dockerfile`, `docker-compose.yml`): RAG 인덱스 디렉토리 생성 및 환경변수 추가
+- **패키지** (`server/package.json`): `@modelcontextprotocol/sdk@^1.15.0`, `vectra@^0.9.0` 추가
+
+#### UI 변경
+
+- 앱 헤더 이름: `AI Visualizer` → `AI Platform Visualizer`
+
+---
+
 ## [4.7.5] - 2026-02-21
 
 ### ⚡ 성능 최적화 (Performance Optimization)
