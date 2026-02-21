@@ -13,7 +13,8 @@ import type { ConfigFileListProps } from '../../types/configWebSocket';
 import { FileUpload } from '../FileUpload';
 import './ConfigFileList.css';
 
-export const ConfigFileList: React.FC<ConfigFileListProps> = ({
+// rerender-memo: props(files, activeFiles) 불변 시 재렌더링 방지
+const ConfigFileListImpl: React.FC<ConfigFileListProps> = ({
   files,
   groups,
   activeFiles,
@@ -176,3 +177,5 @@ export const ConfigFileList: React.FC<ConfigFileListProps> = ({
     </div>
   );
 };
+
+export const ConfigFileList = React.memo(ConfigFileListImpl);

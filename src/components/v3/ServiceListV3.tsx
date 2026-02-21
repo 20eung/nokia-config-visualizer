@@ -338,8 +338,8 @@ export function ServiceListV3({
             }
         });
 
-        // Longest Prefix Match 정렬 (ipMatches를 직접 정렬)
-        const sortedIpMatches = ipMatches.sort((a, b) => {
+        // Longest Prefix Match 정렬 (js-tosorted-immutable: 원본 배열 보존)
+        const sortedIpMatches = ipMatches.toSorted((a, b) => {
             // prefixLen이 큰 것이 더 구체적 (우선순위 높음)
             if (a.match.prefixLen !== b.match.prefixLen) {
                 return b.match.prefixLen - a.match.prefixLen;
@@ -640,7 +640,7 @@ export function ServiceListV3({
         }
             return service;
         }).filter((service): service is NokiaServiceV3 => service !== null) // null 제거 + 타입 가드
-          .sort((a, b) => a.serviceId - b.serviceId);
+          .toSorted((a, b) => a.serviceId - b.serviceId);
     }
 
     // 서비스를 serviceId와 serviceType별로 그룹화
@@ -838,7 +838,7 @@ export function ServiceListV3({
 
         for (const [prefix, hops] of Object.entries(nextHopGroups)) {
             if (hops.size === 2) {
-                const [hop1, hop2] = Array.from(hops).sort();
+                const [hop1, hop2] = Array.from(hops).toSorted();
                 haPairs.push({ prefix, nextHop1: hop1, nextHop2: hop2 });
                 console.log(`✅ [HA Filter] HA Pair candidate: ${prefix} → ${hop1} & ${hop2}`);
             }

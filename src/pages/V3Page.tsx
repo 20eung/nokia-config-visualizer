@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { parseL2VPNConfig } from '../utils/v3/parserV3';
 import { generateServiceDiagram } from '../utils/v3/mermaidGeneratorV3';
 import type { ParsedConfigV3 } from '../utils/v3/parserV3';
@@ -138,6 +138,13 @@ export function V3Page() {
         };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // rerender-dependencies: useRef로 최신 activeFiles 추적
+    // → 이벤트 리스너를 마운트 1회만 등록하면서 stale closure 방지
+    const activeFilesRef = useRef(activeFiles);
+    useEffect(() => {
+        activeFilesRef.current = activeFiles;
+    });
+
     // config-file-changed 이벤트 리스닝 (파일 변경 시 자동 재파싱)
     useEffect(() => {
         const handleFileChanged = async (event: Event) => {
@@ -147,9 +154,9 @@ export function V3Page() {
             console.log(`[V3Page] Auto-reloading changed file: ${filename}`);
 
             try {
-                // activeFiles의 모든 파일을 다시 로드
+                // ref에서 최신 activeFiles 읽기 — stale closure 없음
                 const contents = await Promise.all(
-                    activeFiles.map(async (fname: string) => {
+                    activeFilesRef.current.map(async (fname: string) => {
                         const res = await fetch(`http://localhost:3001/api/config/file/${fname}`);
                         return res.text();
                     })
@@ -166,7 +173,7 @@ export function V3Page() {
         return () => {
             window.removeEventListener('config-file-changed', handleFileChanged);
         };
-    }, [activeFiles]); // activeFiles 의존성 추가
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // useCallback으로 참조 안정화 → ServiceListV3 불필요 리렌더 방지 (rerender-memo)
     const handleToggleService = useCallback((serviceKey: string) => {

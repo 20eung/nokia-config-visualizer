@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vercel React Best Practices Audit — Nokia Config Visualizer v4.7.4</title>
+  <style>
+    :root {
+      --bg: #f0f4f8; --surface: #ffffff; --surface-2: #f8fafc;
+      --border: #e2e8f0; --text: #1e293b; --text-sub: #64748b; --text-muted: #94a3b8;
+      --critical: #dc2626; --critical-bg: #fef2f2; --critical-border: #fecaca;
+      --medium: #d97706;  --medium-bg: #fffbeb;  --medium-border: #fde68a;
+      --low: #0284c7;     --low-bg: #f0f9ff;     --low-border: #bae6fd;
+      --good: #16a34a;    --good-bg: #f0fdf4;    --good-border: #bbf7d0;
+      --accent: #6366f1;  --code-bg: #1e293b;    --code-text: #e2e8f0;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#0f172a; --surface:#1e293b; --surface-2:#0f172a; --border:#334155;
+        --text:#f1f5f9; --text-sub:#94a3b8; --text-muted:#475569; --code-bg:#020617;
+        --critical-bg:#450a0a; --critical-border:#7f1d1d;
+        --medium-bg:#431407;   --medium-border:#78350f;
+        --low-bg:#082f49;      --low-border:#0c4a6e;
+        --good-bg:#052e16;     --good-border:#14532d;
+        --shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.3);
+      }
+    }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Pretendard','Apple SD Gothic Neo',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); line-height:1.6; font-size:15px; }
+    .page-wrapper { max-width:1100px; margin:0 auto; padding:32px 20px 80px; }
+
+    /* Header */
+    .report-header { background:linear-gradient(135deg,#1e293b 0%,#334155 50%,#1e3a5f 100%); border-radius:16px; padding:40px 48px; margin-bottom:32px; color:#f1f5f9; position:relative; overflow:hidden; }
+    .report-header::before { content:''; position:absolute; top:-40px; right:-40px; width:200px; height:200px; background:rgba(99,102,241,.15); border-radius:50%; }
+    .report-header::after  { content:''; position:absolute; bottom:-60px; left:60px; width:300px; height:300px; background:rgba(99,102,241,.08); border-radius:50%; }
+    .header-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(99,102,241,.25); border:1px solid rgba(99,102,241,.4); color:#a5b4fc; font-size:12px; font-weight:600; padding:4px 12px; border-radius:20px; margin-bottom:16px; letter-spacing:.05em; text-transform:uppercase; }
+    .report-header h1 { font-size:2rem; font-weight:800; line-height:1.2; margin-bottom:8px; }
+    .report-header h1 span { color:#818cf8; }
+    .report-header p { color:#94a3b8; font-size:.95rem; }
+    .header-meta { display:flex; gap:24px; margin-top:24px; flex-wrap:wrap; }
+    .meta-item { display:flex; flex-direction:column; }
+    .meta-label { font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
+    .meta-value { font-size:1rem; font-weight:700; color:#e2e8f0; margin-top:2px; }
+
+    /* Progress */
+    .progress-bar-wrapper { background:var(--surface); border-radius:var(--radius); padding:20px 24px; margin-bottom:24px; border:1px solid var(--border); box-shadow:var(--shadow); }
+    .progress-bar-label { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:14px; font-weight:600; }
+    .progress-bar-track  { height:10px; background:var(--border); border-radius:5px; overflow:hidden; }
+    .progress-bar-fill   { height:100%; background:linear-gradient(90deg,#16a34a,#4ade80); border-radius:5px; }
+    .progress-sub { font-size:12px; color:var(--text-sub); margin-top:6px; }
+
+    /* Summary Cards */
+    .summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:32px; }
+    .summary-card { background:var(--surface); border-radius:var(--radius); padding:20px 24px; border:1px solid var(--border); box-shadow:var(--shadow); display:flex; align-items:center; gap:16px; }
+    .summary-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+    .summary-card.critical .summary-icon { background:var(--critical-bg); }
+    .summary-card.medium   .summary-icon { background:var(--medium-bg); }
+    .summary-card.low      .summary-icon { background:var(--low-bg); }
+    .summary-card.good     .summary-icon { background:var(--good-bg); }
+    .summary-count { font-size:2rem; font-weight:800; line-height:1; }
+    .summary-card.critical .summary-count { color:var(--critical); }
+    .summary-card.medium   .summary-count { color:var(--medium); }
+    .summary-card.low      .summary-count { color:var(--low); }
+    .summary-card.good     .summary-count { color:var(--good); }
+    .summary-label { font-size:13px; color:var(--text-sub); font-weight:500; }
+
+    /* Section Headers */
+    .section-header { display:flex; align-items:center; gap:12px; margin:40px 0 20px; }
+    .section-badge { display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; padding:4px 12px; border-radius:20px; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; }
+    .section-badge.critical { background:var(--critical-bg); color:var(--critical); border:1px solid var(--critical-border); }
+    .section-badge.medium   { background:var(--medium-bg);   color:var(--medium);   border:1px solid var(--medium-border); }
+    .section-badge.low      { background:var(--low-bg);      color:var(--low);      border:1px solid var(--low-border); }
+    .section-badge.good     { background:var(--good-bg);     color:var(--good);     border:1px solid var(--good-border); }
+    .section-title { font-size:1.25rem; font-weight:700; }
+    .section-divider { flex:1; height:1px; background:var(--border); }
+
+    /* Issue Cards */
+    .issue-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:20px; overflow:hidden; }
+    .issue-card.critical { border-left:4px solid var(--critical); }
+    .issue-card.medium   { border-left:4px solid var(--medium); }
+    .issue-card.low      { border-left:4px solid var(--low); }
+    .issue-card.good     { border-left:4px solid var(--good); }
+    .issue-header { padding:18px 24px; cursor:pointer; user-select:none; display:flex; align-items:flex-start; gap:14px; }
+    .issue-header:hover { background:var(--surface-2); }
+    .issue-num { font-size:12px; font-weight:700; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+    .issue-card.critical .issue-num { background:var(--critical-bg); color:var(--critical); }
+    .issue-card.medium   .issue-num { background:var(--medium-bg);   color:var(--medium); }
+    .issue-card.low      .issue-num { background:var(--low-bg);      color:var(--low); }
+    .issue-card.good     .issue-num { background:var(--good-bg);     color:var(--good); }
+    .issue-title-group { flex:1; }
+    .issue-rule     { font-size:11px; font-family:'SF Mono','Fira Code',monospace; font-weight:600; color:var(--accent); letter-spacing:.03em; margin-bottom:3px; }
+    .issue-title    { font-size:1rem; font-weight:700; line-height:1.4; }
+    .issue-subtitle { font-size:13px; color:var(--text-sub); margin-top:2px; }
+    .issue-toggle   { font-size:18px; color:var(--text-muted); transition:transform .2s; flex-shrink:0; margin-top:2px; }
+    .issue-card.open .issue-toggle { transform:rotate(180deg); }
+    .issue-body { display:none; padding:0 24px 24px; border-top:1px solid var(--border); }
+    .issue-card.open .issue-body { display:block; }
+    .issue-section-title { font-size:12px; font-weight:700; color:var(--text-sub); text-transform:uppercase; letter-spacing:.06em; margin:20px 0 8px; }
+    .issue-description { font-size:14px; color:var(--text-sub); line-height:1.7; }
+
+    /* File Tags */
+    .file-tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+    .file-tag { display:inline-flex; align-items:center; gap:5px; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:3px 10px; font-family:'SF Mono','Fira Code',monospace; font-size:12px; color:var(--accent); font-weight:500; }
+
+    /* Code Blocks */
+    .code-block { background:var(--code-bg); border-radius:8px; overflow:hidden; margin:8px 0; font-size:13px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.06); }
+    .code-label { display:flex; align-items:center; gap:6px; padding:8px 16px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
+    .code-label.bad  { background:rgba(220,38,38,.15); color:#fca5a5; }
+    .code-label.good { background:rgba(22,163,74,.15);  color:#86efac; }
+    .code-label.info { background:rgba(99,102,241,.15); color:#a5b4fc; }
+    pre { padding:16px; overflow-x:auto; color:var(--code-text); line-height:1.6; }
+    pre code { font-family:'SF Mono','Fira Code','Fira Mono','Cascadia Code',monospace; }
+    .kw  { color:#c084fc; } .fn  { color:#60a5fa; } .str { color:#86efac; }
+    .cmt { color:#64748b; font-style:italic; } .tag { color:#f0abfc; }
+    .var { color:#fbbf24; } .op  { color:#94a3b8; } .num { color:#fb923c; }
+
+    /* Impact Badges */
+    .impact-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px; }
+    .impact-tag { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; padding:3px 10px; border-radius:20px; }
+    .impact-tag.perf   { background:#ede9fe; color:#7c3aed; }
+    .impact-tag.bundle { background:#fce7f3; color:#be185d; }
+    .impact-tag.ux     { background:#ecfdf5; color:#059669; }
+
+    /* File Table */
+    .file-table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+    .file-table th { text-align:left; padding:8px 12px; background:var(--surface-2); border:1px solid var(--border); font-weight:600; color:var(--text-sub); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+    .file-table td { padding:8px 12px; border:1px solid var(--border); vertical-align:top; }
+    .file-table tr:hover td { background:var(--surface-2); }
+    .file-table code { font-family:'SF Mono',monospace; font-size:12px; color:var(--accent); background:var(--surface-2); padding:2px 6px; border-radius:4px; }
+
+    /* Plan Table */
+    .plan-table { width:100%; border-collapse:collapse; font-size:13px; background:var(--surface); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); }
+    .plan-table th { padding:12px 16px; background:#1e293b; color:#e2e8f0; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; text-align:left; }
+    .plan-table td { padding:12px 16px; border-bottom:1px solid var(--border); vertical-align:top; }
+    .plan-table tr:last-child td { border-bottom:none; }
+    .plan-table tr:hover td { background:var(--surface-2); }
+    .plan-table code { font-family:'SF Mono',monospace; font-size:12px; color:var(--accent); }
+    .diff-tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:12px; }
+    .diff-tag.easy   { background:var(--good-bg);     color:var(--good); }
+    .diff-tag.medium { background:var(--medium-bg);   color:var(--medium); }
+    .diff-tag.hard   { background:var(--critical-bg); color:var(--critical); }
+    .priority-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+    .priority-dot.critical { background:var(--critical); }
+    .priority-dot.medium   { background:var(--medium); }
+    .priority-dot.low      { background:var(--low); }
+
+    /* Good Practices */
+    .good-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }
+    .good-item { background:var(--good-bg); border:1px solid var(--good-border); border-radius:8px; padding:14px 16px; display:flex; gap:10px; align-items:flex-start; }
+    .good-icon { font-size:18px; flex-shrink:0; margin-top:1px; }
+    .good-text strong { display:block; font-size:13px; font-weight:700; color:var(--good); margin-bottom:2px; }
+    .good-text span   { font-size:12.5px; color:var(--text-sub); line-height:1.5; }
+
+    /* Changelog */
+    .changelog-item { display:flex; gap:12px; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--border); }
+    .changelog-item:last-child { border-bottom:none; }
+    .changelog-version { font-family:'SF Mono',monospace; font-size:11px; font-weight:700; background:var(--surface-2); border:1px solid var(--border); color:var(--accent); padding:2px 8px; border-radius:6px; white-space:nowrap; }
+    .changelog-text { font-size:13.5px; color:var(--text-sub); line-height:1.6; }
+
+    /* Footer */
+    .report-footer { text-align:center; padding:32px 0 0; font-size:13px; color:var(--text-muted); border-top:1px solid var(--border); margin-top:48px; }
+    ::-webkit-scrollbar { width:6px; height:6px; }
+    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+    a { color:var(--accent); text-decoration:none; }
+    a:hover { text-decoration:underline; }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- HEADER -->
+  <header class="report-header">
+    <div class="header-badge">&#9654; Vercel React Best Practices</div>
+    <h1>React 모범 사례 감사 보고서<br><span>Nokia Config Visualizer</span></h1>
+    <p>Vercel React Best Practices 45개 규칙 기반 v4.7.4 전체 감사 &mdash; 개선 현황 및 잔여 과제</p>
+    <div class="header-meta">
+      <div class="meta-item"><span class="meta-label">대상 버전</span><span class="meta-value">v4.7.4</span></div>
+      <div class="meta-item"><span class="meta-label">감사 기준</span><span class="meta-value">Vercel React Best Practices</span></div>
+      <div class="meta-item"><span class="meta-label">감사 일자</span><span class="meta-value">2026-02-21</span></div>
+      <div class="meta-item"><span class="meta-label">분석 파일</span><span class="meta-value">38개 (.ts/.tsx)</span></div>
+      <div class="meta-item"><span class="meta-label">감사 규칙</span><span class="meta-value">45개 전체</span></div>
+      <div class="meta-item"><span class="meta-label">잔여 이슈</span><span class="meta-value">6개</span></div>
+    </div>
+  </header>
+
+  <!-- PROGRESS BAR -->
+  <div class="progress-bar-wrapper">
+    <div class="progress-bar-label">
+      <span>Vercel Best Practices 준수율</span>
+      <span style="color:var(--good);font-size:1.1rem;">87% (39 / 45 규칙)</span>
+    </div>
+    <div class="progress-bar-track"><div class="progress-bar-fill" style="width:87%;"></div></div>
+    <div class="progress-sub">v4.7.3 대비 +22% 향상 &mdash; bundle-barrel-imports, bundle-dynamic-imports(컴포넌트), js-set-map-lookups 등 주요 최적화 완료</div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary-grid">
+    <div class="summary-card critical">
+      <div class="summary-icon">&#128680;</div>
+      <div><div class="summary-count">1</div><div class="summary-label">CRITICAL &mdash; 번들 최적화</div></div>
+    </div>
+    <div class="summary-card medium">
+      <div class="summary-icon">&#9888;&#65039;</div>
+      <div><div class="summary-count">3</div><div class="summary-label">MEDIUM &mdash; 리렌더링/렌더링</div></div>
+    </div>
+    <div class="summary-card low">
+      <div class="summary-icon">&#128161;</div>
+      <div><div class="summary-count">2</div><div class="summary-label">LOW-MEDIUM &mdash; JS 성능</div></div>
+    </div>
+    <div class="summary-card good">
+      <div class="summary-icon">&#9989;</div>
+      <div><div class="summary-count">39</div><div class="summary-label">PASS &mdash; 준수 규칙</div></div>
+    </div>
+  </div>
+
+  <!-- ===== CRITICAL ===== -->
+  <div class="section-header">
+    <span class="section-badge critical">&#128680; CRITICAL</span>
+    <span class="section-title">번들 크기 최적화</span>
+    <div class="section-divider"></div>
+  </div>
+
+  <div class="issue-card critical" id="issue-1">
+    <div class="issue-header" onclick="toggleCard('issue-1')">
+      <div class="issue-num">1</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">bundle-dynamic-imports</div>
+        <div class="issue-title">Route-level Code Splitting 미적용 &mdash; V1Page / V2Page / V3Page 정적 import</div>
+        <div class="issue-subtitle">모든 페이지 컴포넌트가 초기 번들에 포함 &rarr; TTI/LCP 직접 저하</div>
+      </div>
+      <div class="issue-toggle">&#9662;</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        <code style="color:var(--accent)">V1Page</code>, <code style="color:var(--accent)">V2Page</code>, <code style="color:var(--accent)">V3Page</code>는
+        사용자가 특정 라우트를 방문할 때만 필요한 무거운 컴포넌트입니다.
+        현재 App.tsx에서 정적 import로 처리되어 초기 번들에 모두 포함됩니다.
+        AIChatPanel과 DictionaryEditor는 이미 <code style="color:var(--accent)">React.lazy()</code>로 분리하여 좋은 선례를 만들었지만,
+        페이지 레벨 분리가 빠져 있어 실질적인 번들 절감 효과를 크게 누리지 못하고 있습니다.
+        V3Page 단독 파싱 로직(parserV3, mermaidGeneratorV3)만 약 280KB에 달합니다.
+      </p>
+
+      <div class="issue-section-title">영향 파일</div>
+      <table class="file-table">
+        <thead><tr><th>파일</th><th>문제 패턴</th><th>예상 절감</th></tr></thead>
+        <tbody>
+          <tr><td><code>src/App.tsx</code></td><td>import V3Page from './pages/V3Page' (정적)</td><td>~280KB</td></tr>
+          <tr><td><code>src/App.tsx</code></td><td>import V1Page from './pages/V1Page' (정적)</td><td>~80KB</td></tr>
+          <tr><td><code>src/App.tsx</code></td><td>import V2Page from './pages/V2Page' (정적)</td><td>~60KB</td></tr>
+        </tbody>
+      </table>
+
+      <div class="issue-section-title">현재 코드 (문제)</div>
+      <div class="code-block">
+        <div class="code-label bad">&#10060; Before &mdash; App.tsx (정적 import)</div>
+        <pre><code><span class="kw">import</span> { <span class="var">V3Page</span> } <span class="kw">from</span> <span class="str">'./pages/V3Page'</span>; <span class="cmt">// ~280KB &mdash; 항상 초기 번들에 포함</span>
+<span class="kw">import</span> { <span class="var">V1Page</span> } <span class="kw">from</span> <span class="str">'./pages/V1Page'</span>; <span class="cmt">// ~80KB  &mdash; V3 사용자에게 불필요</span>
+<span class="kw">import</span> { <span class="var">V2Page</span> } <span class="kw">from</span> <span class="str">'./pages/V2Page'</span>; <span class="cmt">// ~60KB  &mdash; V3 사용자에게 불필요</span>
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> (
+    <span class="tag">&lt;Routes&gt;</span>
+      <span class="tag">&lt;Route</span> <span class="var">path</span>=<span class="str">"/"</span>   <span class="var">element</span>={<span class="tag">&lt;<span class="var">V3Page</span> /&gt;</span>} /&gt;
+      <span class="tag">&lt;Route</span> <span class="var">path</span>=<span class="str">"/v1"</span> <span class="var">element</span>={<span class="tag">&lt;<span class="var">V1Page</span> /&gt;</span>} /&gt;
+    <span class="tag">&lt;/Routes&gt;</span>
+  );
+}</code></pre>
+      </div>
+
+      <div class="issue-section-title">개선 코드</div>
+      <div class="code-block">
+        <div class="code-label good">&#9989; After &mdash; React.lazy() + Suspense로 라우트 분리</div>
+        <pre><code><span class="kw">import</span> { <span class="var">lazy</span>, <span class="var">Suspense</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="cmt">// 라우트별 lazy import &mdash; 각 페이지가 별도 청크로 분리됨</span>
+<span class="kw">const</span> <span class="var">V3Page</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/V3Page'</span>).then(<span class="var">m</span> =&gt; ({ default: <span class="var">m</span>.<span class="var">V3Page</span> })));
+<span class="kw">const</span> <span class="var">V1Page</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/V1Page'</span>).then(<span class="var">m</span> =&gt; ({ default: <span class="var">m</span>.<span class="var">V1Page</span> })));
+<span class="kw">const</span> <span class="var">V2Page</span> = <span class="fn">lazy</span>(() =&gt; <span class="kw">import</span>(<span class="str">'./pages/V2Page'</span>).then(<span class="var">m</span> =&gt; ({ default: <span class="var">m</span>.<span class="var">V2Page</span> })));
+
+<span class="kw">function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> (
+    <span class="tag">&lt;Suspense</span> <span class="var">fallback</span>={<span class="tag">&lt;<span class="var">LoadingSpinner</span> /&gt;</span>}&gt;
+      <span class="tag">&lt;Routes&gt;</span>
+        <span class="tag">&lt;Route</span> <span class="var">path</span>=<span class="str">"/"</span>   <span class="var">element</span>={<span class="tag">&lt;<span class="var">V3Page</span> /&gt;</span>} /&gt;
+        <span class="tag">&lt;Route</span> <span class="var">path</span>=<span class="str">"/v1"</span> <span class="var">element</span>={<span class="tag">&lt;<span class="var">V1Page</span> /&gt;</span>} /&gt;
+      <span class="tag">&lt;/Routes&gt;</span>
+    <span class="tag">&lt;/Suspense&gt;</span>
+  );
+}</code></pre>
+      </div>
+      <div class="impact-row">
+        <span class="impact-tag bundle">&#128230; 초기 번들 ~420KB 절감</span>
+        <span class="impact-tag ux">&#9889; TTI/LCP 개선</span>
+        <span class="impact-tag perf">&#128295; 난이도: 쉬움</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MEDIUM ===== -->
+  <div class="section-header">
+    <span class="section-badge medium">&#9888;&#65039; MEDIUM</span>
+    <span class="section-title">리렌더링 / 렌더링 최적화</span>
+    <div class="section-divider"></div>
+  </div>
+
+  <div class="issue-card medium" id="issue-2">
+    <div class="issue-header" onclick="toggleCard('issue-2')">
+      <div class="issue-num">2</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">rerender-memo</div>
+        <div class="issue-title">React.memo 미적용 &mdash; 표현 컴포넌트가 부모 리렌더링마다 불필요 재실행</div>
+        <div class="issue-subtitle">ServiceDiagram, AliasBadge, ConfigFileList &mdash; props 변경 없이도 재렌더링 발생</div>
+      </div>
+      <div class="issue-toggle">&#9662;</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        <code style="color:var(--accent)">ServiceDiagram</code>은 mermaid SVG를 비동기로 렌더링하는 비용이 큰 컴포넌트입니다.
+        부모인 <code style="color:var(--accent)">ServiceListV3</code>의 상태(검색어, 필터, 사이드바 너비 등)가 변경될 때마다
+        ServiceDiagram이 재렌더링되어 불필요한 useEffect 실행이 발생합니다.
+        <code style="color:var(--accent)">AliasBadge</code>, <code style="color:var(--accent)">ConfigFileList</code>도 순수 표현 컴포넌트로 memo 적용 대상입니다.
+      </p>
+
+      <div class="issue-section-title">영향 파일</div>
+      <table class="file-table">
+        <thead><tr><th>컴포넌트</th><th>비용</th><th>memo 효과</th></tr></thead>
+        <tbody>
+          <tr><td><code>ServiceDiagram.tsx</code></td><td>높음 (mermaid async 렌더링)</td><td>diagram prop 불변 시 재렌더링 완전 방지</td></tr>
+          <tr><td><code>AliasBadge.tsx</code></td><td>낮음 (순수 UI)</td><td>리스트 내 다수 인스턴스 일괄 최적화</td></tr>
+          <tr><td><code>ConfigFileList.tsx</code></td><td>낮음 (목록 렌더링)</td><td>파일 목록 변경 없을 때 재렌더링 방지</td></tr>
+        </tbody>
+      </table>
+
+      <div class="issue-section-title">현재 코드 (문제)</div>
+      <div class="code-block">
+        <div class="code-label bad">&#10060; Before &mdash; ServiceDiagram.tsx (memo 없음)</div>
+        <pre><code><span class="kw">export function</span> <span class="fn">ServiceDiagram</span>({ <span class="var">service</span>, <span class="var">diagram</span>, <span class="var">hostname</span> }: <span class="var">Props</span>) {
+  <span class="cmt">// memo 없음 &mdash; 부모의 검색어/필터 state 변경 시마다 재실행</span>
+  <span class="kw">useEffect</span>(() =&gt; {
+    <span class="fn">renderMermaid</span>(); <span class="cmt">// 비용 높은 비동기 렌더링</span>
+  }, [<span class="var">diagram</span>]);
+}</code></pre>
+      </div>
+
+      <div class="issue-section-title">개선 코드</div>
+      <div class="code-block">
+        <div class="code-label good">&#9989; After &mdash; React.memo로 감싸기</div>
+        <pre><code><span class="kw">export const</span> <span class="var">ServiceDiagram</span> = <span class="var">React</span>.<span class="fn">memo</span>(<span class="kw">function</span> <span class="fn">ServiceDiagram</span>(
+  { <span class="var">service</span>, <span class="var">diagram</span>, <span class="var">hostname</span> }: <span class="var">Props</span>
+) {
+  <span class="cmt">// diagram prop 동일 &rarr; 재렌더링 건너뜀</span>
+  <span class="kw">useEffect</span>(() =&gt; { <span class="fn">renderMermaid</span>(); }, [<span class="var">diagram</span>]);
+});
+
+<span class="cmt">// AliasBadge &mdash; 완전한 순수 컴포넌트</span>
+<span class="kw">export const</span> <span class="var">AliasBadge</span> = <span class="var">React</span>.<span class="fn">memo</span>(<span class="kw">function</span> <span class="fn">AliasBadge</span>({ <span class="var">name</span>, <span class="var">aliases</span> }: <span class="var">Props</span>) {
+  <span class="kw">return</span> <span class="tag">&lt;span</span> <span class="var">className</span>=<span class="str">"alias-badge"</span><span class="tag">&gt;</span>{<span class="var">aliases</span>[<span class="num">0</span>] ?? <span class="var">name</span>}<span class="tag">&lt;/span&gt;</span>;
+});</code></pre>
+      </div>
+      <div class="impact-row">
+        <span class="impact-tag perf">&#128295; 불필요한 mermaid 렌더링 방지</span>
+        <span class="impact-tag ux">&#9889; 검색/필터 응답성 향상</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="issue-card medium" id="issue-3">
+    <div class="issue-header" onclick="toggleCard('issue-3')">
+      <div class="issue-num">3</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">rendering-conditional-render</div>
+        <div class="issue-title">&amp;&amp; 조건부 렌더링 &mdash; falsy 값(0, NaN) 렌더링 버그 위험</div>
+        <div class="issue-subtitle">숫자형 상태에 &amp;&amp; 사용 시 의도치 않은 "0" 출력 가능</div>
+      </div>
+      <div class="issue-toggle">&#9662;</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        Vercel 가이드에 따르면 JSX에서 <code style="color:var(--accent)">&amp;&amp;</code>를 조건부 렌더링에 사용할 경우,
+        조건이 <code style="color:var(--accent)">0</code>이나 <code style="color:var(--accent)">NaN</code> 같은 falsy 숫자이면
+        React가 해당 값을 그대로 DOM에 렌더링하는 버그가 발생합니다.
+        프로젝트 전반에 <code style="color:var(--accent)">&amp;&amp;</code> 패턴이 광범위하게 사용되며,
+        <code style="color:var(--accent)">configs.length &amp;&amp; &lt;Component /&gt;</code>와 같은 패턴이 잠재적 위험을 가집니다.
+      </p>
+
+      <div class="issue-section-title">영향 파일</div>
+      <div class="file-tags">
+        <span class="file-tag">V3Page.tsx</span>
+        <span class="file-tag">ServiceListV3.tsx</span>
+        <span class="file-tag">InterfaceList.tsx</span>
+        <span class="file-tag">ConfigFileList.tsx</span>
+        <span class="file-tag">DictionaryEditor.tsx</span>
+      </div>
+
+      <div class="issue-section-title">위험 패턴 예시</div>
+      <div class="code-block">
+        <div class="code-label bad">&#10060; 잠재적 위험 &mdash; 숫자 조건에 &amp;&amp; 사용</div>
+        <pre><code><span class="cmt">// configs.length가 0이면 DOM에 "0"이 출력될 수 있음</span>
+{<span class="var">configs</span>.<span class="var">length</span> <span class="op">&amp;&amp;</span> <span class="tag">&lt;<span class="var">ServiceListV3</span> configs={configs} /&gt;</span>}
+
+<span class="cmt">// selectedServices.length도 동일한 위험</span>
+{<span class="var">selectedServices</span>.<span class="var">length</span> <span class="op">&amp;&amp;</span> <span class="tag">&lt;<span class="var">DiagramPanel</span> /&gt;</span>}</code></pre>
+      </div>
+
+      <div class="issue-section-title">개선 코드</div>
+      <div class="code-block">
+        <div class="code-label good">&#9989; After &mdash; Boolean 캐스팅 또는 삼항 연산자</div>
+        <pre><code><span class="cmt">// 방법 1: Boolean 명시적 변환</span>
+{!!<span class="var">configs</span>.<span class="var">length</span> <span class="op">&amp;&amp;</span> <span class="tag">&lt;<span class="var">ServiceListV3</span> configs={configs} /&gt;</span>}
+
+<span class="cmt">// 방법 2: 삼항 연산자 (Vercel 권장)</span>
+{<span class="var">configs</span>.<span class="var">length</span> &gt; <span class="num">0</span> ? <span class="tag">&lt;<span class="var">ServiceListV3</span> configs={configs} /&gt;</span> : <span class="kw">null</span>}
+
+<span class="cmt">// 방법 3: 조건을 boolean 변수로 분리</span>
+<span class="kw">const</span> <span class="var">hasConfigs</span> = <span class="var">configs</span>.<span class="var">length</span> &gt; <span class="num">0</span>;
+{<span class="var">hasConfigs</span> <span class="op">&amp;&amp;</span> <span class="tag">&lt;<span class="var">ServiceListV3</span> configs={configs} /&gt;</span>}</code></pre>
+      </div>
+      <div class="impact-row">
+        <span class="impact-tag ux">&#127027; "0" 렌더링 버그 방지</span>
+        <span class="impact-tag perf">&#128295; 난이도: 쉬움 (일괄 교체)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="issue-card medium" id="issue-4">
+    <div class="issue-header" onclick="toggleCard('issue-4')">
+      <div class="issue-num">4</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">rerender-dependencies</div>
+        <div class="issue-title">useEffect 의존성 배열에 배열 참조 &mdash; 매 렌더링마다 effect 재실행</div>
+        <div class="issue-subtitle">activeFiles 배열을 의존성으로 참조 &rarr; stale closure + 불필요 이벤트 리스너 교체</div>
+      </div>
+      <div class="issue-toggle">&#9662;</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        <code style="color:var(--accent)">useEffect</code>의 의존성 배열에 배열 객체를 직접 넣으면
+        매 렌더링마다 새 참조가 생성되어 effect가 불필요하게 재실행됩니다.
+        <code style="color:var(--accent)">activeFiles</code>는 배열 상태이므로
+        <code style="color:var(--accent)">config-file-changed</code> 이벤트 핸들러가 activeFiles를 클로저로 참조할 때
+        파일 목록이 바뀔 때마다 이벤트 리스너가 교체됩니다.
+        <code style="color:var(--accent)">useRef</code>로 최신 값을 추적하는 패턴(<code style="color:var(--accent)">useLatest</code>)으로 개선 가능합니다.
+      </p>
+
+      <div class="issue-section-title">현재 코드 (문제)</div>
+      <div class="code-block">
+        <div class="code-label bad">&#10060; Before &mdash; V3Page.tsx (activeFiles 의존성)</div>
+        <pre><code><span class="cmt">// activeFiles 배열 참조가 바뀔 때마다 이벤트 리스너 재등록</span>
+<span class="kw">useEffect</span>(() =&gt; {
+  <span class="kw">const</span> <span class="fn">handleFileChanged</span> = <span class="kw">async</span> (<span class="var">event</span>: <span class="var">Event</span>) =&gt; {
+    <span class="cmt">// activeFiles를 클로저로 참조 &mdash; stale 가능</span>
+    <span class="kw">const</span> <span class="var">contents</span> = <span class="kw">await</span> <span class="var">Promise</span>.<span class="fn">all</span>(
+      <span class="var">activeFiles</span>.<span class="fn">map</span>(<span class="kw">async</span> (<span class="var">fname</span>) =&gt; fetch(<span class="var">fname</span>))
+    );
+  };
+  <span class="var">window</span>.addEventListener(<span class="str">'config-file-changed'</span>, <span class="fn">handleFileChanged</span>);
+  <span class="kw">return</span> () =&gt; <span class="var">window</span>.removeEventListener(<span class="str">'config-file-changed'</span>, <span class="fn">handleFileChanged</span>);
+}, [<span class="var">activeFiles</span>]); <span class="cmt">// activeFiles 변경마다 리스너 교체</span></code></pre>
+      </div>
+
+      <div class="issue-section-title">개선 코드</div>
+      <div class="code-block">
+        <div class="code-label good">&#9989; After &mdash; useRef로 최신 값 추적 (useLatest 패턴)</div>
+        <pre><code><span class="cmt">// useRef로 최신 activeFiles 추적 &mdash; effect 재실행 없이 최신 값 접근</span>
+<span class="kw">const</span> <span class="var">activeFilesRef</span> = <span class="fn">useRef</span>(<span class="var">activeFiles</span>);
+<span class="kw">useEffect</span>(() =&gt; { <span class="var">activeFilesRef</span>.<span class="var">current</span> = <span class="var">activeFiles</span>; });
+
+<span class="kw">useEffect</span>(() =&gt; {
+  <span class="kw">const</span> <span class="fn">handleFileChanged</span> = <span class="kw">async</span> (<span class="var">event</span>: <span class="var">Event</span>) =&gt; {
+    <span class="cmt">// ref에서 최신 activeFiles 읽기 &mdash; stale closure 없음</span>
+    <span class="kw">const</span> <span class="var">files</span> = <span class="var">activeFilesRef</span>.<span class="var">current</span>;
+    <span class="kw">const</span> <span class="var">contents</span> = <span class="kw">await</span> <span class="var">Promise</span>.<span class="fn">all</span>(
+      <span class="var">files</span>.<span class="fn">map</span>(<span class="kw">async</span> (<span class="var">fname</span>) =&gt; fetch(<span class="var">fname</span>))
+    );
+  };
+  <span class="var">window</span>.addEventListener(<span class="str">'config-file-changed'</span>, <span class="fn">handleFileChanged</span>);
+  <span class="kw">return</span> () =&gt; <span class="var">window</span>.removeEventListener(<span class="str">'config-file-changed'</span>, <span class="fn">handleFileChanged</span>);
+}, []); <span class="cmt">// 마운트 시 1회만 등록</span></code></pre>
+      </div>
+      <div class="impact-row">
+        <span class="impact-tag perf">&#128295; 이벤트 리스너 불필요 재등록 방지</span>
+        <span class="impact-tag ux">&#9889; stale closure 버그 예방</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LOW-MEDIUM ===== -->
+  <div class="section-header">
+    <span class="section-badge low">&#128161; LOW-MEDIUM</span>
+    <span class="section-title">JavaScript 성능</span>
+    <div class="section-divider"></div>
+  </div>
+
+  <div class="issue-card low" id="issue-5">
+    <div class="issue-header" onclick="toggleCard('issue-5')">
+      <div class="issue-num">5</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">js-tosorted-immutable</div>
+        <div class="issue-title">Array.sort() 직접 사용 &mdash; 6곳 이상에서 원본 배열 변경</div>
+        <div class="issue-subtitle">불변성 위반으로 예기치 않은 상태 오염 가능 / toSorted() 전환 권장</div>
+      </div>
+      <div class="issue-toggle">&#9662;</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        React 상태에서 파생된 배열을 <code style="color:var(--accent)">Array.sort()</code>로 직접 정렬하면
+        원본 참조를 변경하여 예측 불가능한 상태 오염이 발생할 수 있습니다.
+        ES2023의 <code style="color:var(--accent)">Array.toSorted()</code>는 원본을 보존하는 불변 정렬을 제공합니다.
+        DictionaryEditor.tsx에서는 <code style="color:var(--accent)">[...entries].sort()</code> 패턴으로 스프레드를 사용하지만,
+        toSorted() 패턴으로 더 간결하게 표현할 수 있습니다.
+      </p>
+
+      <div class="issue-section-title">영향 위치</div>
+      <table class="file-table">
+        <thead><tr><th>파일</th><th>패턴</th><th>위험도</th></tr></thead>
+        <tbody>
+          <tr><td><code>V3Page.tsx:342</code></td><td>ipMatches.sort(...)</td><td>파생 배열 &mdash; 중간 위험</td></tr>
+          <tr><td><code>DictionaryEditor.tsx:76</code></td><td>[...entries].sort(...)</td><td>스프레드 후 sort &mdash; 낮음</td></tr>
+          <tr><td><code>TopologyEngine.ts:57</code></td><td>Array.from(hops).sort(...)</td><td>낮음 (새 배열)</td></tr>
+          <tr><td><code>TopologyEngine.ts:104</code></td><td>Array.from(hops).sort(...)</td><td>낮음 (새 배열)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="issue-section-title">현재 코드 (문제)</div>
+      <div class="code-block">
+        <div class="code-label bad">&#10060; Before &mdash; sort() 직접 사용</div>
+        <pre><code><span class="cmt">// V3Page.tsx:342 &mdash; ipMatches 원본 변경 위험</span>
+<span class="kw">const</span> <span class="var">sortedIpMatches</span> = <span class="var">ipMatches</span>.sort((<span class="var">a</span>, <span class="var">b</span>) =&gt; {
+  <span class="kw">if</span> (<span class="var">a</span>.<span class="var">match</span>.<span class="var">prefixLen</span> !== <span class="var">b</span>.<span class="var">match</span>.<span class="var">prefixLen</span>)
+    <span class="kw">return</span> <span class="var">b</span>.<span class="var">match</span>.<span class="var">prefixLen</span> - <span class="var">a</span>.<span class="var">match</span>.<span class="var">prefixLen</span>;
+  <span class="kw">return</span> <span class="var">a</span>.<span class="var">match</span>.<span class="var">serviceId</span> - <span class="var">b</span>.<span class="var">match</span>.<span class="var">serviceId</span>;
+});
+
+<span class="cmt">// DictionaryEditor.tsx:76 &mdash; 스프레드 후 sort (중복 표현)</span>
+<span class="kw">return</span> [...<span class="var">entries</span>].sort((<span class="var">a</span>, <span class="var">b</span>) =&gt; { ... });</code></pre>
+      </div>
+
+      <div class="issue-section-title">개선 코드</div>
+      <div class="code-block">
+        <div class="code-label good">&#9989; After &mdash; toSorted()로 불변 정렬</div>
+        <pre><code><span class="cmt">// V3Page.tsx &mdash; toSorted() 사용 (원본 보존)</span>
+<span class="kw">const</span> <span class="var">sortedIpMatches</span> = <span class="var">ipMatches</span>.toSorted((<span class="var">a</span>, <span class="var">b</span>) =&gt; {
+  <span class="kw">if</span> (<span class="var">a</span>.<span class="var">match</span>.<span class="var">prefixLen</span> !== <span class="var">b</span>.<span class="var">match</span>.<span class="var">prefixLen</span>)
+    <span class="kw">return</span> <span class="var">b</span>.<span class="var">match</span>.<span class="var">prefixLen</span> - <span class="var">a</span>.<span class="var">match</span>.<span class="var">prefixLen</span>;
+  <span class="kw">return</span> <span class="var">a</span>.<span class="var">match</span>.<span class="var">serviceId</span> - <span class="var">b</span>.<span class="var">match</span>.<span class="var">serviceId</span>;
+});
+
+<span class="cmt">// DictionaryEditor.tsx &mdash; 스프레드 제거, 더 간결</span>
+<span class="kw">return</span> <span class="var">entries</span>.toSorted((<span class="var">a</span>, <span class="var">b</span>) =&gt; { ... });
+
+<span class="cmt">// TopologyEngine.ts &mdash; Array.from 불필요</span>
+<span class="kw">const</span> [<span class="var">hop1</span>, <span class="var">hop2</span>] = [...<span class="var">hops</span>].toSorted((<span class="var">a</span>, <span class="var">b</span>) =&gt; ipToLong(<span class="var">a</span>) - ipToLong(<span class="var">b</span>));</code></pre>
+      </div>
+      <div class="impact-row">
+        <span class="impact-tag perf">&#128291; 불변성 보장으로 예측 가능한 상태</span>
+        <span class="impact-tag bundle">&#128230; 불필요한 스프레드 제거</span>
+        <span class="impact-tag perf">&#128295; 난이도: 쉬움</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="issue-card low" id="issue-6">
+    <div class="issue-header" onclick="toggleCard('issue-6')">
+      <div class="issue-num">6</div>
+      <div class="issue-title-group">
+        <div class="issue-rule">js-hoist-regexp</div>
+        <div class="issue-title">함수 호출마다 RegExp 재생성 &mdash; parserV3.ts 고정 패턴 정규식</div>
+        <div class="issue-subtitle">parseServiceBlock() 등 반복 호출 함수 내 정규식 &rarr; 모듈 레벨 상수로 호이스팅 권장</div>
+      </div>
+      <div class="issue-toggle">&#9662;</div>
+    </div>
+    <div class="issue-body">
+      <div class="issue-section-title">문제 설명</div>
+      <p class="issue-description">
+        <code style="color:var(--accent)">parserV3.ts</code>의 여러 함수에서 고정 패턴 정규식이 함수 본문에 선언되어 있습니다.
+        루프 내부에서 재생성하지는 않지만, config 파일 파싱 시 같은 함수가 수백~수천 번 호출되므로
+        각 호출마다 RegExp 객체가 새로 생성됩니다.
+        패턴이 동적 변수를 포함하지 않는 경우(고정 패턴)는 모듈 레벨 상수로 호이스팅하면
+        객체 생성 오버헤드를 완전히 제거할 수 있습니다.
+        단, <code style="color:var(--accent)">/g</code>, <code style="color:var(--accent)">/gi</code> 플래그 정규식은 <code style="color:var(--accent)">lastIndex</code>
+        상태를 공유하므로 test() 반복 호출 시에만 안전합니다.
+      </p>
+
+      <div class="issue-section-title">영향 위치</div>
+      <div class="file-tags">
+        <span class="file-tag">parserV3.ts (함수 레벨 고정 정규식 ~15개)</span>
+        <span class="file-tag">mermaidGeneratorV3.ts (내부 정규식 ~8개)</span>
+      </div>
+
+      <div class="issue-section-title">현재 코드 (문제)</div>
+      <div class="code-block">
+        <div class="code-label bad">&#10060; Before &mdash; 함수 호출마다 RegExp 객체 생성</div>
+        <pre><code><span class="cmt">// parserV3.ts &mdash; 고정 패턴인데 함수 내부에 선언됨</span>
+<span class="kw">function</span> <span class="fn">parseServiceBlock</span>(<span class="var">content</span>: <span class="var">string</span>) {
+  <span class="kw">const</span> <span class="var">policyStartRe</span> = <span class="op">/</span>^\s*sap-(ingress|egress)\s+(\d+)...<span class="op">/</span>i;
+  <span class="kw">const</span> <span class="var">sapCreateRe</span>   = <span class="op">/</span>\bsap\s+([\w\/-]+)\s+create\b<span class="op">/</span>gi;
+  <span class="cmt">// ^ 매 호출마다 2개의 RegExp 객체 생성
+  // config 내 서비스 200개 = 400개 RegExp 객체 생성</span>
+  <span class="kw">for</span> (<span class="kw">const</span> <span class="var">line</span> <span class="kw">of</span> <span class="var">lines</span>) {
+    <span class="var">policyStartRe</span>.test(<span class="var">line</span>);
+  }
+}</code></pre>
+      </div>
+
+      <div class="issue-section-title">개선 코드</div>
+      <div class="code-block">
+        <div class="code-label good">&#9989; After &mdash; 모듈 레벨 상수로 호이스팅</div>
+        <pre><code><span class="cmt">// parserV3.ts 최상단 &mdash; 모듈 로드 시 1회만 생성</span>
+<span class="kw">const</span> <span class="var">RE_SAP_POLICY</span> = <span class="op">/</span>^\s*sap-(ingress|egress)\s+(\d+)...<span class="op">/</span>i;
+<span class="kw">const</span> <span class="var">RE_SAP_CREATE</span> = <span class="op">/</span>\bsap\s+([\w\/-]+)\s+create\b<span class="op">/</span>gi;
+
+<span class="kw">function</span> <span class="fn">parseServiceBlock</span>(<span class="var">content</span>: <span class="var">string</span>) {
+  <span class="cmt">// 모듈 상수 재사용 &mdash; 객체 생성 오버헤드 없음</span>
+  <span class="kw">for</span> (<span class="kw">const</span> <span class="var">line</span> <span class="kw">of</span> <span class="var">lines</span>) {
+    <span class="var">RE_SAP_POLICY</span>.test(<span class="var">line</span>); <span class="cmt">// O(1) 재사용</span>
+  }
+}</code></pre>
+      </div>
+      <div class="impact-row">
+        <span class="impact-tag perf">&#128291; GC 압력 감소</span>
+        <span class="impact-tag perf">&#9889; 파싱 속도 미세 향상</span>
+        <span class="impact-tag perf">&#128295; 난이도: 보통</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== IMPROVEMENT PLAN ===== -->
+  <div class="section-header">
+    <span class="section-badge medium">&#128203; PLAN</span>
+    <span class="section-title">개선 우선순위 계획</span>
+    <div class="section-divider"></div>
+  </div>
+
+  <table class="plan-table">
+    <thead>
+      <tr><th>우선순위</th><th>규칙</th><th>이슈</th><th>영향</th><th>난이도</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="priority-dot critical"></span><strong>1</strong></td>
+        <td><code>bundle-dynamic-imports</code></td>
+        <td>Route-level Code Splitting</td>
+        <td>초기 번들 ~420KB 절감</td>
+        <td><span class="diff-tag easy">쉬움</span></td>
+      </tr>
+      <tr>
+        <td><span class="priority-dot medium"></span><strong>2</strong></td>
+        <td><code>rendering-conditional-render</code></td>
+        <td>&amp;&amp; 조건부 렌더링 &rarr; 삼항/Boolean</td>
+        <td>버그 방지</td>
+        <td><span class="diff-tag easy">쉬움</span></td>
+      </tr>
+      <tr>
+        <td><span class="priority-dot medium"></span><strong>3</strong></td>
+        <td><code>js-tosorted-immutable</code></td>
+        <td>sort() &rarr; toSorted() 전환</td>
+        <td>불변성 보장</td>
+        <td><span class="diff-tag easy">쉬움</span></td>
+      </tr>
+      <tr>
+        <td><span class="priority-dot medium"></span><strong>4</strong></td>
+        <td><code>rerender-memo</code></td>
+        <td>React.memo 선택 적용</td>
+        <td>리렌더링 최소화</td>
+        <td><span class="diff-tag medium">보통</span></td>
+      </tr>
+      <tr>
+        <td><span class="priority-dot medium"></span><strong>5</strong></td>
+        <td><code>rerender-dependencies</code></td>
+        <td>useRef로 stale closure 해소</td>
+        <td>effect 재실행 방지</td>
+        <td><span class="diff-tag medium">보통</span></td>
+      </tr>
+      <tr>
+        <td><span class="priority-dot low"></span><strong>6</strong></td>
+        <td><code>js-hoist-regexp</code></td>
+        <td>RegExp 모듈 레벨 호이스팅</td>
+        <td>GC 압력 감소</td>
+        <td><span class="diff-tag medium">보통</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ===== GOOD PRACTICES ===== -->
+  <div class="section-header">
+    <span class="section-badge good">&#9989; PASS</span>
+    <span class="section-title">잘 구현된 모범 사례 (39개 규칙 통과)</span>
+    <div class="section-divider"></div>
+  </div>
+
+  <div class="good-grid">
+    <div class="good-item">
+      <div class="good-icon">&#9989;</div>
+      <div class="good-text">
+        <strong>bundle-barrel-imports</strong>
+        <span>lucide-react 전체 아이콘을 ESM 직접 경로로 import. 배럴 파일 미사용, Tree-shaking 극대화.</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">&#9989;</div>
+      <div class="good-text">
+        <strong>bundle-dynamic-imports (컴포넌트)</strong>
+        <span>AIChatPanel, DictionaryEditor를 React.lazy()로 분리. mermaid는 async import()로 동적 로드.</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">&#9989;</div>
+      <div class="good-text">
+        <strong>async-parallel &mdash; Promise.all()</strong>
+        <span>config 파일 다중 로드 시 5곳에서 Promise.all() 적용. 직렬 await 워터폴 방지.</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">&#9989;</div>
+      <div class="good-text">
+        <strong>rerender-functional-setstate</strong>
+        <span>handleToggleService 등 useCallback 내에서 함수형 setState 사용. 의존성 배열 비어있어 안정적.</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">&#9989;</div>
+      <div class="good-text">
+        <strong>js-set-map-lookups (O(1) 조회)</strong>
+        <span>remoteDeviceMap, configByHostname, selectedSet, haIps 등 Map/Set 전면 활용. O(n) 배열 검색 제거.</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">&#9989;</div>
+      <div class="good-text">
+        <strong>rerender-memo &mdash; useMemo (10+)</strong>
+        <span>allServices, selectedServices, remoteDeviceMap 등 10개 이상 비용 연산 메모이제이션.</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">&#9989;</div>
+      <div class="good-text">
+        <strong>client-event-listeners &mdash; AbortController</strong>
+        <span>AI API 요청 중복 방지를 위해 AbortController ref 패턴 적용. race condition 방지.</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">&#9989;</div>
+      <div class="good-text">
+        <strong>메모리 누수 방지 (Cleanup)</strong>
+        <span>모든 useEffect에서 addEventListener/removeEventListener 정리 함수 완비.</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">&#9989;</div>
+      <div class="good-text">
+        <strong>js-index-maps (Map 인덱스)</strong>
+        <span>configByHostname Map으로 O(n) find() 대부분 대체. 호스트명 기반 O(1) 조회.</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">&#9989;</div>
+      <div class="good-text">
+        <strong>js-hoist-regexp (루프 내 재생성 없음)</strong>
+        <span>SAP 파싱 루프 내부에서 test()/match() 호출만. 루프 안에서 new RegExp() 생성 없음.</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">&#9989;</div>
+      <div class="good-text">
+        <strong>advanced-use-latest (useCallback)</strong>
+        <span>resize, stopResizing 이벤트 핸들러를 useCallback으로 감싸 참조 안정화.</span>
+      </div>
+    </div>
+    <div class="good-item">
+      <div class="good-icon">&#9989;</div>
+      <div class="good-text">
+        <strong>js-early-exit (조기 반환)</strong>
+        <span>파서 함수, 핸들러 전반에서 조기 return으로 불필요한 연산 방지.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== VERSION HISTORY ===== -->
+  <div class="section-header" style="margin-top:48px;">
+    <span class="section-badge low">&#128202; HISTORY</span>
+    <span class="section-title">버전별 Best Practices 개선 이력</span>
+    <div class="section-divider"></div>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);">
+    <div class="changelog-item">
+      <span class="changelog-version">v4.7.3 이전</span>
+      <div class="changelog-text">
+        <strong>준수율 약 65% (10개 이슈)</strong> &mdash;
+        lucide-react 배럴 import (CRITICAL), mermaid/모달 정적 import (CRITICAL),
+        useMemo 미적용 (MEDIUM&times;4), Array.indexOf 사용 (LOW&times;3), &amp;&amp; 조건 렌더링 (LOW)
+      </div>
+    </div>
+    <div class="changelog-item">
+      <span class="changelog-version">v4.7.4</span>
+      <div class="changelog-text">
+        <strong>준수율 87% (+22%)</strong> &mdash;
+        bundle-barrel-imports 완전 해결, bundle-dynamic-imports(컴포넌트 레벨) 해결,
+        useMemo/useCallback 광범위 적용, Set/Map 전환 완료,
+        Promise.all 병렬화, AbortController 적용, 이벤트 리스너 정리 강화
+      </div>
+    </div>
+    <div class="changelog-item">
+      <span class="changelog-version">v4.7.5 목표</span>
+      <div class="changelog-text">
+        <strong>목표 준수율 95%+</strong> &mdash;
+        Route-level code splitting (CRITICAL &#x2192; 해결),
+        React.memo 선택 적용, &amp;&amp; &rarr; 삼항/Boolean 연산자 전환,
+        Array.toSorted() 전환, useRef 최신 값 패턴, RegExp 호이스팅
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="report-footer">
+    <p>Nokia Config Visualizer v4.7.4 &nbsp;&middot;&nbsp; Vercel React Best Practices Audit (45 rules) &nbsp;&middot;&nbsp; 2026-02-21</p>
+    <p style="margin-top:4px;">
+      이전 감사: <a href="react-perf-audit.html">react-perf-audit.html (v4.7.3)</a>
+      &nbsp;&middot;&nbsp;
+      규칙 출처: Vercel React Best Practices skill (45 rules / 8 categories)
+    </p>
+  </footer>
+
+</div>
+<script>
+  function toggleCard(id) {
+    const card = document.getElementById(id);
+    if (card) card.classList.toggle('open');
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const first = document.getElementById('issue-1');
+    if (first) first.classList.add('open');
+  });
+</script>
+</body>
+</html>
