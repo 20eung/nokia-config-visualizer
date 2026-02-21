@@ -95,3 +95,74 @@ export interface ChatResponse {
   filterType?: 'all' | 'epipe' | 'vpls' | 'vprn' | 'ies';
   matchedEntries?: MatchedEntry[];
 }
+
+/** ===== NCV AI Platform API 타입 (v4.8.0) ===== */
+
+export interface NcvAnalyzeRequest {
+  filename: string;
+  hostname: string;
+  systemIp: string;
+  configSummary: ConfigSummary;
+}
+
+export interface NcvAnalyzeResponse {
+  success: boolean;
+  filename: string;
+  hostname: string;
+  serviceCount: number;
+  uploadedAt: string;
+}
+
+export interface NcvServiceItem extends ServiceSummary {
+  hostname: string;
+  systemIp: string;
+}
+
+export interface NcvServicesResponse {
+  version: string;
+  timestamp: string;
+  configCount: number;
+  serviceCount: number;
+  services: NcvServiceItem[];
+}
+
+export interface NcvTopologyNode {
+  id: string;
+  label: string;
+  type: 'device' | 'epipe' | 'vpls' | 'vprn' | 'ies';
+  systemIp?: string;
+  serviceId?: number;
+}
+
+export interface NcvTopologyEdge {
+  from: string;
+  to: string;
+  label?: string;
+  serviceType?: string;
+}
+
+export interface NcvTopologyResponse {
+  nodes: NcvTopologyNode[];
+  edges: NcvTopologyEdge[];
+  mermaid?: string;
+}
+
+export interface NcvStatsResponse {
+  configCount: number;
+  serviceCount: number;
+  lastUpdated: string | null;
+  indexedAt: string | null;
+}
+
+export interface NcvSemanticSearchRequest {
+  query: string;
+  topK?: number;
+}
+
+export interface NcvSemanticSearchResult {
+  selectionKey: string;
+  hostname: string;
+  serviceType: string;
+  description: string;
+  score: number;
+}

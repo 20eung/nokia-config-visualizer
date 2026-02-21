@@ -29,6 +29,9 @@ services:
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-ap-northeast-2}
       - AWS_PROFILE=${AWS_PROFILE:-}
       - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-global.anthropic.claude-sonnet-4-5-20250929-v1:0}
+      # NCV AI Platform - RAG 설정 (v4.8.0)
+      - RAG_INDEX_PATH=/app/data/rag-index
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-amazon.titan-embed-text-v2:0}
     volumes:
       - ${HOME}/.aws:/root/.aws:ro
       - dict-data:/app/data
