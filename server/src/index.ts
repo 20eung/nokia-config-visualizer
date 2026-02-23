@@ -44,7 +44,7 @@ app.use('/api/dictionary', rateLimit({
 app.use('/api', chatRouter);
 app.use('/api', dictionaryRouter);
 app.use('/api/config', configRouter); // Config 파일 다운로드는 Rate Limit 제외
-app.use('/api/ncv', ncvRouter);       // NCV AI Platform API (v4.8.0)
+app.use('/api/ncv', ncvRouter);       // NCV AI Platform API (v4.8.1)
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -56,7 +56,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────
-// MCP HTTP 엔드포인트 (v4.8.0)
+// MCP HTTP 엔드포인트 (v4.8.1)
 // AI 에이전트가 HTTP로 NCV 도구를 직접 호출
 // ─────────────────────────────────────────────────────────
 app.all('/mcp', async (req, res) => {
@@ -71,7 +71,7 @@ app.all('/mcp', async (req, res) => {
         result: {
           protocolVersion: '2024-11-05',
           capabilities: { tools: {} },
-          serverInfo: { name: 'ncv-mcp-server', version: '4.8.0' },
+          serverInfo: { name: 'ncv-mcp-server', version: '4.8.1' },
         },
       });
     } else if (method === 'tools/list') {

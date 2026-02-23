@@ -32,7 +32,7 @@ export const config = {
     maxRequests: 30,
   },
 
-  // NCV AI Platform - RAG 설정 (v4.8.0)
+  // NCV AI Platform - RAG 설정 (v4.8.1)
   rag: {
     indexPath: process.env['RAG_INDEX_PATH'] ?? './data/rag-index',
     embeddingModel: process.env['EMBEDDING_MODEL'] ?? 'amazon.titan-embed-text-v2:0',

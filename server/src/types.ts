@@ -96,7 +96,7 @@ export interface ChatResponse {
   matchedEntries?: MatchedEntry[];
 }
 
-/** ===== NCV AI Platform API 타입 (v4.8.0) ===== */
+/** ===== NCV AI Platform API 타입 (v4.8.1) ===== */
 
 export interface NcvAnalyzeRequest {
   filename: string;

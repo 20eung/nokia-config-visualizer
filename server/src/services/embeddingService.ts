@@ -1,5 +1,5 @@
 /**
- * NCV AI Platform - AWS Bedrock Titan 임베딩 서비스 (v4.8.0)
+ * NCV AI Platform - AWS Bedrock Titan 임베딩 서비스 (v4.8.1)
  *
  * Amazon Titan Embed Text v2 모델로 텍스트 → 벡터 변환.
  * 기존 Bedrock 인프라(claudeClient.ts) 재활용.

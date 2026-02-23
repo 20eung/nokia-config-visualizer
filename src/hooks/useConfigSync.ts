@@ -1,5 +1,5 @@
 /**
- * NCV AI Platform - Config 동기화 훅 (v4.8.0)
+ * NCV AI Platform - Config 동기화 훅 (v4.8.1)
  *
  * ParsedConfigV3[] 변경 시 백엔드 ConfigStore에 자동 동기화.
  * Demo 모드 또는 백엔드 미연결 시에는 조용히 무시.
@@ -9,7 +9,7 @@ import { useEffect, useRef } from 'react';
 import { buildConfigSummary } from '../utils/configSummaryBuilder';
 import type { ParsedConfigV3 } from '../utils/v3/parserV3';
 
-const API_BASE = (import.meta.env['VITE_API_URL'] as string | undefined) ?? 'http://localhost:3001';
+const API_BASE = (import.meta.env['VITE_API_URL'] as string | undefined) ?? '';
 const IS_DEMO = (import.meta.env['VITE_DEMO_MODE'] as string | undefined) === 'true';
 
 /**

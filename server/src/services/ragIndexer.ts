@@ -1,5 +1,5 @@
 /**
- * NCV AI Platform - RAG 인덱서 (v4.8.0)
+ * NCV AI Platform - RAG 인덱서 (v4.8.1)
  *
  * vectra(로컬 파일 기반 벡터 DB)를 사용하여 Config 서비스를 인덱싱.
  * POST /api/ncv/index 로 트리거, POST /api/ncv/semantic-search 로 검색.
