@@ -6,6 +6,12 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [4.8.2] - 2026-02-24
+
+### 🐛 버그 수정
+
+- **Copy PNG Fallback** (`src/components/v3/ServiceDiagram.tsx`): HTTP 환경에서 `navigator.clipboard.write()` API가 Secure Context 제한으로 실패하던 문제 수정. Clipboard API 실패 시 PNG 파일 자동 다운로드로 fallback 처리하여 모든 환경에서 정상 동작
+
 ## [4.8.1] - 2026-02-23
 
 ### 🔧 원격 접속성 개선 (Remote Connectivity Fixes)

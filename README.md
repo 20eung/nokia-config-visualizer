@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v4.8.1** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 + 자동 Config 로딩 + Mermaid 코드 생성 + Grafana 쿼리 생성
+> 🚀 **v4.8.2** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 + 자동 Config 로딩 + Mermaid 코드 생성 + Grafana 쿼리 생성
 
 ![Application Screenshot](./public/demo-main.png)
 
@@ -449,7 +449,7 @@ docker-compose up -d
 - `.env.example` 파일 참고
 - `docs/02-design/features/ai-chat-search.design.md` 참고
 
-## 6. ⚡ 성능 최적화 (v4.8.1)
+## 6. ⚡ 성능 최적화 (v4.8.2)
 
 ### 번들 크기 축소
 

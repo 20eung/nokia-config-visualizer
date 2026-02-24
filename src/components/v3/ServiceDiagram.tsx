@@ -87,17 +87,32 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
                 throw new Error('Failed to generate image blob');
             }
 
-            await navigator.clipboard.write([
-                new ClipboardItem({
-                    'image/png': blob
-                })
-            ]);
+            // Clipboard API: HTTPS 또는 localhost 환경에서만 동작
+            if (navigator.clipboard && navigator.clipboard.write) {
+                try {
+                    await navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blob })
+                    ]);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                    return;
+                } catch {
+                    // Clipboard API 실패 시 다운로드 fallback으로 진행
+                }
+            }
 
+            // Fallback: PNG 파일로 다운로드 (HTTP 환경 등 Clipboard API 미지원 시)
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${diagramName || 'diagram'}.png`;
+            a.click();
+            URL.revokeObjectURL(url);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         } catch (error) {
             console.error('Copy image error:', error);
-            alert('이미지 복사에 실패했습니다. 브라우저가 클립보드 API를 지원하는지 확인해주세요.');
+            alert('이미지 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
         }
     };
 

@@ -301,11 +301,12 @@ rm .git/hooks/post-commit
 | v4.7.5 | 2026-02-21 | React 성능 최적화 추가 (route code splitting, React.memo, toSorted, RegExp 호이스팅) |
 | v4.8.0 | 2026-02-21 | NCV AI Collaboration Platform (JSON API + MCP Server + RAG Indexing) |
 | v4.8.1 | 2026-02-23 | 원격 접속성 개선 (WebSocket 프록시 및 상대 경로 지원) |
+| v4.8.2 | 2026-02-24 | Copy PNG Fallback 버그 수정 (HTTP 환경 PNG 다운로드 지원) |
 
 상세 변경 이력은 `CHANGELOG.md` 참조.
 
 ---
 
-**Last Updated**: 2026-02-21
-**Current Version**: v4.8.1 (Auto-versioning enabled)
+**Last Updated**: 2026-02-24
+**Current Version**: v4.8.2 (Auto-versioning enabled)
 **Branch**: v4-development
