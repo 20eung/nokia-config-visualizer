@@ -50,9 +50,13 @@ function isIpInSubnet(ip: string, cidr: string): boolean {
     return (ipToLong(ip) & mask) === (ipToLong(subnetIp) & mask);
 }
 
-// Helper: QoS 텍스트를 녹색 배경 + 흰색 글자로 강조 (IES와 동일 색상, CSS 클래스 기반)
+// Helper: QoS 텍스트를 녹색 배경 + 흰색 글자로 강조
+// class="qos-hl" + 인라인 스타일 병행:
+//   - class: 브라우저 렌더링 시 index.css 스타일 적용
+//   - 인라인 스타일: html2canvas foreignObject 캡처 시 외부 CSS 미적용 문제 보완
+//   - display:inline-block: html2canvas가 inline 요소의 background-color를 렌더링하지 못하는 버그 우회
 const qosHighlight = (text: string): string =>
-    `\u003cspan class='qos-hl'\u003e${text}\u003c/span\u003e`;
+    `<span class="qos-hl" style="background-color:#4caf50;color:#ffffff;-webkit-text-fill-color:#ffffff;padding:1px 4px;border-radius:3px;border:1px solid #388e3c;display:inline-block;">${text}</span>`;
 
 // Helper: QoS rate를 KMG 단위로 변환 (kbps → K/M/G)
 // rate 파싱 성공 시: "100M", "2G", "500K", "Max"
