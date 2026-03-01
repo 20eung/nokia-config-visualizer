@@ -6,6 +6,58 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.0.0] - 2026-03-01
+
+### 🎯 주요 변경 (Breaking Changes)
+- **V1 레거시 제거**: V1Page, nokiaParser, TopologyEngine 등 7개 파일 삭제. `/v1` 경로 제거
+- **Vanilla CSS 제거**: 11개 CSS 파일(~4,800줄) 삭제, Tailwind CSS utility class로 전면 마이그레이션
+
+### ✨ 새로운 기능 (New Features)
+- **사이트별 대시보드**: Config 로드 후 첫 화면으로 서비스 통계 카드 + 사이트 카드 그리드 표시
+  - Hostname에서 사이트명 자동 추출 (siteGrouper 유틸리티)
+  - HA 페어 자동 감지 (2대 이상 장비 사이트)
+  - 사이트 카드 클릭 → 해당 사이트 서비스 자동 선택 + Services 뷰 전환
+  - 사이트명/hostname 검색 필터
+- **다크모드**: Sun/Moon 토글, localStorage 저장, prefers-color-scheme 자동 감지
+  - NOC/관제센터 야간 근무 최적화
+  - 다이어그램 영역은 bg-white 유지 (Mermaid SVG 호환)
+- **Dashboard / Services 모드 토글**: 헤더에서 원클릭 전환
+
+### 🎨 UI/UX 개선 (UI/UX Improvements)
+- **Tailwind CSS v4 도입**: @tailwindcss/vite 플러그인 기반, 모든 컴포넌트 utility class 적용
+- **다크모드 지원**: 전체 UI에 dark: 변형 적용 (배경, 텍스트, 보더)
+- **Mermaid QoS CSS 분리**: src/styles/mermaid-overrides.css로 분리 (Tailwind 변환 불가 영역)
+
+### 🔒 보안 강화 (Security Hardening)
+- **CORS 제한**: `*` → `http://localhost:3301` (환경변수로 설정 가능)
+- **API Key 인증**: X-API-Key 헤더 기반 미들웨어 (server/src/middleware/auth.ts)
+- **Path Traversal 방어**: watch-folder 경로 화이트리스트 + 심볼릭 링크 차단
+- **WebSocket Origin 검증**: verifyClient 콜백으로 origin 검증
+- **글로벌 API Rate Limiting**: /api 전체에 90 req/min 제한 추가
+- **Health 정보 은닉**: region/model 정보 제거, `{"status":"ok"}` 만 반환
+- **에러 응답 정리**: 내부 에러 메시지 제거, 제네릭 메시지로 통일
+- **CSP 헤더**: nginx.conf에 Content-Security-Policy + Referrer-Policy 추가
+
+### ⚡ 성능 최적화 (Performance Optimization)
+- **Config 로딩 배치화**: 89개 파일 동시 fetch → 10개씩 배치 fetch
+- **@tanstack/react-virtual 설치**: 서비스 리스트 가상화 준비
+
+### 🐳 Docker 변경 (Docker Changes)
+- **docker-compose.yml**: CORS_ORIGIN, API_KEY 환경변수 추가
+- **nginx.conf**: CSP 헤더, Referrer-Policy 보안 헤더 추가
+
+### 📦 의존성 변경 (Dependencies)
+- **추가**: tailwindcss, @tailwindcss/vite, @tanstack/react-virtual
+- **제거**: 11개 Vanilla CSS 파일
+
+### 📝 파일 변경 요약
+- **삭제**: 18개 파일 (V1 7개 + CSS 11개)
+- **신규**: 6개 파일 (Dashboard, useDarkMode, siteGrouper, site.ts, mermaid-overrides.css, auth.ts)
+- **수정**: 19개 파일 (Tailwind 변환, 보안 강화, Docker 설정)
+- **총 변경**: +2,442줄 / -6,126줄 (순 3,684줄 감소)
+
+---
+
 ## [4.8.2] - 2026-02-24
 
 ### 🐛 버그 수정
