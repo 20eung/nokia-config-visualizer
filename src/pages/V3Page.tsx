@@ -423,11 +423,11 @@ export function V3Page() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="flex items-center justify-between h-16 px-6 bg-white dark:bg-gray-800 border-b border-slate-200 dark:border-gray-700 shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="flex items-center justify-between h-16 px-3 sm:px-6 bg-white dark:bg-gray-800 border-b border-slate-200 dark:border-gray-700 shrink-0 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           {/* Config 파일 목록 토글 */}
           <button
-            className={`flex items-center gap-1.5 px-3 py-2 mr-2 border rounded-md text-sm font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 border rounded-md text-sm font-medium transition-all shrink-0 ${
               showConfigFileList
                 ? 'bg-sky-100 dark:bg-sky-900/40 border-sky-600 text-sky-600 dark:text-sky-400'
                 : 'bg-transparent border-slate-200 dark:border-gray-600 text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700 hover:border-slate-300 hover:text-slate-700 dark:hover:text-gray-200'
@@ -436,13 +436,13 @@ export function V3Page() {
             title={showConfigFileList ? "Config 목록 닫기" : "Config 목록 열기"}
           >
             {showConfigFileList ? <FolderOpen size={20} /> : <FolderIcon size={20} />}
-            <span className="select-none">Config</span>
+            <span className="select-none hidden sm:inline">Config</span>
           </button>
 
           {/* Services 사이드바 토글 */}
           {viewMode === 'services' && (
             <button
-              className={`flex items-center gap-1.5 px-3 py-2 mr-2 border rounded-md text-sm font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 border rounded-md text-sm font-medium transition-all shrink-0 ${
                 !isSidebarCollapsed
                   ? 'bg-sky-100 dark:bg-sky-900/40 border-sky-600 text-sky-600 dark:text-sky-400'
                   : 'bg-transparent border-slate-200 dark:border-gray-600 text-slate-500 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700'
@@ -451,19 +451,19 @@ export function V3Page() {
               title={isSidebarCollapsed ? "Network Services 목록 열기" : "Network Services 목록 닫기"}
             >
               {isSidebarCollapsed ? <PanelLeftClose size={20} /> : <PanelLeft size={20} />}
-              <span className="select-none">Services</span>
+              <span className="select-none hidden sm:inline">Services</span>
             </button>
           )}
 
-          <div className="flex items-center gap-3">
-            <img src="/favicon.svg" alt="App Icon" className="w-8 h-8" />
-            <h1 className="text-xl font-semibold text-slate-900 dark:text-gray-100 m-0">
-              Nokia Config Visualizer v{__APP_VERSION__}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <img src="/favicon.svg" alt="App Icon" className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
+            <h1 className="text-sm sm:text-lg lg:text-xl font-semibold text-slate-900 dark:text-gray-100 m-0 truncate">
+              NCV v{__APP_VERSION__}
             </h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-2">
           {/* Dashboard / Services 모드 토글 */}
           {configs.length > 0 && (
             <div className="flex border border-slate-200 dark:border-gray-600 rounded-lg overflow-hidden">
@@ -518,16 +518,11 @@ export function V3Page() {
         </div>
       )}
 
-      <main className="flex flex-1 overflow-hidden" onMouseUp={stopResizing}>
+      <main className="flex flex-1 min-h-0 min-w-0 overflow-hidden" onMouseUp={stopResizing}>
         {/* Config File List Sidebar */}
+        {showConfigFileList && (
         <aside
-          className="bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shrink-0 overflow-hidden transition-all duration-300 ease-in-out"
-          style={{
-            width: showConfigFileList ? '300px' : '0',
-            minWidth: showConfigFileList ? '300px' : '0',
-            opacity: showConfigFileList ? 1 : 0,
-            pointerEvents: showConfigFileList ? 'auto' : 'none'
-          }}
+          className="w-[300px] min-w-[300px] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shrink-0 overflow-hidden"
         >
           <ConfigFileList
             files={configFiles}
@@ -540,6 +535,7 @@ export function V3Page() {
             onUploadConfig={handleConfigLoaded}
           />
         </aside>
+        )}
 
         {configs.length > 0 ? (
           viewMode === 'dashboard' ? (
