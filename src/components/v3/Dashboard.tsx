@@ -3,6 +3,7 @@
  *
  * Config 로드 후 첫 화면으로 표시됩니다.
  * 서비스 타입별 통계 카드와 사이트별 카드 그리드를 표시합니다.
+ * 브라우저 창 크기에 따라 동적으로 레이아웃이 조절됩니다.
  */
 
 import { useState, useMemo } from 'react';
@@ -54,23 +55,23 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto">
-        {/* 통계 카드 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-gray-900">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {/* 통계 카드 - 화면 너비에 따라 1~4열 반응형 */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
           {statCards.map(card => (
             <div
               key={card.label}
-              className={`rounded-xl p-4 text-white shadow-md flex flex-col items-center ${card.color} ${card.darkColor}`}
+              className={`rounded-xl p-3 sm:p-4 text-white shadow-md flex flex-col items-center min-w-0 ${card.color} ${card.darkColor}`}
             >
-              <span className="text-3xl font-bold">{card.count}</span>
-              <span className="text-sm opacity-90 mt-1">{card.label}</span>
+              <span className="text-2xl sm:text-3xl font-bold">{card.count}</span>
+              <span className="text-xs sm:text-sm opacity-90 mt-1">{card.label}</span>
             </div>
           ))}
         </div>
 
         {/* 요약 정보 */}
-        <div className="flex items-center gap-6 mb-6 text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-4 sm:mb-6 text-sm text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-1.5">
             <Server size={16} />
             <span>{totalStats.devices} devices</span>
@@ -82,7 +83,7 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
         </div>
 
         {/* 검색 */}
-        <div className="relative mb-6">
+        <div className="relative mb-4 sm:mb-6">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -93,8 +94,8 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
           />
         </div>
 
-        {/* 사이트 카드 그리드 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* 사이트 카드 그리드 - 화면 너비에 따라 1~3열 반응형 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 pb-4">
           {filteredGroups.map(group => (
             <SiteCard key={group.siteName} group={group} onClick={() => onSiteClick(group.hostnames)} />
           ))}
@@ -114,48 +115,48 @@ function SiteCard({ group, onClick }: { group: SiteGroup; onClick: () => void })
   return (
     <button
       onClick={onClick}
-      className="w-full text-left bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer group"
+      className="w-full text-left bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer group"
     >
       {/* 사이트명 + HA 뱃지 */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+      <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
+        <h3 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
           {group.siteName}
         </h3>
         {group.isHAPair && (
-          <span className="px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 rounded-full">
+          <span className="shrink-0 px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 rounded-full">
             HA
           </span>
         )}
       </div>
 
       {/* Hostname 목록 */}
-      <div className="flex flex-wrap gap-1.5 mb-3">
+      <div className="flex flex-wrap gap-1 sm:gap-1.5 mb-2 sm:mb-3">
         {group.hostnames.map(h => (
-          <span key={h} className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded">
+          <span key={h} className="px-1.5 sm:px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded truncate max-w-full">
             {h}
           </span>
         ))}
       </div>
 
       {/* 서비스 카운트 */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {group.serviceCounts.epipe > 0 && (
-          <span className="px-2 py-0.5 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded">
+          <span className="px-2 py-0.5 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded whitespace-nowrap">
             Epipe: {group.serviceCounts.epipe}
           </span>
         )}
         {group.serviceCounts.vpls > 0 && (
-          <span className="px-2 py-0.5 text-xs bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded">
+          <span className="px-2 py-0.5 text-xs bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded whitespace-nowrap">
             VPLS: {group.serviceCounts.vpls}
           </span>
         )}
         {group.serviceCounts.vprn > 0 && (
-          <span className="px-2 py-0.5 text-xs bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded">
+          <span className="px-2 py-0.5 text-xs bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded whitespace-nowrap">
             VPRN: {group.serviceCounts.vprn}
           </span>
         )}
         {group.serviceCounts.ies > 0 && (
-          <span className="px-2 py-0.5 text-xs bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded">
+          <span className="px-2 py-0.5 text-xs bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded whitespace-nowrap">
             IES: {group.serviceCounts.ies}
           </span>
         )}
