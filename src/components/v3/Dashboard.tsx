@@ -55,10 +55,10 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
   ];
 
   return (
-    <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="w-full bg-gray-50 dark:bg-gray-900">
       <div className="w-full px-4 sm:px-6 py-6">
-        {/* 통계 카드 - 화면 너비에 따라 2~4열 반응형 (md=768px 이상에서 4열) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+        {/* 통계 카드 - 항상 4열, 브라우저 가로에 비례하여 크기 가변 */}
+        <div className="grid grid-cols-4 gap-3 sm:gap-4 mb-6">
           {statCards.map(card => (
             <div
               key={card.label}
