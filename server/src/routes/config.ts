@@ -26,10 +26,30 @@ router.post('/watch-folder', async (req: Request, res: Response) => {
       });
     }
 
+    // 경로 보안 검증
+    const resolvedPath = path.resolve(watchPath);
+    const allowedPrefixes = ['/app/configs', '/tmp/configs', process.env.WATCH_FOLDER_PATH].filter(Boolean) as string[];
+
+    const isAllowed = allowedPrefixes.some(prefix => resolvedPath.startsWith(path.resolve(prefix)));
+    if (!isAllowed) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied: Path is not in the allowed list'
+      });
+    }
+
     // 폴더 존재 확인
     try {
-      await fs.access(watchPath);
-      const stats = await fs.stat(watchPath);
+      await fs.access(resolvedPath);
+      const stats = await fs.lstat(resolvedPath);
+
+      // 심볼릭 링크 차단
+      if (stats.isSymbolicLink()) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied: Symbolic links are not allowed'
+        });
+      }
 
       if (!stats.isDirectory()) {
         return res.status(400).json({
@@ -56,7 +76,7 @@ router.post('/watch-folder', async (req: Request, res: Response) => {
     console.error('[API] Error setting watch folder:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Internal server error'
+      error: 'Internal server error'
     });
   }
 });
@@ -95,7 +115,7 @@ router.get('/files', async (req: Request, res: Response) => {
     console.error('[API] Error getting files:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Internal server error'
+      error: 'Internal server error'
     });
   }
 });
@@ -158,7 +178,7 @@ router.get('/file/:filename', async (req: Request, res: Response) => {
     console.error('[API] Error sending file:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Internal server error'
+      error: 'Internal server error'
     });
   }
 });
@@ -179,7 +199,7 @@ router.get('/watch-status', (req: Request, res: Response) => {
     console.error('[API] Error getting watch status:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Internal server error'
+      error: 'Internal server error'
     });
   }
 });
@@ -200,7 +220,7 @@ router.post('/stop-watching', (req: Request, res: Response) => {
     console.error('[API] Error stopping watch:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Internal server error'
+      error: 'Internal server error'
     });
   }
 });
@@ -222,7 +242,7 @@ router.get('/groups', async (req: Request, res: Response) => {
     console.error('[API] Error getting file groups:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Internal server error'
+      error: 'Internal server error'
     });
   }
 });

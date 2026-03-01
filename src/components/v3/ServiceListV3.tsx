@@ -19,7 +19,6 @@ import { buildConfigSummary, type ConfigSummary } from '../../utils/configSummar
 import { toDictionaryCompact } from '../../utils/dictionaryStorage';
 import { loadDictionaryFromServer } from '../../services/dictionaryApi';
 import type { ChatResponse } from '../../services/chatApi';
-import './ServiceListV3.css';
 
 interface ServiceListProps {
   services: NokiaServiceV3[];
@@ -966,10 +965,10 @@ export function ServiceListV3({
   };
 
   return (
-    <div className="service-list">
-      <div className="service-list-header">
-        <h2>Network Services</h2>
-        <div className="service-count">
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <h2 className="m-0 text-lg font-semibold">Network Services</h2>
+        <div className="text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-300 px-3 py-1 rounded-xl">
           {filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''}
         </div>
       </div>
@@ -986,22 +985,15 @@ export function ServiceListV3({
         />
       </Suspense>
       {aiEnabled && configs.length > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px 4px' }}>
+        <div className="flex justify-end px-2 pb-1">
           <button
             onClick={() => setShowDictionaryEditor(true)}
             title="이름 사전 편집"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '4px 10px',
-              background: dictionary && dictionary.entries.length > 0 ? '#eff6ff' : 'white',
-              border: `1px solid ${dictionary && dictionary.entries.length > 0 ? '#93c5fd' : '#d1d5db'}`,
-              borderRadius: '6px',
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              color: dictionary && dictionary.entries.length > 0 ? '#1d4ed8' : '#6b7280',
-            }}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs cursor-pointer border ${
+              dictionary && dictionary.entries.length > 0
+                ? 'bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-900/30 dark:border-blue-600 dark:text-blue-300'
+                : 'bg-white border-gray-300 text-gray-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400'
+            }`}
           >
             <BookOpen size={14} />
             이름 사전{dictionary && dictionary.entries.length > 0 ? ` (${dictionary.entries.length})` : ''}
@@ -1009,26 +1001,26 @@ export function ServiceListV3({
         </div>
       )}
       {!aiEnabled && (
-        <div className="service-search">
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <input
             type="text"
             placeholder="Search (OR: space, AND: ' + ')..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:border-blue-600 dark:bg-gray-700 dark:text-gray-100"
           />
         </div>
       )}
 
       {/* 검색 예시 Pills (search-examples-ui) */}
       {!aiEnabled && (
-        <div className="search-examples-container">
-          <span className="examples-label">💡 Examples:</span>
-          <div className="examples-pills">
+        <div className="mt-2 flex items-center gap-2 flex-wrap px-3 md:max-lg:flex-col md:max-lg:items-start max-md:flex-col max-md:items-start">
+          <span className="text-[0.85rem] text-slate-500 font-medium whitespace-nowrap max-md:mb-1">💡 Examples:</span>
+          <div className="flex flex-wrap gap-1.5 max-md:w-full">
             {DYNAMIC_EXAMPLES.map((example, idx) => (
               <button
                 key={idx}
-                className="example-pill"
+                className="px-3 py-1 text-[0.8rem] font-mono bg-slate-100 border border-slate-300 text-slate-700 rounded-2xl cursor-pointer whitespace-nowrap outline-none transition-all duration-200 hover:bg-sky-100 hover:border-sky-500 hover:text-sky-700 hover:-translate-y-px hover:shadow-sm focus:outline-2 focus:outline-sky-500 focus:outline-offset-2 active:translate-y-0 active:shadow-none disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-sky-900/40 dark:hover:border-sky-500 dark:hover:text-sky-300 max-md:text-[0.75rem] md:max-lg:text-[0.75rem] md:max-lg:px-2.5 md:max-lg:py-0.5"
                 title={example.description}
                 onClick={() => handleExampleClick(example.query)}
                 aria-label={`Search example: ${example.label}`}
@@ -1041,36 +1033,56 @@ export function ServiceListV3({
       )}
 
       {/* 필터 */}
-      <div className="service-filters">
-        <div className="filter-group">
-          <label>Type:</label>
-          <div className="filter-buttons">
+      <div className="px-4 pr-6 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <label className="text-[13px] font-medium text-gray-500 dark:text-gray-400 min-w-[40px]">Type:</label>
+          <div className="flex gap-1 flex-nowrap">
             <button
-              className={filterType === 'all' ? 'active' : ''}
+              className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                filterType === 'all'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
               onClick={() => setFilterType('all')}
             >
               All
             </button>
             <button
-              className={filterType === 'epipe' ? 'active' : ''}
+              className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                filterType === 'epipe'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
               onClick={() => setFilterType('epipe')}
             >
               Epipe
             </button>
             <button
-              className={filterType === 'vpls' ? 'active' : ''}
+              className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                filterType === 'vpls'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
               onClick={() => setFilterType('vpls')}
             >
               VPLS
             </button>
             <button
-              className={filterType === 'vprn' ? 'active' : ''}
+              className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                filterType === 'vprn'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
               onClick={() => setFilterType('vprn')}
             >
               VPRN
             </button>
             <button
-              className={filterType === 'ies' ? 'active' : ''}
+              className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                filterType === 'ies'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
               onClick={() => setFilterType('ies')}
             >
               IES
@@ -1080,38 +1092,38 @@ export function ServiceListV3({
       </div>
 
       {/* 선택 버튼 */}
-      <div className="service-actions">
-        <button onClick={handleSelectAll} className="action-btn">
+      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex gap-2 items-center">
+        <button onClick={handleSelectAll} className="flex-1 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 rounded text-sm cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700">
           All
         </button>
-        <span style={{ margin: '0 4px', color: '#ccc' }}>|</span>
-        <button onClick={handleHAFilter} className="action-btn" style={{ fontWeight: 'bold', color: '#0066cc' }}>
+        <span className="mx-1 text-gray-300">|</span>
+        <button onClick={handleHAFilter} className="flex-1 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded text-sm cursor-pointer font-bold text-blue-600 dark:text-blue-400 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700">
           이중화
         </button>
-        <span style={{ margin: '0 4px', color: '#ccc' }}>|</span>
-        <button onClick={handleSelectNone} className="action-btn" style={{ color: '#666' }}>
+        <span className="mx-1 text-gray-300">|</span>
+        <button onClick={handleSelectNone} className="flex-1 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded text-sm cursor-pointer text-gray-500 dark:text-gray-400 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700">
           None
         </button>
       </div>
 
 
       {/* Services Content (Scrollable) - Force Remount on Search Change */}
-      <div className="service-list-content" key={searchQuery}>
+      <div className="flex-1 overflow-y-auto min-h-0" key={searchQuery}>
         {/* Epipe 서비스 */}
         {epipeServices.length > 0 && (
-          <div className="service-group">
+          <div className="mb-4">
             <div
-              className="service-group-header clickable"
+              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
               onClick={() => toggleGroup('epipe')}
             >
-              <span className="group-toggle-icon">
+              <span className="inline-flex items-center justify-center w-5 h-5 text-gray-500 dark:text-gray-400 mr-1 text-[10px] transition-transform duration-200">
                 {expandedGroups['epipe'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </span>
-              <span className="service-icon">🔗</span>
-              <h3>Epipe Services ({selectedServiceIds.length > 0 ? `${selectedEpipeCount} / ` : ''}{epipeServices.length})</h3>
+              <span className="text-lg">🔗</span>
+              <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">Epipe Services ({selectedServiceIds.length > 0 ? `${selectedEpipeCount} / ` : ''}{epipeServices.length})</h3>
             </div>
             {expandedGroups['epipe'] && (
-              <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
+              <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
                 {epipeServices.map(serviceGroup => {
                   // 대표 서비스 (첫 번째)
                   const representative = serviceGroup[0];
@@ -1119,20 +1131,22 @@ export function ServiceListV3({
                   return (
                     <div
                       key={representative.serviceId}
-                      className={`service-item ${selectedSet.has(`${representative.serviceType}-${representative.serviceId}`) ? 'selected' : ''}`}
+                      className={`px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-start gap-3 cursor-pointer transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                        selectedSet.has(`${representative.serviceType}-${representative.serviceId}`) ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                      }`}
                       onClick={() => onToggleService(`${representative.serviceType}-${representative.serviceId}`)}
                     >
                       <input
                         type="checkbox"
                         checked={selectedSet.has(`${representative.serviceType}-${representative.serviceId}`)}
                         onChange={() => { }}
-                        className="service-checkbox"
+                        className="mt-0.5 cursor-pointer"
                       />
-                      <div className="service-info">
-                        <div className="service-title">
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm mb-1 dark:text-gray-200">
                           Epipe {representative.serviceId}
                         </div>
-                        <div className="service-description">
+                        <div className="text-[13px] text-gray-500 dark:text-gray-400 mb-1.5">
                           {representative.description}
                         </div>
                         {serviceGroup.map((service, idx) => {
@@ -1151,15 +1165,15 @@ export function ServiceListV3({
 
                           return (
                             <div key={idx}>
-                              <div className="service-meta">
-                                <span className="meta-item" style={{ fontWeight: 'bold', color: '#0066cc' }}>{hostname}</span>
+                              <div className="flex gap-3 flex-wrap">
+                                <span className="text-xs text-gray-400 px-2 py-0.5 rounded font-bold text-blue-600 dark:text-blue-400">{hostname}</span>
                               </div>
-                              <div className="service-meta">
+                              <div className="flex gap-3 flex-wrap">
                                 {sapIds && (
-                                  <span className="meta-item">SAP: {sapIds}</span>
+                                  <span className="text-xs text-gray-400 dark:text-gray-500 px-2 py-0.5 rounded">SAP: {sapIds}</span>
                                 )}
                                 {sdpIds && (
-                                  <span className="meta-item">SDP: {sdpIds}</span>
+                                  <span className="text-xs text-gray-400 dark:text-gray-500 px-2 py-0.5 rounded">SDP: {sdpIds}</span>
                                 )}
                               </div>
                             </div>
@@ -1176,39 +1190,41 @@ export function ServiceListV3({
 
         {/* VPLS 서비스 */}
         {vplsServices.length > 0 && (
-          <div className="service-group">
+          <div className="mb-4">
             <div
-              className="service-group-header clickable"
+              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
               onClick={() => toggleGroup('vpls')}
             >
-              <span className="group-toggle-icon">
+              <span className="inline-flex items-center justify-center w-5 h-5 text-gray-500 dark:text-gray-400 mr-1 text-[10px] transition-transform duration-200">
                 {expandedGroups['vpls'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </span>
-              <span className="service-icon">🌐</span>
-              <h3>VPLS Services ({selectedServiceIds.length > 0 ? `${selectedVplsCount} / ` : ''}{vplsServices.length})</h3>
+              <span className="text-lg">🌐</span>
+              <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">VPLS Services ({selectedServiceIds.length > 0 ? `${selectedVplsCount} / ` : ''}{vplsServices.length})</h3>
             </div>
             {expandedGroups['vpls'] && (
-              <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
+              <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
                 {vplsServices.map(serviceGroup => {
                   const representative = serviceGroup[0];
 
                   return (
                     <div
                       key={representative.serviceId}
-                      className={`service-item ${selectedSet.has(`${representative.serviceType}-${representative.serviceId}`) ? 'selected' : ''}`}
+                      className={`px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-start gap-3 cursor-pointer transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                        selectedSet.has(`${representative.serviceType}-${representative.serviceId}`) ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                      }`}
                       onClick={() => onToggleService(`${representative.serviceType}-${representative.serviceId}`)}
                     >
                       <input
                         type="checkbox"
                         checked={selectedSet.has(`${representative.serviceType}-${representative.serviceId}`)}
                         onChange={() => { }}
-                        className="service-checkbox"
+                        className="mt-0.5 cursor-pointer"
                       />
-                      <div className="service-info">
-                        <div className="service-title">
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm mb-1 dark:text-gray-200">
                           VPLS {representative.serviceId}
                         </div>
-                        <div className="service-description">
+                        <div className="text-[13px] text-gray-500 dark:text-gray-400 mb-1.5">
                           {representative.description}
                         </div>
                         {serviceGroup.map((service, idx) => {
@@ -1220,13 +1236,13 @@ export function ServiceListV3({
 
                           return (
                             <div key={idx}>
-                              <div className="service-meta">
-                                <span className="meta-item" style={{ fontWeight: 'bold', color: '#0066cc' }}>{hostname}</span>
+                              <div className="flex gap-3 flex-wrap">
+                                <span className="text-xs text-gray-400 px-2 py-0.5 rounded font-bold text-blue-600 dark:text-blue-400">{hostname}</span>
                               </div>
-                              <div className="service-meta">
-                                {sapIds && <span className="meta-item">SAP: {sapIds}</span>}
-                                {spokeSdpIds && <span className="meta-item">Spoke SDP: {spokeSdpIds}</span>}
-                                {meshSdpIds && <span className="meta-item">Mesh SDP: {meshSdpIds}</span>}
+                              <div className="flex gap-3 flex-wrap">
+                                {sapIds && <span className="text-xs text-gray-400 dark:text-gray-500 px-2 py-0.5 rounded">SAP: {sapIds}</span>}
+                                {spokeSdpIds && <span className="text-xs text-gray-400 dark:text-gray-500 px-2 py-0.5 rounded">Spoke SDP: {spokeSdpIds}</span>}
+                                {meshSdpIds && <span className="text-xs text-gray-400 dark:text-gray-500 px-2 py-0.5 rounded">Mesh SDP: {meshSdpIds}</span>}
                               </div>
                             </div>
                           );
@@ -1242,19 +1258,19 @@ export function ServiceListV3({
 
         {/* VPRN 서비스 */}
         {vprnServices.length > 0 && (
-          <div className="service-group">
+          <div className="mb-4">
             <div
-              className="service-group-header clickable"
+              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
               onClick={() => toggleGroup('vprn')}
             >
-              <span className="group-toggle-icon">
+              <span className="inline-flex items-center justify-center w-5 h-5 text-gray-500 dark:text-gray-400 mr-1 text-[10px] transition-transform duration-200">
                 {expandedGroups['vprn'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </span>
-              <span className="service-icon">📡</span>
-              <h3>VPRN Services ({selectedServiceIds.length > 0 ? `${selectedVprnCount} / ` : ''}{vprnServices.length})</h3>
+              <span className="text-lg">📡</span>
+              <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">VPRN Services ({selectedServiceIds.length > 0 ? `${selectedVprnCount} / ` : ''}{vprnServices.length})</h3>
             </div>
             {expandedGroups['vprn'] && (
-              <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
+              <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
                 {vprnServices.map(serviceGroup => {
                   const representative = serviceGroup[0] as VPRNService;
                   const hostname = (representative as any)._hostname || 'Unknown';
@@ -1326,14 +1342,13 @@ export function ServiceListV3({
                   };
 
                   return (
-                    <div key={`vprn-group-${serviceKey}`} className="service-subgroup" style={{ marginBottom: '8px', border: '1px solid #eee', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div key={`vprn-group-${serviceKey}`} className="mb-2 border border-gray-200 dark:border-gray-700 rounded overflow-hidden">
                       {/* Service Header (Accordion) */}
                       <div
-                        className="subgroup-header clickable"
+                        className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                         onClick={toggleServiceAccordion}
-                        style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', background: '#f9fafb', cursor: 'pointer' }}
                       >
-                        <span style={{ marginRight: '8px', display: 'flex' }}>
+                        <span className="mr-2 flex">
                           {isServiceExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         </span>
                         <input
@@ -1342,57 +1357,51 @@ export function ServiceListV3({
                           ref={el => { if (el) el.indeterminate = isPartialSelected; }}
                           onChange={() => { }} // Handled by div click or separate click handler
                           onClick={handleServiceSelect}
-                          style={{ marginRight: '8px' }}
+                          className="mr-2"
                         />
-                        <span className="service-title" style={{ flex: 1, margin: 0 }}>
+                        <span className="font-semibold text-sm flex-1 m-0 dark:text-gray-200">
                           VPRN {serviceId} - {hostname} ({allInterfaces.length})
                         </span>
                       </div>
 
                       {/* Service Description */}
                       {isServiceExpanded && representative.description && (
-                        <div style={{ padding: '4px 12px 8px 44px', fontSize: '0.85em', color: '#666' }}>
+                        <div className="py-1 px-3 pl-11 text-[0.85em] text-gray-500 dark:text-gray-400">
                           {representative.description}
                         </div>
                       )}
 
                       {/* Interfaces List */}
                       {isServiceExpanded && (
-                        <div className="subgroup-items" style={{ padding: '8px' }}>
+                        <div className="p-2">
                           {allInterfaces.map((intf) => {
                             const isSelected = isFullServiceSelected || selectedSet.has(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`);
                             return (
                               <div
                                 key={`${hostname}-vprn-${serviceId}-${intf.interfaceName}`}
-                                className={`interface-card ${isSelected ? 'selected' : ''}`}
+                                className={`flex items-center px-2.5 py-1.5 mb-1 border rounded cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700'
+                                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                                }`}
                                 onClick={() => handleInterfaceToggle(intf.interfaceName)}
-                                style={{
-                                  display: 'flex', alignItems: 'center',
-                                  padding: '6px 10px', marginBottom: '4px',
-                                  background: isSelected ? '#e3f2fd' : 'white',
-                                  border: '1px solid #eee', borderRadius: '4px',
-                                  cursor: 'pointer'
-                                }}
                               >
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
                                   onChange={() => { }}
-                                  style={{ marginRight: '10px' }}
+                                  className="mr-2.5"
                                 />
-                                <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.9em' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                                    <span style={{ fontWeight: 'bold', color: '#0066cc', fontSize: '12px', marginRight: '8px' }}>{intf.interfaceName}</span>
+                                <div className="flex flex-col text-[0.9em]">
+                                  <div className="flex items-center">
+                                    <span className="font-bold text-blue-600 dark:text-blue-400 text-xs mr-2">{intf.interfaceName}</span>
                                     {intf.ipAddress && (
-                                      <span style={{
-                                        background: '#e8f5e9', color: '#2e7d32',
-                                        padding: '1px 6px', borderRadius: '4px', fontSize: '0.85em'
-                                      }}>
+                                      <span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-px rounded text-[0.85em]">
                                         {intf.ipAddress}
                                       </span>
                                     )}
                                   </div>
-                                  <div style={{ color: '#666', fontSize: '0.85em', marginTop: '2px' }}>
+                                  <div className="text-gray-500 dark:text-gray-400 text-[0.85em] mt-0.5">
                                     {intf.description || ''}
                                   </div>
                                 </div>
@@ -1411,19 +1420,19 @@ export function ServiceListV3({
 
         {/* IES 서비스 (Base Router) */}
         {iesServices.length > 0 && (
-          <div className="service-group">
+          <div className="mb-4">
             <div
-              className="service-group-header clickable"
+              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
               onClick={() => toggleGroup('ies')}
             >
-              <span className="group-toggle-icon">
+              <span className="inline-flex items-center justify-center w-5 h-5 text-gray-500 dark:text-gray-400 mr-1 text-[10px] transition-transform duration-200">
                 {expandedGroups['ies'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </span>
-              <span className="service-icon">🌐</span>
-              <h3>IES Services ({selectedServiceIds.length > 0 ? `${selectedIesInterfaceCount} / ` : ''}{iesInterfaceCount})</h3>
+              <span className="text-lg">🌐</span>
+              <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">IES Services ({selectedServiceIds.length > 0 ? `${selectedIesInterfaceCount} / ` : ''}{iesInterfaceCount})</h3>
             </div>
             {expandedGroups['ies'] && (
-              <div className="service-items" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
+              <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
                 {iesServices.map(serviceGroup => {
                   const representative = serviceGroup[0] as IESService;
                   const hostname = (representative as any)._hostname || 'Unknown';
@@ -1493,14 +1502,13 @@ export function ServiceListV3({
                   };
 
                   return (
-                    <div key={`ies-group-${hostname}`} className="service-subgroup" style={{ marginBottom: '8px', border: '1px solid #eee', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div key={`ies-group-${hostname}`} className="mb-2 border border-gray-200 dark:border-gray-700 rounded overflow-hidden">
                       {/* Hostname Header (Accordion) */}
                       <div
-                        className="subgroup-header clickable"
+                        className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                         onClick={toggleHostAccordion}
-                        style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', background: '#f9fafb', cursor: 'pointer' }}
                       >
-                        <span style={{ marginRight: '8px', display: 'flex' }}>
+                        <span className="mr-2 flex">
                           {isHostExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         </span>
                         <input
@@ -1509,49 +1517,43 @@ export function ServiceListV3({
                           ref={el => { if (el) el.indeterminate = isPartialSelected; }}
                           onChange={() => { }} // Handled by div click or separate click handler
                           onClick={handleHostSelect}
-                          style={{ marginRight: '8px' }}
+                          className="mr-2"
                         />
-                        <span className="service-title" style={{ flex: 1, margin: 0 }}>{hostname} ({allInterfaces.length})</span>
+                        <span className="font-semibold text-sm flex-1 m-0 dark:text-gray-200">{hostname} ({allInterfaces.length})</span>
                       </div>
 
                       {/* Interfaces List */}
                       {isHostExpanded && (
-                        <div className="subgroup-items" style={{ padding: '8px' }}>
+                        <div className="p-2">
                           {/* Quick Filters (Optional, can add later) */}
                           {allInterfaces.map((intf) => {
                             const isSelected = isFullHostSelected || selectedSet.has(`ies___${hostname}___${intf.interfaceName}`);
                             return (
                               <div
                                 key={`${hostname}-${intf._parentService.serviceId}-${intf.interfaceName}`}
-                                className={`interface-card ${isSelected ? 'selected' : ''}`}
+                                className={`flex items-center px-2.5 py-1.5 mb-1 border rounded cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700'
+                                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                                }`}
                                 onClick={() => handleInterfaceToggle(intf.interfaceName)}
-                                style={{
-                                  display: 'flex', alignItems: 'center',
-                                  padding: '6px 10px', marginBottom: '4px',
-                                  background: isSelected ? '#e3f2fd' : 'white',
-                                  border: '1px solid #eee', borderRadius: '4px',
-                                  cursor: 'pointer'
-                                }}
                               >
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
                                   onChange={() => { }}
-                                  style={{ marginRight: '10px' }}
+                                  className="mr-2.5"
                                 />
-                                <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.9em' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                                    <span style={{ fontWeight: 'bold', color: '#0066cc', fontSize: '12px', marginRight: '8px' }}>{intf.interfaceName}</span>
+                                <div className="flex flex-col text-[0.9em]">
+                                  <div className="flex items-center">
+                                    <span className="font-bold text-blue-600 dark:text-blue-400 text-xs mr-2">{intf.interfaceName}</span>
                                     {intf.ipAddress && (
-                                      <span style={{
-                                        background: '#e8f5e9', color: '#2e7d32',
-                                        padding: '1px 6px', borderRadius: '4px', fontSize: '0.85em'
-                                      }}>
+                                      <span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-px rounded text-[0.85em]">
                                         {intf.ipAddress}
                                       </span>
                                     )}
                                   </div>
-                                  <div style={{ color: '#666', fontSize: '0.85em', marginTop: '2px' }}>
+                                  <div className="text-gray-500 dark:text-gray-400 text-[0.85em] mt-0.5">
                                     {intf.description || ''}
                                   </div>
                                 </div>
@@ -1569,8 +1571,8 @@ export function ServiceListV3({
         )}
 
         {filteredServices.length === 0 && (
-          <div className="no-results">
-            <p>No services found matching your filters.</p>
+          <div className="py-10 px-4 text-center text-gray-400 dark:text-gray-500">
+            <p className="m-0 text-sm">No services found matching your filters.</p>
           </div>
         )}
       </div>

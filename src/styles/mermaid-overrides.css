@@ -1,0 +1,28 @@
+/* Mermaid SVG 내부 클래스 - Tailwind 변환 불가, 글로벌 CSS로 유지 */
+/* QoS 하이라이트 라벨 (Epipe/VPLS/VPRN 노드 간 링크) */
+.qos-label {
+    background-color: #4caf50 !important;
+    color: #ffffff !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    display: inline-block !important;
+    font-size: 0.75rem !important;
+    line-height: 1.2 !important;
+    text-align: center !important;
+    border: 1px solid #388e3c !important;
+    white-space: nowrap !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* QoS 하이라이트: SAP 노드 내부 (Epipe/VPLS/VPRN) */
+.nodeLabel .qos-hl,
+.label .qos-hl,
+foreignObject .qos-hl,
+.qos-hl {
+    background-color: #4caf50 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    padding: 1px 4px !important;
+    border-radius: 3px !important;
+    border: 1px solid #388e3c !important;
+}

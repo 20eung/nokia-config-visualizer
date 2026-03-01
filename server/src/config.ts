@@ -8,7 +8,7 @@
 export const config = {
   // 서버 설정
   port: parseInt(process.env.PORT || '3000', 10),
-  corsOrigin: process.env.CORS_ORIGIN || '*',
+  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3301',
 
   // AWS 설정
   aws: {
