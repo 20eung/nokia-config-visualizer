@@ -455,9 +455,9 @@ export function V3Page() {
             </button>
           )}
 
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <img src="/favicon.svg" alt="App Icon" className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
-            <h1 className="text-sm sm:text-lg lg:text-xl font-semibold text-slate-900 dark:text-gray-100 m-0 truncate">
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+            <img src="/favicon.svg" alt="App Icon" className="w-6 h-6 sm:w-8 sm:h-8 shrink-0" />
+            <h1 className="hidden sm:block text-lg lg:text-xl font-semibold text-slate-900 dark:text-gray-100 m-0 truncate">
               NCV v{__APP_VERSION__}
             </h1>
           </div>
@@ -468,26 +468,28 @@ export function V3Page() {
           {configs.length > 0 && (
             <div className="flex border border-slate-200 dark:border-gray-600 rounded-lg overflow-hidden">
               <button
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm ${
+                className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 text-sm ${
                   viewMode === 'dashboard'
                     ? 'bg-blue-600 text-white'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}
                 onClick={() => setViewMode('dashboard')}
+                title="Dashboard"
               >
                 <LayoutDashboard size={16} />
-                Dashboard
+                <span className="hidden sm:inline">Dashboard</span>
               </button>
               <button
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm ${
+                className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 text-sm ${
                   viewMode === 'services'
                     ? 'bg-blue-600 text-white'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}
                 onClick={() => setViewMode('services')}
+                title="Services"
               >
                 <List size={16} />
-                Services
+                <span className="hidden sm:inline">Services</span>
               </button>
             </div>
           )}
