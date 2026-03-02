@@ -55,23 +55,24 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
   ];
 
   return (
-    <div className="w-full bg-gray-50 dark:bg-gray-900">
-      <div className="w-full px-4 sm:px-6 py-6">
-        {/* 통계 카드 - 항상 4열, 브라우저 가로에 비례하여 크기 가변 */}
-        <div className="grid grid-cols-4 gap-3 sm:gap-4 mb-6">
+    <div className="flex-1 flex flex-col min-h-0 min-w-0 bg-gray-50 dark:bg-gray-900">
+      {/* 상단 고정 영역: 통계 카드 + 요약 + 검색 */}
+      <div className="shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-3">
+        {/* 통계 카드 - 항상 4열 1줄, 가로 전체를 균등 분할 */}
+        <div className="flex gap-3 sm:gap-4 mb-4">
           {statCards.map(card => (
             <div
               key={card.label}
-              className={`rounded-xl p-3 sm:p-4 text-white shadow-md flex flex-col items-center min-w-0 ${card.color} ${card.darkColor}`}
+              className={`flex-1 rounded-xl p-3 sm:p-4 text-white shadow-md flex flex-col items-center min-w-0 ${card.color} ${card.darkColor}`}
             >
-              <span className="text-2xl sm:text-3xl font-bold">{card.count}</span>
+              <span className="text-xl sm:text-2xl lg:text-3xl font-bold">{card.count}</span>
               <span className="text-xs sm:text-sm opacity-90 mt-1">{card.label}</span>
             </div>
           ))}
         </div>
 
         {/* 요약 정보 */}
-        <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-4 sm:mb-6 text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-3 text-sm text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-1.5">
             <Server size={16} />
             <span>{totalStats.devices} devices</span>
@@ -83,7 +84,7 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
         </div>
 
         {/* 검색 */}
-        <div className="relative mb-4 sm:mb-6">
+        <div className="relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -93,9 +94,11 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
             className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           />
         </div>
+      </div>
 
-        {/* 사이트 카드 그리드 - 화면 너비에 따라 1~3열 반응형 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 pb-4">
+      {/* 하단 스크롤 영역: 사이트 카드 그리드 */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 pt-3 pb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {filteredGroups.map(group => (
             <SiteCard key={group.siteName} group={group} onClick={() => onSiteClick(group.hostnames)} />
           ))}

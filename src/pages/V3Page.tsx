@@ -421,7 +421,7 @@ export function V3Page() {
   const diagrams: DiagramItem[] = useMemo(() => [...iesDiagrams, ...nonIesDiagrams], [iesDiagrams, nonIesDiagrams]);
 
   return (
-    <div className={`flex flex-col bg-slate-50 dark:bg-gray-900 ${viewMode === 'services' || configs.length === 0 ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+    <div className="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-gray-900">
       {/* Header */}
       <header className="flex items-center justify-between h-16 px-3 sm:px-6 bg-white dark:bg-gray-800 border-b border-slate-200 dark:border-gray-700 shrink-0">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
