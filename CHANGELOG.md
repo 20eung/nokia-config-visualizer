@@ -6,6 +6,20 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.2.5] - 2026-03-03
+
+### 🐛 버그 수정 / 🎨 UI 개선 (Bug Fix / UI Improvement)
+
+- **이중 스크롤바 제거** (`ServiceListV3.tsx`):
+  - Epipe/VPLS/VPRN/IES 각 그룹 내부의 `max-h-[calc(100vh-300px)] overflow-y-auto` 제거
+  - 외부 단일 스크롤 컨테이너(`flex-1 overflow-y-auto`)만 사용하는 글로벌 스탠다드 구조로 변경
+  - VS Code, GitHub, Linear 등과 동일한 단일 스크롤 패턴 적용
+- **그룹 헤더 Sticky 고정** (`ServiceListV3.tsx`):
+  - 스크롤 중에도 어느 타입의 서비스인지 항상 표시 (`sticky top-0 z-10`)
+  - Epipe(blue) / VPLS(emerald) / VPRN(violet) / IES(amber) 색상 보더와 함께 고정
+
+---
+
 ## [5.2.4] - 2026-03-03
 
 ### 🎨 UI/UX 개선 (UI/UX Improvements)

@@ -1128,7 +1128,7 @@ export function ServiceListV3({
         {epipeServices.length > 0 && (
           <div className="mb-4">
             <div
-              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 border-l-4 border-l-blue-400 dark:border-l-blue-500 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="sticky top-0 z-10 px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 border-l-4 border-l-blue-400 dark:border-l-blue-500 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
               onClick={() => toggleGroup('epipe')}
             >
               <span className="inline-flex items-center justify-center w-5 h-5 text-gray-500 dark:text-gray-400 mr-1 text-[10px] transition-transform duration-200">
@@ -1148,7 +1148,7 @@ export function ServiceListV3({
               )}
             </div>
             {expandedGroups['epipe'] && (
-              <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
+              <div className="overflow-hidden">
                 {epipeServices.map(serviceGroup => {
                   // 대표 서비스 (첫 번째)
                   const representative = serviceGroup[0];
@@ -1224,7 +1224,7 @@ export function ServiceListV3({
         {vplsServices.length > 0 && (
           <div className="mb-4">
             <div
-              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="sticky top-0 z-10 px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
               onClick={() => toggleGroup('vpls')}
             >
               <span className="inline-flex items-center justify-center w-5 h-5 text-gray-500 dark:text-gray-400 mr-1 text-[10px] transition-transform duration-200">
@@ -1234,7 +1234,7 @@ export function ServiceListV3({
               <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">VPLS ({selectedServiceIds.length > 0 ? `${selectedVplsCount} / ` : ''}{vplsServices.length})</h3>
             </div>
             {expandedGroups['vpls'] && (
-              <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
+              <div className="overflow-hidden">
                 {vplsServices.map(serviceGroup => {
                   const representative = serviceGroup[0];
 
@@ -1295,7 +1295,7 @@ export function ServiceListV3({
         {vprnServices.length > 0 && (
           <div className="mb-4">
             <div
-              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 border-l-4 border-l-violet-400 dark:border-l-violet-500 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="sticky top-0 z-10 px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 border-l-4 border-l-violet-400 dark:border-l-violet-500 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
               onClick={() => toggleGroup('vprn')}
             >
               <span className="inline-flex items-center justify-center w-5 h-5 text-gray-500 dark:text-gray-400 mr-1 text-[10px] transition-transform duration-200">
@@ -1305,7 +1305,7 @@ export function ServiceListV3({
               <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">VPRN ({selectedServiceIds.length > 0 ? `${selectedVprnCount} / ` : ''}{vprnServices.length})</h3>
             </div>
             {expandedGroups['vprn'] && (
-              <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
+              <div className="overflow-hidden">
                 {vprnServices.map(serviceGroup => {
                   const representative = serviceGroup[0] as VPRNService;
                   const hostname = (representative as any)._hostname || 'Unknown';
@@ -1460,7 +1460,7 @@ export function ServiceListV3({
         {iesServices.length > 0 && (
           <div className="mb-4">
             <div
-              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 border-l-4 border-l-amber-400 dark:border-l-amber-500 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="sticky top-0 z-10 px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 border-l-4 border-l-amber-400 dark:border-l-amber-500 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
               onClick={() => toggleGroup('ies')}
             >
               <span className="inline-flex items-center justify-center w-5 h-5 text-gray-500 dark:text-gray-400 mr-1 text-[10px] transition-transform duration-200">
@@ -1470,7 +1470,7 @@ export function ServiceListV3({
               <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">IES ({selectedServiceIds.length > 0 ? `${selectedIesInterfaceCount} / ` : ''}{iesInterfaceCount})</h3>
             </div>
             {expandedGroups['ies'] && (
-              <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
+              <div className="overflow-hidden">
                 {iesServices.map(serviceGroup => {
                   const representative = serviceGroup[0] as IESService;
                   const hostname = (representative as any)._hostname || 'Unknown';
