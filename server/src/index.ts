@@ -26,13 +26,16 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '2mb' }));
 
-// 글로벌 API Rate Limiting
-app.use('/api', rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.maxRequests * 3, // 글로벌은 더 넉넉하게
-  message: { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
-  validate: { xForwardedForHeader: false },
-}));
+// 글로벌 API Rate Limiting (/api/config 제외 - 대량 파일 로딩 필요)
+app.use('/api', (req, res, next) => {
+  if (req.path.startsWith('/config')) return next();
+  rateLimit({
+    windowMs: config.rateLimit.windowMs,
+    max: config.rateLimit.maxRequests * 3,
+    message: { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+    validate: { xForwardedForHeader: false },
+  })(req, res, next);
+});
 
 // Rate limiting (AI 챗봇과 사전 API에만 적용)
 app.use('/api/chat', rateLimit({
