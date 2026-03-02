@@ -42,6 +42,16 @@ interface SearchExample {
   description?: string;
 }
 
+// 서비스 타입별 색상 토큰 (Dashboard와 동일 체계)
+const TYPE_COLORS = {
+  all:   { active: 'bg-gray-700 text-white border-gray-700', inactive: 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700' },
+  epipe: { active: 'bg-blue-600 text-white border-blue-600', inactive: 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40' },
+  vpls:  { active: 'bg-emerald-600 text-white border-emerald-600', inactive: 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40' },
+  vprn:  { active: 'bg-violet-600 text-white border-violet-600', inactive: 'border-violet-300 dark:border-violet-700 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40' },
+  ies:   { active: 'bg-amber-600 text-white border-amber-600', inactive: 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40' },
+  ha:    { active: 'bg-green-600 text-white border-green-600', inactive: 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40' },
+} as const;
+
 export function ServiceListV3({
   services,
   configs,
@@ -1101,13 +1111,7 @@ export function ServiceListV3({
             <button
               key={type}
               className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
-                filterType === type
-                  ? type === 'ha'
-                    ? 'bg-green-600 text-white border-green-600'
-                    : 'bg-blue-600 text-white border-blue-600'
-                  : type === 'ha'
-                    ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40'
-                    : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                filterType === type ? TYPE_COLORS[type].active : TYPE_COLORS[type].inactive
               }`}
               onClick={() => handleTypeButtonClick(type)}
             >
@@ -1124,7 +1128,7 @@ export function ServiceListV3({
         {epipeServices.length > 0 && (
           <div className="mb-4">
             <div
-              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 border-l-4 border-l-blue-400 dark:border-l-blue-500 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
               onClick={() => toggleGroup('epipe')}
             >
               <span className="inline-flex items-center justify-center w-5 h-5 text-gray-500 dark:text-gray-400 mr-1 text-[10px] transition-transform duration-200">
@@ -1220,13 +1224,13 @@ export function ServiceListV3({
         {vplsServices.length > 0 && (
           <div className="mb-4">
             <div
-              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
               onClick={() => toggleGroup('vpls')}
             >
               <span className="inline-flex items-center justify-center w-5 h-5 text-gray-500 dark:text-gray-400 mr-1 text-[10px] transition-transform duration-200">
                 {expandedGroups['vpls'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </span>
-              <span className="text-lg">🌐</span>
+              <span className="text-lg">🔀</span>
               <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">VPLS ({selectedServiceIds.length > 0 ? `${selectedVplsCount} / ` : ''}{vplsServices.length})</h3>
             </div>
             {expandedGroups['vpls'] && (
@@ -1291,7 +1295,7 @@ export function ServiceListV3({
         {vprnServices.length > 0 && (
           <div className="mb-4">
             <div
-              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 border-l-4 border-l-violet-400 dark:border-l-violet-500 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
               onClick={() => toggleGroup('vprn')}
             >
               <span className="inline-flex items-center justify-center w-5 h-5 text-gray-500 dark:text-gray-400 mr-1 text-[10px] transition-transform duration-200">
@@ -1456,13 +1460,13 @@ export function ServiceListV3({
         {iesServices.length > 0 && (
           <div className="mb-4">
             <div
-              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-600 border-l-4 border-l-amber-400 dark:border-l-amber-500 cursor-pointer select-none transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
               onClick={() => toggleGroup('ies')}
             >
               <span className="inline-flex items-center justify-center w-5 h-5 text-gray-500 dark:text-gray-400 mr-1 text-[10px] transition-transform duration-200">
                 {expandedGroups['ies'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </span>
-              <span className="text-lg">🌐</span>
+              <span className="text-lg">🌍</span>
               <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">IES ({selectedServiceIds.length > 0 ? `${selectedIesInterfaceCount} / ` : ''}{iesInterfaceCount})</h3>
             </div>
             {expandedGroups['ies'] && (

@@ -6,6 +6,20 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.2.4] - 2026-03-03
+
+### 🎨 UI/UX 개선 (UI/UX Improvements)
+
+- **서비스 타입별 Visual Identity 통합** (`ServiceListV3.tsx`):
+  - 타입 필터 버튼 색상을 Dashboard 통계 카드와 동일 체계로 통일
+    - All: gray / Epipe: blue / VPLS: emerald / VPRN: violet / IES: amber / 이중화: green
+    - 활성 버튼: 진한 배경 + 흰 텍스트 / 비활성 버튼: 옅은 배경 + 타입 색상 텍스트
+  - 그룹 헤더 좌측에 타입 색상 `border-l-4` 보더 추가 (Epipe: blue, VPLS: emerald, VPRN: violet, IES: amber)
+  - 아이콘 중복 해소: VPLS `🌐` → `🔀` (L2 multipoint 스위칭), IES `🌐` → `🌍` (인터넷 서비스)
+  - 글로벌 네트워크 시각화 툴 표준에 근접 (색상 우선 구분)
+
+---
+
 ## [5.2.3] - 2026-03-03
 
 ### 🐛 버그 수정 (Bug Fixes)
