@@ -144,6 +144,7 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 | 버전 | 날짜 | 주요 내용 |
 |---|---|---|
+| v5.2.6 | 2026-03-03 | 대시보드 전체 서비스 수 표시 추가 |
 | v5.2.5 | 2026-03-03 | 이중 스크롤바 제거 + 그룹 헤더 Sticky 고정 |
 | v5.2.4 | 2026-03-03 | 서비스 타입별 색상/아이콘 Visual Identity 통합 |
 | v5.2.3 | 2026-03-03 | Services 헤더 수치 이중집계 버그 수정 |
@@ -159,6 +160,6 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 ---
 
-**Last Updated**: 2026-03-02
-**Current Version**: v5.2.5 (Auto-versioning enabled)
+**Last Updated**: 2026-03-03
+**Current Version**: v5.2.6 (Auto-versioning enabled)
 **Branch**: v5-development
