@@ -24,18 +24,29 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
 
   const siteGroups = useMemo(() => groupConfigsBySite(configs), [configs]);
 
-  // 전체 통계
+  // 전체 통계 (configs 기반 고유 서비스 ID 집계 → 사이트 간 중복 카운트 방지)
   const totalStats = useMemo(() => {
-    const stats = { epipe: 0, vpls: 0, vprn: 0, ies: 0, sites: siteGroups.length, devices: 0 };
-    for (const group of siteGroups) {
-      stats.epipe += group.serviceCounts.epipe;
-      stats.vpls += group.serviceCounts.vpls;
-      stats.vprn += group.serviceCounts.vprn;
-      stats.ies += group.serviceCounts.ies;
-      stats.devices += group.hostnames.length;
+    const serviceIds = new Set<string>();
+    let iesCount = 0;
+    let devices = 0;
+    for (const config of configs) {
+      devices++;
+      for (const service of config.services) {
+        if (service.serviceType === 'ies') {
+          iesCount += (service as any).interfaces?.length || 0;
+        } else {
+          serviceIds.add(`${service.serviceType}-${service.serviceId}`);
+        }
+      }
     }
-    return stats;
-  }, [siteGroups]);
+    let epipe = 0, vpls = 0, vprn = 0;
+    for (const key of serviceIds) {
+      if (key.startsWith('epipe-')) epipe++;
+      else if (key.startsWith('vpls-')) vpls++;
+      else if (key.startsWith('vprn-')) vprn++;
+    }
+    return { epipe, vpls, vprn, ies: iesCount, sites: siteGroups.length, devices };
+  }, [configs, siteGroups.length]);
 
   // 검색 필터
   const filteredGroups = useMemo(() => {

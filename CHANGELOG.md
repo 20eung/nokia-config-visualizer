@@ -6,6 +6,31 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.2.2] - 2026-03-03
+
+### 🐛 버그 수정 (Bug Fixes)
+
+- **대시보드 서비스 카운트 이중집계 수정** (`Dashboard.tsx`):
+  - Epipe는 두 사이트를 연결하는 P2P 서비스로 각 사이트에서 한 번씩 집계되어 2배로 카운트되던 문제 수정
+  - `siteGroups.serviceCounts` 합산 방식 → `configs` 기반 고유 서비스 ID 집계 방식으로 변경
+  - 대시보드 통계 카드의 Epipe/VPLS 카운트가 Services 패널 카운트와 일치
+
+### 🎨 UI/UX 개선 (UI/UX Improvements)
+
+- **Services 헤더 개선** (`ServiceListV3.tsx`):
+  - "Network Services" → "Services"로 간소화
+  - 카운트 표시: 선택 항목 있을 때 선택 수, 없을 때 전체 서비스 수 표시
+  - IES는 인터페이스 단위(= 고객 서비스 단위)로 정확하게 집계
+
+- **그룹 기본값 접힘으로 변경** (`ServiceListV3.tsx`):
+  - 초기 로딩 시 Epipe/VPLS/VPRN/IES 그룹 모두 접힌 상태로 시작
+  - 검색어 없을 때 그룹 강제 펼침 버그 수정 (searchQuery useEffect else 브랜치 제거)
+
+- **그룹 헤더 텍스트 간소화** (`ServiceListV3.tsx`):
+  - "VPLS Services" → "VPLS", "VPRN Services" → "VPRN", "IES Services" → "IES"
+
+---
+
 ## [5.2.1] - 2026-03-02
 
 ### 🎨 UI/UX 개선 (UI/UX Improvements)

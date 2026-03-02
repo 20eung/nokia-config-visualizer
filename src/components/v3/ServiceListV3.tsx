@@ -873,6 +873,14 @@ export function ServiceListV3({
   const normalEpipeCount = epipeServices.filter(g => g.length === 2).length;
   const abnormalEpipeCount = epipeServices.filter(g => g.length !== 2).length;
 
+  // 실제 서비스 수 (IES는 인터페이스 단위 = 고객 서비스 단위)
+  const totalServiceKeys = useMemo(() => {
+    return filteredServices.reduce((sum, s) => {
+      if (s.serviceType === 'ies') return sum + ((s as IESService).interfaces?.length || 0);
+      return sum + 1;
+    }, 0);
+  }, [filteredServices]);
+
   const handleSelectAll = () => {
     const allKeys: string[] = [];
 
@@ -891,12 +899,12 @@ export function ServiceListV3({
     onSetSelected(Array.from(new Set(allKeys)));
   };
 
-  // 그룹 접기/펼침 상태 (기본값: 모두 펼침)
+  // 그룹 접기/펼침 상태 (기본값: 모두 접힘)
   const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({
-    epipe: true,
-    vpls: true,
-    vprn: true,
-    ies: true,
+    epipe: false,
+    vpls: false,
+    vprn: false,
+    ies: false,
   });
 
   // Type 버튼 클릭 후 filteredServices 업데이트 시 자동 전체선택 트리거용 ref
@@ -954,8 +962,6 @@ export function ServiceListV3({
   useEffect(() => {
     if (searchQuery) {
       setExpandedGroups({ epipe: false, vpls: false, vprn: false, ies: false });
-    } else {
-      setExpandedGroups({ epipe: true, vpls: true, vprn: true, ies: true });
     }
   }, [searchQuery]);
 
@@ -986,16 +992,11 @@ export function ServiceListV3({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-        <h2 className="m-0 text-lg font-semibold">Network Services</h2>
-        <div className="flex items-center gap-2">
-          {selectedServiceIds.length > 0 && (
-            <div className="text-sm bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-lg font-medium">
-              ✓ {selectedServiceIds.length}
-            </div>
-          )}
-          <div className="text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-300 px-3 py-1 rounded-xl">
-            {filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''}
-          </div>
+        <h2 className="m-0 text-lg font-semibold">Services</h2>
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          <span className="font-semibold text-gray-800 dark:text-gray-100">
+            {selectedServiceIds.length > 0 ? selectedServiceIds.length : totalServiceKeys}
+          </span>
         </div>
       </div>
 
@@ -1230,7 +1231,7 @@ export function ServiceListV3({
                 {expandedGroups['vpls'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </span>
               <span className="text-lg">🌐</span>
-              <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">VPLS Services ({selectedServiceIds.length > 0 ? `${selectedVplsCount} / ` : ''}{vplsServices.length})</h3>
+              <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">VPLS ({selectedServiceIds.length > 0 ? `${selectedVplsCount} / ` : ''}{vplsServices.length})</h3>
             </div>
             {expandedGroups['vpls'] && (
               <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
@@ -1301,7 +1302,7 @@ export function ServiceListV3({
                 {expandedGroups['vprn'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </span>
               <span className="text-lg">📡</span>
-              <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">VPRN Services ({selectedServiceIds.length > 0 ? `${selectedVprnCount} / ` : ''}{vprnServices.length})</h3>
+              <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">VPRN ({selectedServiceIds.length > 0 ? `${selectedVprnCount} / ` : ''}{vprnServices.length})</h3>
             </div>
             {expandedGroups['vprn'] && (
               <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
@@ -1466,7 +1467,7 @@ export function ServiceListV3({
                 {expandedGroups['ies'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </span>
               <span className="text-lg">🌐</span>
-              <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">IES Services ({selectedServiceIds.length > 0 ? `${selectedIesInterfaceCount} / ` : ''}{iesInterfaceCount})</h3>
+              <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">IES ({selectedServiceIds.length > 0 ? `${selectedIesInterfaceCount} / ` : ''}{iesInterfaceCount})</h3>
             </div>
             {expandedGroups['ies'] && (
               <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
