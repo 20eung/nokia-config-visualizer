@@ -6,6 +6,17 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.2.6] - 2026-03-03
+
+### ✨ 신규 기능 (New Features)
+
+- **대시보드 전체 서비스 수 표시** (`Dashboard.tsx`):
+  - 요약 정보 줄에 전체 서비스 합계(Epipe + VPLS + VPRN + IES) 추가
+  - Layers 아이콘과 함께 강조 표시
+  - 기존 devices / HA pairs 항목과 동일한 스타일로 통일
+
+---
+
 ## [5.2.5] - 2026-03-03
 
 ### 🐛 버그 수정 / 🎨 UI 개선 (Bug Fix / UI Improvement)
