@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v5.2.0** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + Epipe 현행화 상태 + VPRN/IES HA 감지 + VPLS 다이어그램 개선 + 사이트별 대시보드 + 다크모드 + AI 챗봇
+> 🚀 **v5.2.1** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + Type 버튼 통합 선택/해제 + Epipe 현행화 상태 + VPRN/IES HA 감지 + 사이트별 대시보드 + 다크모드 + AI 챗봇
 
 ![Application Screenshot](./public/demo-main.png)
 

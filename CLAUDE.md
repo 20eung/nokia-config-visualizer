@@ -144,6 +144,7 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 | 버전 | 날짜 | 주요 내용 |
 |---|---|---|
+| v5.2.1 | 2026-03-02 | Type 버튼 통합 선택/해제 (Select 영역 제거) |
 | v5.2.0 | 2026-03-02 | Epipe 현행화 상태, VPRN/IES HA 뱃지, VPLS (L2) SAP 필터링, 버그 수정 |
 | v5.1.0 | 2026-03-01 | 대시보드 반응형 레이아웃, 헤더 반응형 개선, 앱 아이콘 |
 | v5.0.0 | 2026-03-01 | 사이트별 대시보드, 다크모드, Tailwind CSS v4, V1 제거, 보안 강화 |
@@ -155,5 +156,5 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 ---
 
 **Last Updated**: 2026-03-02
-**Current Version**: v5.2.0 (Auto-versioning enabled)
+**Current Version**: v5.2.1 (Auto-versioning enabled)
 **Branch**: v5-development

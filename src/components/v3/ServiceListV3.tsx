@@ -888,13 +888,7 @@ export function ServiceListV3({
       }
     });
 
-    setActiveSelectAction('all');
     onSetSelected(Array.from(new Set(allKeys)));
-  };
-
-  const handleSelectNone = () => {
-    setActiveSelectAction('none');
-    onSetSelected([]);
   };
 
   // 그룹 접기/펼침 상태 (기본값: 모두 펼침)
@@ -905,8 +899,8 @@ export function ServiceListV3({
     ies: true,
   });
 
-  // Select 버튼 활성 상태 (마지막 선택 액션 추적)
-  const [activeSelectAction, setActiveSelectAction] = useState<'all' | 'ha' | 'none' | null>(null);
+  // Type 버튼 클릭 후 filteredServices 업데이트 시 자동 전체선택 트리거용 ref
+  const pendingSelectAll = useRef(false);
 
   const [expandedIESHosts, setExpandedIESHosts] = useState<{ [key: string]: boolean }>({});
   const [expandedVPRNServices, setExpandedVPRNServices] = useState<{ [key: string]: boolean }>({});
@@ -917,6 +911,44 @@ export function ServiceListV3({
       [group]: !prev[group]
     }));
   };
+
+  // Type 버튼 토글: 다른 타입 → 필터 전환 + 전체선택, 같은 타입 → 해제/재선택
+  const handleTypeButtonClick = (type: 'all' | 'epipe' | 'vpls' | 'vprn' | 'ies' | 'ha') => {
+    if (filterType === type) {
+      // 같은 버튼 재클릭: 선택된 항목 있으면 해제, 없으면 재선택
+      if (selectedServiceIds.length > 0) {
+        onSetSelected([]);
+      } else {
+        if (type === 'ha') {
+          const keys = filteredServices.flatMap(s => {
+            if (s.serviceType === 'ies') {
+              const hostname = (s as any)._hostname || 'Unknown';
+              return (s as IESService).interfaces
+                .filter(intf => haInterfaceKeys.has(`ies___${hostname}___${intf.interfaceName}`))
+                .map(intf => `ies___${hostname}___${intf.interfaceName}`);
+            }
+            return [`${s.serviceType}-${s.serviceId}`];
+          });
+          onSetSelected(Array.from(new Set(keys)));
+        } else {
+          handleSelectAll();
+        }
+      }
+    } else {
+      // 다른 타입 클릭: HA는 기존 useEffect가 처리, 나머지는 pendingSelectAll로 처리
+      if (type !== 'ha') pendingSelectAll.current = true;
+      setFilterType(type);
+    }
+  };
+
+  // non-HA 타입 버튼 클릭 후 filteredServices 업데이트 시 자동 전체선택
+  useEffect(() => {
+    if (!pendingSelectAll.current) return;
+    pendingSelectAll.current = false;
+    handleSelectAll();
+    setExpandedGroups({ epipe: false, vpls: false, vprn: false, ies: false });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredServices]);
 
   // 검색어 입력 시 그룹 자동 접기 (결과 카운트 한눈에 확인)
   useEffect(() => {
@@ -947,7 +979,6 @@ export function ServiceListV3({
       return [`${s.serviceType}-${s.serviceId}`];
     });
     onSetSelected(Array.from(new Set(keys)));
-    setActiveSelectAction('all');
     setExpandedGroups({ epipe: false, vpls: false, vprn: false, ies: false });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType, filteredServices, haInterfaceKeys]);
@@ -1066,58 +1097,26 @@ export function ServiceListV3({
         </div>
       )}
 
-      {/* 필터 + 선택 액션 */}
-      <div className="px-4 py-2.5 border-b border-gray-200 dark:border-gray-700 flex flex-col gap-2">
-        {/* Type 필터 */}
-        <div className="flex items-center gap-2">
-          <label className="text-[12px] font-medium text-gray-400 dark:text-gray-500 min-w-[44px]">Type:</label>
-          <div className="flex gap-1 flex-nowrap">
-            {(['all', 'epipe', 'vpls', 'vprn', 'ies', 'ha'] as const).map(type => (
-              <button
-                key={type}
-                className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
-                  filterType === type
-                    ? type === 'ha'
-                      ? 'bg-green-600 text-white border-green-600'
-                      : 'bg-blue-600 text-white border-blue-600'
-                    : type === 'ha'
-                      ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40'
-                      : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-                onClick={() => setFilterType(type)}
-              >
-                {type === 'all' ? 'All' : type === 'ha' ? '이중화' : type.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </div>
-        {/* 구분선 */}
-        <div className="border-t border-dashed border-gray-200 dark:border-gray-700" />
-        {/* 선택 액션 */}
-        <div className="flex items-center gap-2">
-          <label className="text-[12px] font-medium text-gray-400 dark:text-gray-500 min-w-[44px]">Select:</label>
-          <div className="flex gap-1.5 flex-1">
+      {/* 타입 필터 버튼 (클릭: 전체선택 + 다이어그램 표시 / 재클릭: 해제) */}
+      <div className="px-4 py-2.5 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex gap-1 flex-nowrap">
+          {(['all', 'epipe', 'vpls', 'vprn', 'ies', 'ha'] as const).map(type => (
             <button
-              onClick={handleSelectAll}
-              className={`flex-1 py-1 border rounded text-xs cursor-pointer transition-all duration-200 ${
-                activeSelectAction === 'all'
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+              key={type}
+              className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                filterType === type
+                  ? type === 'ha'
+                    ? 'bg-green-600 text-white border-green-600'
+                    : 'bg-blue-600 text-white border-blue-600'
+                  : type === 'ha'
+                    ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40'
+                    : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
+              onClick={() => handleTypeButtonClick(type)}
             >
-              전체
+              {type === 'all' ? 'All' : type === 'ha' ? '이중화' : type.toUpperCase()}
             </button>
-            <button
-              onClick={handleSelectNone}
-              className={`flex-1 py-1 border rounded text-xs cursor-pointer transition-all duration-200 ${
-                activeSelectAction === 'none'
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-700'
-              }`}
-            >
-              해제
-            </button>
-          </div>
+          ))}
         </div>
       </div>
 
