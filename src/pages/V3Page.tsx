@@ -457,8 +457,10 @@ export function V3Page() {
 
           <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
             <img src="/favicon.svg" alt="App Icon" className="w-6 h-6 sm:w-8 sm:h-8 shrink-0" />
-            <h1 className="hidden sm:block text-lg lg:text-xl font-semibold text-slate-900 dark:text-gray-100 m-0 truncate">
-              NCV v{__APP_VERSION__}
+            <h1 className="block text-base sm:text-lg lg:text-xl font-semibold text-slate-900 dark:text-gray-100 m-0 truncate">
+              <span className="sm:hidden">NCV</span>
+              <span className="hidden sm:inline">Nokia Config Visualizer</span>
+              {' v'}{__APP_VERSION__}
             </h1>
           </div>
         </div>
@@ -520,7 +522,7 @@ export function V3Page() {
         </div>
       )}
 
-      <main className="flex flex-1 min-h-0 min-w-0 overflow-hidden" onMouseUp={stopResizing}>
+      <main className="flex flex-1 overflow-hidden" style={{ minHeight: 0, minWidth: 0 }} onMouseUp={stopResizing}>
         {/* Config File List Sidebar */}
         {showConfigFileList && (
         <aside
