@@ -10,6 +10,7 @@ import { useState, useMemo } from 'react';
 import Server from 'lucide-react/dist/esm/icons/server';
 import Shield from 'lucide-react/dist/esm/icons/shield';
 import Search from 'lucide-react/dist/esm/icons/search';
+import Layers from 'lucide-react/dist/esm/icons/layers';
 import type { ParsedConfigV3 } from '../../utils/v3/parserV3';
 import type { SiteGroup } from '../../types/site';
 import { groupConfigsBySite } from '../../utils/siteGrouper';
@@ -90,6 +91,13 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
 
         {/* 요약 정보 */}
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-3 text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-1.5">
+            <Layers size={16} />
+            <span className="font-medium text-gray-700 dark:text-gray-300">
+              {totalStats.epipe + totalStats.vpls + totalStats.vprn + totalStats.ies}
+            </span>
+            <span>services</span>
+          </div>
           <div className="flex items-center gap-1.5">
             <Server size={16} />
             <span>{totalStats.devices} devices</span>
