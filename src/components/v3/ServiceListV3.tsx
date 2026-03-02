@@ -873,13 +873,9 @@ export function ServiceListV3({
   const normalEpipeCount = epipeServices.filter(g => g.length === 2).length;
   const abnormalEpipeCount = epipeServices.filter(g => g.length !== 2).length;
 
-  // 실제 서비스 수 (IES는 인터페이스 단위 = 고객 서비스 단위)
-  const totalServiceKeys = useMemo(() => {
-    return filteredServices.reduce((sum, s) => {
-      if (s.serviceType === 'ies') return sum + ((s as IESService).interfaces?.length || 0);
-      return sum + 1;
-    }, 0);
-  }, [filteredServices]);
+  // 실제 서비스 수 (그룹화된 변수 합산 → Epipe 중복 집계 방지)
+  // filteredServices 기반 집계는 Epipe가 2개 장비에 동일 ID로 존재해 2배 카운트됨
+  const totalServiceKeys = epipeServices.length + vplsServices.length + vprnServices.length + iesInterfaceCount;
 
   const handleSelectAll = () => {
     const allKeys: string[] = [];

@@ -6,6 +6,18 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.2.3] - 2026-03-03
+
+### 🐛 버그 수정 (Bug Fixes)
+
+- **Services 헤더 서비스 수 이중집계 수정** (`ServiceListV3.tsx`):
+  - Epipe는 2개 장비에 동일 서비스 ID가 존재해 `filteredServices` 기반 집계 시 2배로 카운트되던 문제 수정
+  - `filteredServices.reduce()` → 이미 고유 서비스 ID로 그룹화된 변수 합산으로 변경
+  - `epipeServices.length + vplsServices.length + vprnServices.length + iesInterfaceCount`
+  - Services 헤더 수치(616)가 대시보드 통계 카드와 일치
+
+---
+
 ## [5.2.2] - 2026-03-03
 
 ### 🐛 버그 수정 (Bug Fixes)

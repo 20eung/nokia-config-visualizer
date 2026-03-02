@@ -144,6 +144,8 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 | 버전 | 날짜 | 주요 내용 |
 |---|---|---|
+| v5.2.3 | 2026-03-03 | Services 헤더 수치 이중집계 버그 수정 |
+| v5.2.2 | 2026-03-03 | 대시보드 Epipe 이중집계 수정, Services UI 개선 (헤더, 그룹 접힘) |
 | v5.2.1 | 2026-03-02 | Type 버튼 통합 선택/해제 (Select 영역 제거) |
 | v5.2.0 | 2026-03-02 | Epipe 현행화 상태, VPRN/IES HA 뱃지, VPLS (L2) SAP 필터링, 버그 수정 |
 | v5.1.0 | 2026-03-01 | 대시보드 반응형 레이아웃, 헤더 반응형 개선, 앱 아이콘 |
@@ -156,5 +158,5 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 ---
 
 **Last Updated**: 2026-03-02
-**Current Version**: v5.2.1 (Auto-versioning enabled)
+**Current Version**: v5.2.3 (Auto-versioning enabled)
 **Branch**: v5-development
