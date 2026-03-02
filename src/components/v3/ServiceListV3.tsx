@@ -1,24 +1,24 @@
-import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import type { ParsedConfigV3, NokiaServiceV3 } from '../../utils/v3/parserV3';
 import type { IESService, VPRNService, L3Interface } from '../../types/services';
 import type { NameDictionary } from '../../types/dictionary';
+import Bot from 'lucide-react/dist/esm/icons/bot';
 import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
+import X from 'lucide-react/dist/esm/icons/x';
 import { findPeerAndRoutes } from '../../utils/mermaidGenerator';
 import { convertIESToV1Format } from '../../utils/v1IESAdapter';
 import { convertVPRNToV1Format } from '../../utils/v1VPRNAdapter';
 import { isValidIPv4, parseNetwork, isIpInSubnet, type SubnetMatch } from '../../utils/ipUtils';
-const AIChatPanel = lazy(() =>
-  import('./AIChatPanel').then(m => ({ default: m.AIChatPanel }))
-);
+import { AIChatPanel } from './AIChatPanel';
 const DictionaryEditor = lazy(() =>
   import('./DictionaryEditor').then(m => ({ default: m.DictionaryEditor }))
 );
 import { buildConfigSummary, type ConfigSummary } from '../../utils/configSummaryBuilder';
 import { toDictionaryCompact } from '../../utils/dictionaryStorage';
 import { loadDictionaryFromServer } from '../../services/dictionaryApi';
-import type { ChatResponse } from '../../services/chatApi';
+import { sendChatMessage, type ChatResponse } from '../../services/chatApi';
 
 interface ServiceListProps {
   services: NokiaServiceV3[];
@@ -50,8 +50,14 @@ export function ServiceListV3({
   onSetSelected,
 }: ServiceListProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'epipe' | 'vpls' | 'vprn' | 'ies'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'epipe' | 'vpls' | 'vprn' | 'ies' | 'ha'>('all');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResponse, setAiResponse] = useState<ChatResponse | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const aiAbortRef = useRef<AbortController | null>(null);
   const [showDictionaryEditor, setShowDictionaryEditor] = useState(false);
   const [dictionary, setDictionary] = useState<NameDictionary | null>(null);
 
@@ -208,6 +214,91 @@ export function ServiceListV3({
   // AI 전송용 compact dictionary
   const dictionaryCompact = useMemo(() => toDictionaryCompact(dictionary), [dictionary]);
 
+  // HA 서비스 키 사전 계산 (configs 전체 기반)
+  const { haServiceKeys, haInterfaceKeys } = useMemo(() => {
+    const haServiceKeys = new Set<string>();
+    const haInterfaceKeys = new Set<string>();
+
+    if (configs.length === 0) return { haServiceKeys, haInterfaceKeys };
+
+    // 1. VPLS: 동일 serviceId가 2개 이상의 config에 존재 → HA (이중화 장비 구성)
+    // Epipe는 성격상 2개 장비가 1개 서비스를 구성하는 것이므로 HA 아님
+    const serviceHostCounts: Record<string, Set<string>> = {};
+    configs.forEach(config => {
+      config.services.forEach(service => {
+        if (service.serviceType === 'vpls') {
+          const key = `${service.serviceType}-${service.serviceId}`;
+          if (!serviceHostCounts[key]) serviceHostCounts[key] = new Set();
+          serviceHostCounts[key].add(config.hostname);
+        }
+      });
+    });
+    for (const [key, hostnames] of Object.entries(serviceHostCounts)) {
+      if (hostnames.size >= 2) haServiceKeys.add(key);
+    }
+
+    // 2. IES/VPRN: 동일 prefix에 2개의 next-hop → HA (정적 라우트 기반)
+    const allRoutes: Array<{ prefix: string; nextHop: string }> = [];
+    configs.forEach(config => {
+      config.services.forEach(service => {
+        if (service.serviceType === 'ies') {
+          (service as IESService).staticRoutes?.forEach(r => allRoutes.push(r));
+        } else if (service.serviceType === 'vprn') {
+          (service as VPRNService).staticRoutes?.forEach(r => allRoutes.push(r));
+        }
+      });
+    });
+
+    const nextHopGroups: Record<string, Set<string>> = {};
+    allRoutes.forEach(route => {
+      if (!nextHopGroups[route.prefix]) nextHopGroups[route.prefix] = new Set();
+      nextHopGroups[route.prefix].add(route.nextHop);
+    });
+
+    const haIps = new Set<string>();
+    for (const [, hops] of Object.entries(nextHopGroups)) {
+      if (hops.size === 2) hops.forEach(ip => haIps.add(ip));
+    }
+
+    if (haIps.size > 0) {
+      configs.forEach(config => {
+        config.services.forEach(service => {
+          if (service.serviceType === 'ies') {
+            const hostname = config.hostname;
+            const iesService = service as IESService;
+            const aggregatedRoutes: Array<{ prefix: string; nextHop: string }> = [];
+            config.services.forEach(svc => {
+              if (svc.serviceType === 'ies') {
+                (svc as IESService).staticRoutes?.forEach(r => aggregatedRoutes.push(r));
+              }
+            });
+            const v1Device = convertIESToV1Format(iesService, hostname, aggregatedRoutes);
+            v1Device.interfaces.forEach(intf => {
+              const { peerIp } = findPeerAndRoutes(v1Device, intf);
+              const intfIp = intf.ipAddress?.split('/')[0] || '';
+              if (haIps.has(peerIp) || haIps.has(intfIp)) {
+                haServiceKeys.add(`ies-${hostname}`);
+                haInterfaceKeys.add(`ies___${hostname}___${intf.name}`);
+              }
+            });
+          } else if (service.serviceType === 'vprn') {
+            const vprnService = service as VPRNService;
+            const v1Device = convertVPRNToV1Format(vprnService, config.hostname);
+            v1Device.interfaces.forEach(intf => {
+              const { peerIp } = findPeerAndRoutes(v1Device, intf);
+              const intfIp = intf.ipAddress?.split('/')[0] || '';
+              if (haIps.has(peerIp) || haIps.has(intfIp)) {
+                haServiceKeys.add(`vprn-${vprnService.serviceId}`);
+              }
+            });
+          }
+        });
+      });
+    }
+
+    return { haServiceKeys, haInterfaceKeys };
+  }, [configs]);
+
   // 🆕 AI 활성화 시 filterType을 'all'로 초기화 (v4.5.0)
   useEffect(() => {
     if (aiEnabled) {
@@ -229,6 +320,59 @@ export function ServiceListV3({
   const handleExampleClick = useCallback((query: string) => {
     setSearchQuery(query);
   }, []);
+
+  // AI 쿼리 전송
+  const handleAISubmit = useCallback(async () => {
+    const trimmed = aiQuery.trim();
+    if (!trimmed || !configSummary || aiLoading) return;
+
+    aiAbortRef.current?.abort();
+    const controller = new AbortController();
+    aiAbortRef.current = controller;
+
+    setAiLoading(true);
+    setAiError(null);
+    setAiResponse(null);
+
+    try {
+      const result = await sendChatMessage(trimmed, configSummary, controller.signal, dictionaryCompact, filterType === 'ha' ? 'all' : filterType);
+      setAiResponse(result);
+      handleAIResponse(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
+      setAiError(message);
+    } finally {
+      setAiLoading(false);
+    }
+  }, [aiQuery, configSummary, aiLoading, handleAIResponse, dictionaryCompact, filterType]);
+
+  const handleAIClear = useCallback(() => {
+    setAiResponse(null);
+    setAiError(null);
+    setAiQuery('');
+  }, []);
+
+  // 키보드 단축키: / → 검색창 포커스, Escape → 검색 초기화
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+      if (e.key === '/' && !isInput) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if (e.key === 'Escape' && isInput) {
+        if (aiEnabled) {
+          setAiQuery('');
+        } else {
+          setSearchQuery('');
+        }
+        searchInputRef.current?.blur();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [aiEnabled]);
 
   /**
    * IES 인터페이스 레벨 필터링 (v4.5.0)
@@ -316,7 +460,12 @@ export function ServiceListV3({
 
     // 타입 필터 적용
     let targetServices = services;
-    if (filterType !== 'all') {
+    if (filterType === 'ha') {
+      targetServices = services.filter(s => {
+        if (s.serviceType === 'ies') return haServiceKeys.has(`ies-${(s as any)._hostname || 'Unknown'}`);
+        return haServiceKeys.has(`${s.serviceType}-${s.serviceId}`);
+      });
+    } else if (filterType !== 'all') {
       targetServices = services.filter(s => s.serviceType === filterType);
     }
 
@@ -403,8 +552,14 @@ export function ServiceListV3({
   } else {
     // 기존 문자열 검색 로직 (AND/OR 검색 지원 - v1.3.0)
     filteredServices = services.filter(service => {
-      // 타입 필터 (IES 포함)
-      if (filterType !== 'all' && service.serviceType !== filterType) {
+      // 타입 필터 (IES 포함, HA 포함)
+      if (filterType === 'ha') {
+        if (service.serviceType === 'ies') {
+          if (!haServiceKeys.has(`ies-${(service as any)._hostname || 'Unknown'}`)) return false;
+        } else if (!haServiceKeys.has(`${service.serviceType}-${service.serviceId}`)) {
+          return false;
+        }
+      } else if (filterType !== 'all' && service.serviceType !== filterType) {
         return false;
       }
 
@@ -714,6 +869,10 @@ export function ServiceListV3({
     }
   }, 0);
 
+  // Epipe 정상/비정상 카운트 (Epipe는 반드시 2개 장비에 설정되어야 정상)
+  const normalEpipeCount = epipeServices.filter(g => g.length === 2).length;
+  const abnormalEpipeCount = epipeServices.filter(g => g.length !== 2).length;
+
   const handleSelectAll = () => {
     const allKeys: string[] = [];
 
@@ -721,8 +880,6 @@ export function ServiceListV3({
       if (s.serviceType === 'ies') {
         const hostname = (s as any)._hostname || 'Unknown';
         const iesService = s as IESService;
-        // ⭐ v4.5.0: filteredServices의 IES는 이미 필터링된 인터페이스만 포함
-        // 개별 인터페이스 키를 생성하여 검색 결과만 선택
         iesService.interfaces.forEach(intf => {
           allKeys.push(`ies___${hostname}___${intf.interfaceName}`);
         });
@@ -731,219 +888,13 @@ export function ServiceListV3({
       }
     });
 
-    onSetSelected(allKeys);
+    setActiveSelectAction('all');
+    onSetSelected(Array.from(new Set(allKeys)));
   };
 
   const handleSelectNone = () => {
+    setActiveSelectAction('none');
     onSetSelected([]);
-  };
-
-  const handleHAFilter = () => {
-    const haServiceIds: string[] = [];
-
-    console.log(`🔍 [HA Filter v4.5] Starting HA detection on filteredServices: ${filteredServices.length}`);
-
-    // ==================================================
-    // Step 0: Create set of filtered service IDs (v4.5.0)
-    // ==================================================
-    const filteredServiceKeys = new Set<string>();
-    filteredServices.forEach(service => {
-      if (service.serviceType === 'ies') {
-        const hostname = (service as any)._hostname || 'Unknown';
-        filteredServiceKeys.add(`ies-${hostname}`);
-      } else {
-        filteredServiceKeys.add(`${service.serviceType}-${service.serviceId}`);
-      }
-    });
-    console.log(`🔍 [HA Filter v4.5] Filtered service keys: ${filteredServiceKeys.size}`);
-
-    // ==================================================
-    // Step 1: Collect static routes from filteredServices only (v4.5.0)
-    // ==================================================
-    interface RouteInfo {
-      prefix: string;
-      nextHop: string;
-      hostname: string;
-      serviceType: 'ies' | 'vprn';
-      serviceId?: number;
-    }
-
-    const allRoutes: RouteInfo[] = [];
-
-    configs.forEach(config => {
-      config.services.forEach(service => {
-        // ⭐ v4.5.0: filteredServices에 포함된 서비스만 처리
-        if (service.serviceType === 'ies') {
-          const hostname = config.hostname;
-          const serviceKey = `ies-${hostname}`;
-          if (!filteredServiceKeys.has(serviceKey)) {
-            return; // Skip this service
-          }
-
-          const iesService = service as IESService;
-          iesService.staticRoutes?.forEach(route => {
-            allRoutes.push({
-              prefix: route.prefix,
-              nextHop: route.nextHop,
-              hostname: config.hostname,
-              serviceType: 'ies'
-            });
-          });
-        } else if (service.serviceType === 'vprn') {
-          const serviceKey = `${service.serviceType}-${service.serviceId}`;
-          if (!filteredServiceKeys.has(serviceKey)) {
-            return; // Skip this service
-          }
-
-          const vprnService = service as VPRNService;
-          vprnService.staticRoutes?.forEach(route => {
-            allRoutes.push({
-              prefix: route.prefix,
-              nextHop: route.nextHop,
-              hostname: config.hostname,
-              serviceType: 'vprn',
-              serviceId: vprnService.serviceId
-            });
-          });
-        }
-      });
-    });
-
-    console.log(`📊 [HA Filter] Total static routes collected: ${allRoutes.length}`);
-
-    // ==================================================
-    // Step 2: Group routes by prefix and find HA pairs
-    // (같은 prefix에 2개의 서로 다른 next-hop)
-    // ==================================================
-    const nextHopGroups: Record<string, Set<string>> = {};
-
-    allRoutes.forEach(route => {
-      if (!nextHopGroups[route.prefix]) {
-        nextHopGroups[route.prefix] = new Set();
-      }
-      nextHopGroups[route.prefix].add(route.nextHop);
-    });
-
-    console.log(`📊 [HA Filter] Total unique prefixes: ${Object.keys(nextHopGroups).length}`);
-
-    // Detect HA pairs: prefix with exactly 2 different next-hops
-    interface HAPairCandidate {
-      prefix: string;
-      nextHop1: string;
-      nextHop2: string;
-    }
-
-    const haPairs: HAPairCandidate[] = [];
-
-    for (const [prefix, hops] of Object.entries(nextHopGroups)) {
-      if (hops.size === 2) {
-        const [hop1, hop2] = Array.from(hops).toSorted();
-        haPairs.push({ prefix, nextHop1: hop1, nextHop2: hop2 });
-        console.log(`✅ [HA Filter] HA Pair candidate: ${prefix} → ${hop1} & ${hop2}`);
-      }
-    }
-
-    console.log(`🎯 [HA Filter] Total HA pair candidates: ${haPairs.length}`);
-
-    // ==================================================
-    // Step 3: Collect HA next-hop IPs (v1 style)
-    // ==================================================
-    const haIps = new Set<string>();
-    haPairs.forEach(pair => {
-      haIps.add(pair.nextHop1);
-      haIps.add(pair.nextHop2);
-    });
-
-    console.log('🔍 [HA Filter] HA IPs from pairs:', Array.from(haIps).slice(0, 10), '...');
-
-    // ==================================================
-    // Step 4: Find interfaces whose peerIp matches HA next-hops (v4.5.0 - filteredServices only)
-    // ==================================================
-    let totalInterfaces = 0;
-    configs.forEach(config => {
-      config.services.forEach(service => {
-        if (service.serviceType === 'ies') {
-          // ⭐ v4.5.0: filteredServices에 포함된 서비스만 처리
-          const hostname = config.hostname;
-          const serviceKey = `ies-${hostname}`;
-          if (!filteredServiceKeys.has(serviceKey)) {
-            return; // Skip this service
-          }
-
-          const iesService = service as IESService;
-
-          // 동일 config 내 모든 IES 서비스의 Static Routes 수집
-          const aggregatedStaticRoutes: Array<{ prefix: string; nextHop: string }> = [];
-          config.services.forEach(svc => {
-            if (svc.serviceType === 'ies') {
-              const ies = svc as IESService;
-              ies.staticRoutes?.forEach(route => {
-                aggregatedStaticRoutes.push({ prefix: route.prefix, nextHop: route.nextHop });
-              });
-            }
-          });
-
-          const v1Device = convertIESToV1Format(iesService, config.hostname, aggregatedStaticRoutes);
-
-          console.log(`🔍 [HA Filter] Processing IES: ${config.hostname}, Interfaces: ${v1Device.interfaces.length}, Static Routes: ${v1Device.staticRoutes.length}`);
-
-          v1Device.interfaces.forEach((intf, idx) => {
-            totalInterfaces++;
-            const { peerIp, relatedRoutes } = findPeerAndRoutes(v1Device, intf);
-            const intfIp = intf.ipAddress?.split('/')[0] || '';
-
-            if (idx < 3) { // Log first 3 interfaces for debugging
-              console.log(`  🔍 Interface ${intf.name}: IP=${intfIp}, Peer=${peerIp}, Routes=${relatedRoutes.length}`);
-            }
-
-            // Check if either the peer IP or the interface's own IP is in HA pairs
-            if (haIps.has(peerIp) || haIps.has(intfIp)) {
-              const serviceId = `ies___${config.hostname}___${intf.name}`;
-              if (!haServiceIds.includes(serviceId)) {
-                haServiceIds.push(serviceId);
-                console.log(`✅ [HA Filter] IES Selected: ${config.hostname}:${intf.name} (IP: ${intfIp}, Peer: ${peerIp})`);
-              }
-            }
-          });
-        } else if (service.serviceType === 'vprn') {
-          // ⭐ v4.5.0: filteredServices에 포함된 서비스만 처리
-          const serviceKey = `${service.serviceType}-${service.serviceId}`;
-          if (!filteredServiceKeys.has(serviceKey)) {
-            return; // Skip this service
-          }
-
-          const vprnService = service as VPRNService;
-          const v1Device = convertVPRNToV1Format(vprnService, config.hostname);
-
-          console.log(`🔍 [HA Filter] Processing VPRN ${vprnService.serviceId}: ${config.hostname}, Interfaces: ${v1Device.interfaces.length}, Static Routes: ${v1Device.staticRoutes.length}`);
-
-          v1Device.interfaces.forEach((intf, idx) => {
-            totalInterfaces++;
-            const { peerIp, relatedRoutes } = findPeerAndRoutes(v1Device, intf);
-            const intfIp = intf.ipAddress?.split('/')[0] || '';
-
-            if (idx < 3) {
-              console.log(`  🔍 Interface ${intf.name}: IP=${intfIp}, Peer=${peerIp}, Routes=${relatedRoutes.length}`);
-            }
-
-            if (haIps.has(peerIp) || haIps.has(intfIp)) {
-              const serviceId = `vprn___${vprnService.serviceId}___${config.hostname}___${intf.name}`;
-              if (!haServiceIds.includes(serviceId)) {
-                haServiceIds.push(serviceId);
-                console.log(`✅ [HA Filter] VPRN Selected: ${config.hostname}:${intf.name} (service ${vprnService.serviceId}, IP: ${intfIp}, Peer: ${peerIp})`);
-              }
-            }
-          });
-        }
-      });
-    });
-
-    console.log(`📊 [HA Filter] Total interfaces processed: ${totalInterfaces}`);
-
-    // 중복 제거 및 선택
-    const uniqueIds = Array.from(new Set(haServiceIds));
-    console.log(`🎯 [HA Filter v3] Total HA interfaces selected: ${uniqueIds.length}`);
-    onSetSelected(uniqueIds);
   };
 
   // 그룹 접기/펼침 상태 (기본값: 모두 펼침)
@@ -953,6 +904,9 @@ export function ServiceListV3({
     vprn: true,
     ies: true,
   });
+
+  // Select 버튼 활성 상태 (마지막 선택 액션 추적)
+  const [activeSelectAction, setActiveSelectAction] = useState<'all' | 'ha' | 'none' | null>(null);
 
   const [expandedIESHosts, setExpandedIESHosts] = useState<{ [key: string]: boolean }>({});
   const [expandedVPRNServices, setExpandedVPRNServices] = useState<{ [key: string]: boolean }>({});
@@ -964,56 +918,136 @@ export function ServiceListV3({
     }));
   };
 
+  // 검색어 입력 시 그룹 자동 접기 (결과 카운트 한눈에 확인)
+  useEffect(() => {
+    if (searchQuery) {
+      setExpandedGroups({ epipe: false, vpls: false, vprn: false, ies: false });
+    } else {
+      setExpandedGroups({ epipe: true, vpls: true, vprn: true, ies: true });
+    }
+  }, [searchQuery]);
+
+  // AI 응답 수신 시 그룹 자동 접기
+  useEffect(() => {
+    if (aiResponse) {
+      setExpandedGroups({ epipe: false, vpls: false, vprn: false, ies: false });
+    }
+  }, [aiResponse]);
+
+  // HA 필터 활성화 시 HA 서비스 자동 선택 (filteredServices 기준 - 검색 필터 존중)
+  useEffect(() => {
+    if (filterType !== 'ha') return;
+    const keys = filteredServices.flatMap(s => {
+      if (s.serviceType === 'ies') {
+        const hostname = (s as any)._hostname || 'Unknown';
+        return (s as IESService).interfaces
+          .filter(intf => haInterfaceKeys.has(`ies___${hostname}___${intf.interfaceName}`))
+          .map(intf => `ies___${hostname}___${intf.interfaceName}`);
+      }
+      return [`${s.serviceType}-${s.serviceId}`];
+    });
+    onSetSelected(Array.from(new Set(keys)));
+    setActiveSelectAction('all');
+    setExpandedGroups({ epipe: false, vpls: false, vprn: false, ies: false });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterType, filteredServices, haInterfaceKeys]);
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
         <h2 className="m-0 text-lg font-semibold">Network Services</h2>
-        <div className="text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-300 px-3 py-1 rounded-xl">
-          {filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''}
+        <div className="flex items-center gap-2">
+          {selectedServiceIds.length > 0 && (
+            <div className="text-sm bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-lg font-medium">
+              ✓ {selectedServiceIds.length}
+            </div>
+          )}
+          <div className="text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-300 px-3 py-1 rounded-xl">
+            {filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''}
+          </div>
         </div>
       </div>
 
-      {/* AI 채팅 / 검색 */}
-      <Suspense fallback={null}>
-        <AIChatPanel
-          configSummary={configSummary}
-          onAIResponse={handleAIResponse}
-          aiEnabled={aiEnabled}
-          onToggleAI={() => setAiEnabled(prev => !prev)}
-          dictionary={dictionaryCompact}
-          filterType={filterType}
-        />
-      </Suspense>
-      {aiEnabled && configs.length > 0 && (
-        <div className="flex justify-end px-2 pb-1">
+      {/* 통합 검색/AI 바 */}
+      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div className={`flex items-center border rounded-lg overflow-hidden transition-all duration-200 ${
+          aiEnabled
+            ? 'border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/20'
+            : 'border-gray-300 dark:border-gray-600'
+        }`}>
+          {/* AI 토글 버튼 */}
           <button
-            onClick={() => setShowDictionaryEditor(true)}
-            title="이름 사전 편집"
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs cursor-pointer border ${
-              dictionary && dictionary.entries.length > 0
-                ? 'bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-900/30 dark:border-blue-600 dark:text-blue-300'
-                : 'bg-white border-gray-300 text-gray-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400'
+            className={`flex items-center justify-center w-10 h-9 shrink-0 transition-colors duration-200 ${
+              aiEnabled
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
+            onClick={() => setAiEnabled(prev => !prev)}
+            title={aiEnabled ? 'AI 검색 끄기' : 'AI 검색 켜기'}
           >
-            <BookOpen size={14} />
-            이름 사전{dictionary && dictionary.entries.length > 0 ? ` (${dictionary.entries.length})` : ''}
+            <Bot size={18} />
           </button>
-        </div>
-      )}
-      {!aiEnabled && (
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          {/* 구분선 */}
+          <div className="w-px h-5 bg-gray-200 dark:bg-gray-600 shrink-0" />
+          {/* 입력창 */}
           <input
+            ref={searchInputRef}
             type="text"
-            placeholder="Search (OR: space, AND: ' + ')..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:border-blue-600 dark:bg-gray-700 dark:text-gray-100"
+            placeholder={aiEnabled ? 'AI에게 질문하세요...' : 'Search... (OR: space, AND: +)'}
+            value={aiEnabled ? aiQuery : searchQuery}
+            onChange={(e) => aiEnabled ? setAiQuery(e.target.value) : setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (aiEnabled && e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleAISubmit();
+              }
+            }}
+            disabled={aiEnabled && (!configSummary || aiLoading)}
+            className="flex-1 px-3 py-2 text-sm outline-none bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:text-gray-400 dark:disabled:text-gray-500"
           />
+          {/* 지우기 버튼 */}
+          {(aiEnabled ? aiQuery : searchQuery) && (
+            <button
+              className="flex items-center justify-center w-8 h-9 shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              onClick={() => aiEnabled ? setAiQuery('') : setSearchQuery('')}
+              title="지우기"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
-      )}
 
-      {/* 검색 예시 Pills (search-examples-ui) */}
-      {!aiEnabled && (
+        {/* AI 모드: 사전 버튼 */}
+        {aiEnabled && configs.length > 0 && (
+          <div className="flex justify-end mt-1.5">
+            <button
+              onClick={() => setShowDictionaryEditor(true)}
+              title="이름 사전 편집"
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs cursor-pointer border ${
+                dictionary && dictionary.entries.length > 0
+                  ? 'bg-blue-50 border-blue-300 text-blue-700 dark:bg-blue-900/30 dark:border-blue-600 dark:text-blue-300'
+                  : 'bg-white border-gray-300 text-gray-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400'
+              }`}
+            >
+              <BookOpen size={14} />
+              이름 사전{dictionary && dictionary.entries.length > 0 ? ` (${dictionary.entries.length})` : ''}
+            </button>
+          </div>
+        )}
+
+        {/* AI 응답/로딩/에러 표시 */}
+        {aiEnabled && (
+          <AIChatPanel
+            loading={aiLoading}
+            response={aiResponse}
+            error={aiError}
+            onClear={handleAIClear}
+          />
+        )}
+      </div>
+
+      {/* 검색 예시 Pills (search-examples-ui) - 검색어 없을 때만 표시 */}
+      {!aiEnabled && !searchQuery && (
         <div className="mt-2 flex items-center gap-2 flex-wrap px-3 md:max-lg:flex-col md:max-lg:items-start max-md:flex-col max-md:items-start">
           <span className="text-[0.85rem] text-slate-500 font-medium whitespace-nowrap max-md:mb-1">💡 Examples:</span>
           <div className="flex flex-wrap gap-1.5 max-md:w-full">
@@ -1032,78 +1066,59 @@ export function ServiceListV3({
         </div>
       )}
 
-      {/* 필터 */}
-      <div className="px-4 pr-6 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col gap-3">
+      {/* 필터 + 선택 액션 */}
+      <div className="px-4 py-2.5 border-b border-gray-200 dark:border-gray-700 flex flex-col gap-2">
+        {/* Type 필터 */}
         <div className="flex items-center gap-2">
-          <label className="text-[13px] font-medium text-gray-500 dark:text-gray-400 min-w-[40px]">Type:</label>
+          <label className="text-[12px] font-medium text-gray-400 dark:text-gray-500 min-w-[44px]">Type:</label>
           <div className="flex gap-1 flex-nowrap">
+            {(['all', 'epipe', 'vpls', 'vprn', 'ies', 'ha'] as const).map(type => (
+              <button
+                key={type}
+                className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                  filterType === type
+                    ? type === 'ha'
+                      ? 'bg-green-600 text-white border-green-600'
+                      : 'bg-blue-600 text-white border-blue-600'
+                    : type === 'ha'
+                      ? 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40'
+                      : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+                onClick={() => setFilterType(type)}
+              >
+                {type === 'all' ? 'All' : type === 'ha' ? '이중화' : type.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* 구분선 */}
+        <div className="border-t border-dashed border-gray-200 dark:border-gray-700" />
+        {/* 선택 액션 */}
+        <div className="flex items-center gap-2">
+          <label className="text-[12px] font-medium text-gray-400 dark:text-gray-500 min-w-[44px]">Select:</label>
+          <div className="flex gap-1.5 flex-1">
             <button
-              className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
-                filterType === 'all'
+              onClick={handleSelectAll}
+              className={`flex-1 py-1 border rounded text-xs cursor-pointer transition-all duration-200 ${
+                activeSelectAction === 'all'
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
-              onClick={() => setFilterType('all')}
             >
-              All
+              전체
             </button>
             <button
-              className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
-                filterType === 'epipe'
+              onClick={handleSelectNone}
+              className={`flex-1 py-1 border rounded text-xs cursor-pointer transition-all duration-200 ${
+                activeSelectAction === 'none'
                   ? 'bg-blue-600 text-white border-blue-600'
-                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-700'
               }`}
-              onClick={() => setFilterType('epipe')}
             >
-              Epipe
-            </button>
-            <button
-              className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
-                filterType === 'vpls'
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-              onClick={() => setFilterType('vpls')}
-            >
-              VPLS
-            </button>
-            <button
-              className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
-                filterType === 'vprn'
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-              onClick={() => setFilterType('vprn')}
-            >
-              VPRN
-            </button>
-            <button
-              className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
-                filterType === 'ies'
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-              onClick={() => setFilterType('ies')}
-            >
-              IES
+              해제
             </button>
           </div>
         </div>
-      </div>
-
-      {/* 선택 버튼 */}
-      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex gap-2 items-center">
-        <button onClick={handleSelectAll} className="flex-1 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-200 rounded text-sm cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-          All
-        </button>
-        <span className="mx-1 text-gray-300">|</span>
-        <button onClick={handleHAFilter} className="flex-1 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded text-sm cursor-pointer font-bold text-blue-600 dark:text-blue-400 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-          이중화
-        </button>
-        <span className="mx-1 text-gray-300">|</span>
-        <button onClick={handleSelectNone} className="flex-1 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded text-sm cursor-pointer text-gray-500 dark:text-gray-400 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-          None
-        </button>
       </div>
 
 
@@ -1120,20 +1135,32 @@ export function ServiceListV3({
                 {expandedGroups['epipe'] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </span>
               <span className="text-lg">🔗</span>
-              <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">Epipe Services ({selectedServiceIds.length > 0 ? `${selectedEpipeCount} / ` : ''}{epipeServices.length})</h3>
+              <h3 className="m-0 text-[15px] font-semibold dark:text-gray-200">
+                Epipe{selectedServiceIds.length > 0 ? ` (${selectedEpipeCount}/${epipeServices.length})` : ''}
+              </h3>
+              <span className="px-2 py-0.5 text-[11px] font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
+                ✅ {normalEpipeCount}
+              </span>
+              {abnormalEpipeCount > 0 && (
+                <span className="px-2 py-0.5 text-[11px] font-semibold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full">
+                  ⚠️ {abnormalEpipeCount}
+                </span>
+              )}
             </div>
             {expandedGroups['epipe'] && (
               <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
                 {epipeServices.map(serviceGroup => {
                   // 대표 서비스 (첫 번째)
                   const representative = serviceGroup[0];
+                  // 비정상: Epipe는 반드시 2개 장비에 설정되어야 함
+                  const isAbnormal = serviceGroup.length !== 2;
 
                   return (
                     <div
                       key={representative.serviceId}
                       className={`px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-start gap-3 cursor-pointer transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
                         selectedSet.has(`${representative.serviceType}-${representative.serviceId}`) ? 'bg-blue-50 dark:bg-blue-900/30' : ''
-                      }`}
+                      } ${isAbnormal ? 'border-l-4 border-l-orange-400 dark:border-l-orange-500' : ''}`}
                       onClick={() => onToggleService(`${representative.serviceType}-${representative.serviceId}`)}
                     >
                       <input
@@ -1143,8 +1170,13 @@ export function ServiceListV3({
                         className="mt-0.5 cursor-pointer"
                       />
                       <div className="flex-1">
-                        <div className="font-semibold text-sm mb-1 dark:text-gray-200">
+                        <div className="font-semibold text-sm mb-1 dark:text-gray-200 flex items-center gap-2">
                           Epipe {representative.serviceId}
+                          {isAbnormal && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded">
+                              ⚠️ 현행화 필요 ({serviceGroup.length}개 장비)
+                            </span>
+                          )}
                         </div>
                         <div className="text-[13px] text-gray-500 dark:text-gray-400 mb-1.5">
                           {representative.description}
@@ -1221,8 +1253,11 @@ export function ServiceListV3({
                         className="mt-0.5 cursor-pointer"
                       />
                       <div className="flex-1">
-                        <div className="font-semibold text-sm mb-1 dark:text-gray-200">
+                        <div className="font-semibold text-sm mb-1 dark:text-gray-200 flex items-center gap-2">
                           VPLS {representative.serviceId}
+                          {haServiceKeys.has(`vpls-${representative.serviceId}`) && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">HA</span>
+                          )}
                         </div>
                         <div className="text-[13px] text-gray-500 dark:text-gray-400 mb-1.5">
                           {representative.description}
@@ -1362,6 +1397,9 @@ export function ServiceListV3({
                         <span className="font-semibold text-sm flex-1 m-0 dark:text-gray-200">
                           VPRN {serviceId} - {hostname} ({allInterfaces.length})
                         </span>
+                        {haServiceKeys.has(`vprn-${serviceId}`) && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded ml-2">HA</span>
+                        )}
                       </div>
 
                       {/* Service Description */}
@@ -1547,6 +1585,9 @@ export function ServiceListV3({
                                 <div className="flex flex-col text-[0.9em]">
                                   <div className="flex items-center">
                                     <span className="font-bold text-blue-600 dark:text-blue-400 text-xs mr-2">{intf.interfaceName}</span>
+                                    {haInterfaceKeys.has(`ies___${hostname}___${intf.interfaceName}`) && (
+                                      <span className="px-1.5 py-0.5 text-[10px] font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded mr-2">HA</span>
+                                    )}
                                     {intf.ipAddress && (
                                       <span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-px rounded text-[0.85em]">
                                         {intf.ipAddress}

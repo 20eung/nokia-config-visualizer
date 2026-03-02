@@ -55,18 +55,24 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
   ];
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 min-w-0 bg-gray-50 dark:bg-gray-900">
+    <div
+      className="flex flex-col bg-gray-50 dark:bg-gray-900"
+      style={{ flex: '1 1 0%', minWidth: 0, minHeight: 0, width: '100%' }}
+    >
       {/* 상단 고정 영역: 통계 카드 + 요약 + 검색 */}
       <div className="shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-3">
-        {/* 통계 카드 - 항상 4열 1줄, 가로 전체를 균등 분할 */}
-        <div className="flex gap-3 sm:gap-4 mb-4">
+        {/* 통계 카드 - 항상 4열 1줄, grid로 균등 분할 */}
+        <div
+          className="gap-2 sm:gap-3 mb-4"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}
+        >
           {statCards.map(card => (
             <div
               key={card.label}
-              className={`flex-1 rounded-xl p-3 sm:p-4 text-white shadow-md flex flex-col items-center min-w-0 ${card.color} ${card.darkColor}`}
+              className={`rounded-xl p-2 sm:p-3 text-white shadow-md flex flex-col items-center overflow-hidden ${card.color} ${card.darkColor}`}
             >
-              <span className="text-xl sm:text-2xl lg:text-3xl font-bold">{card.count}</span>
-              <span className="text-xs sm:text-sm opacity-90 mt-1">{card.label}</span>
+              <span className="text-lg sm:text-xl lg:text-2xl font-bold truncate">{card.count}</span>
+              <span className="text-[10px] sm:text-xs opacity-90 mt-0.5 truncate">{card.label}</span>
             </div>
           ))}
         </div>

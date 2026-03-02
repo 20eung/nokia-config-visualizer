@@ -1,312 +1,159 @@
 # CLAUDE.md - Nokia Config Visualizer Project Context
 
-> 이 문서는 Nokia Config Visualizer 프로젝트에 특화된 컨텍스트 문서입니다.
->
-> **전역 지침**: `~/.claude/CLAUDE.md` 참조 (역할, 언어, 코딩 원칙, Docker/Git 연동)
->
-> 이 문서는 프로젝트 특화 내용만 기술합니다.
+> 프로젝트 특화 컨텍스트. 전역 지침: `~/.claude/CLAUDE.md` 참조.
 
 ## 프로젝트 개요
 
-**Nokia Config Visualizer**는 Nokia 장비의 설정 파일(config)을 파싱하여 네트워크 토폴로지를 시각화하는 React + TypeScript 기반 웹 애플리케이션입니다.
+Nokia 장비 설정 파일을 파싱하여 네트워크 토폴로지를 시각화하는 웹 애플리케이션.
 
-### 핵심 목표
-1. Nokia 장비 설정 파일(텍스트)을 구조화된 데이터로 파싱
-2. Mermaid.js를 이용한 네트워크 다이어그램 생성
-3. 물리적 연결(v1), 논리적 서비스(v2), 통합 뷰(v3) 지원
-4. Grafana Diagram 패널과의 호환성 보장
+- **Frontend**: React 19 + TypeScript + Tailwind CSS v4
+- **Backend**: Express + AWS Bedrock (Claude AI)
+- **Build**: Vite (`@tailwindcss/vite` 플러그인)
+- **Visualization**: Mermaid.js (Grafana Diagram 패널 호환)
+- **Icons**: Lucide React (직접 경로 import: `lucide-react/dist/esm/icons/<icon>`)
+- **Infra**: Docker Compose (nginx + Express 별도 컨테이너)
 
-### 기술 스택
-- **Frontend**: React 19 + TypeScript
-- **Build**: Vite
-- **Visualization**: Mermaid.js
-- **Styling**: Vanilla CSS (no CSS framework)
-- **Icons**: Lucide React
+### 데이터 플로우
+
+```
+Config Upload → ParserV3 → ParsedConfigV3 → Selection (수동/AI) → Mermaid Generator → Diagram
+```
 
 ## 핵심 구조
 
-### 버전별 구조
-- **v1.x**: 물리적 연결 토폴로지 (Base Router, Interface 중심)
-- **v2.x**: MPLS L2/L3 VPN 서비스 토폴로지 (Epipe, VPLS, VPRN)
-- **v3.x**: Unified Visualizer (v1 + v2 통합 + IES 서비스)
-
-### 데이터 플로우
-```
-Config Upload → Parser → Data → Selection (수동/AI) → Topology Engine → Mermaid Generator → Diagram
-```
-
 ### 주요 디렉토리
-- **src/utils/**: Parser, Generator, Adapter (핵심 비즈니스 로직)
-- **src/components/**: React UI 컴포넌트 (v2/, v3/ 버전별 분리)
-- **src/pages/**: V1Page, V2Page, V3Page (버전별 메인 페이지)
-- **server/**: Express 백엔드 (AI API, AWS Bedrock 통합)
 
-## 주요 파일
+- `src/pages/` : V3Page (유일한 메인 페이지)
+- `src/components/v3/` : Dashboard, ServiceListV3, ServiceDiagram, AIChatPanel, DictionaryEditor 등
+- `src/utils/` : Parser, Mermaid Generator, Adapter, IP Utils, Site Grouper
+- `src/utils/v3/` : V3 전용 파서(`parserV3.ts`) 및 다이어그램(`mermaidGeneratorV3.ts`)
+- `src/hooks/` : useDarkMode, useConfigSync, useConfigWebSocket
+- `src/services/` : chatApi, dictionaryApi (백엔드 API 클라이언트)
+- `src/types/` : TypeScript 타입 정의 (services, site, dictionary, grafana 등)
+- `server/src/routes/` : chat, config, dictionary, ncv (REST API)
+- `server/src/services/` : claudeClient, fileWatcher, websocket, configStore, ragIndexer 등
+- `server/src/middleware/` : auth.ts (API Key 인증)
 
-### 1. Parser
-- **nokiaParser.ts** (v1): 물리 인터페이스, Base Router 파싱 (hostname, IP, port, interface, static routes, VRRP)
-- **v3/parserV3.ts** (v3): 통합 파서 (Epipe, VPLS, VPRN, IES, BGP, OSPF). 들여쓰기 기반 블록 파싱, 중복 블록 병합, 위치 기반 SAP 추출
+### 주요 파일
 
-### 2. Mermaid Generator
-- **mermaidGenerator.ts** (v1/IES): 물리 토폴로지 다이어그램. Single/HA 다이어그램 지원
-- **v3/mermaidGeneratorV3.ts** (v3): 서비스 중심 다이어그램 (Epipe, VPLS, VPRN). QoS 하이라이트, 라우팅 중간 노드, 멀티호스트 표시, Grafana 호환
-
-### 3. Adapter
-- **v1IESAdapter.ts**: IES 서비스 → v1 형식 변환하여 mermaidGenerator.ts로 다이어그램 생성
-
-### 4. Topology Engine
-- **TopologyEngine.ts**: HA Pair 자동 감지 (Static Route 기반 공통 Customer Network 탐지, VRRP Priority 비교)
-
-### 5. AI 챗봇 (v4.0)
-- **server/src/services/claudeClient.ts**: AWS Bedrock Converse API 호출
-- **src/utils/configSummaryBuilder.ts**: ParsedConfigV3 → AI용 축약 JSON 변환
-- **src/components/v3/AIChatPanel.tsx**: AI 토글, 자연어 입력, 응답 표시 UI
-
-### 6. 이름 사전 (v4.1)
-- **server/src/services/dictionaryStore.ts**: JSON 파일 읽기/쓰기
-- **server/src/services/dictionaryGenerator.ts**: AI 자동 생성
-- **src/components/v3/DictionaryEditor.tsx**: 편집 모달 UI
+| 파일 | 역할 |
+|------|------|
+| `src/utils/v3/parserV3.ts` | 통합 파서 (Epipe, VPLS, VPRN, IES, BGP, OSPF). 들여쓰기 기반 블록 파싱 |
+| `src/utils/v3/mermaidGeneratorV3.ts` | 서비스 중심 다이어그램 (QoS, 라우팅 노드, Grafana 호환) |
+| `src/utils/mermaidGenerator.ts` | IES/물리 토폴로지 다이어그램 (Single/HA) |
+| `src/utils/v1IESAdapter.ts` | IES 서비스 → v1 형식 변환 |
+| `src/utils/v1VPRNAdapter.ts` | VPRN 서비스 → v1 형식 변환 |
+| `src/utils/siteGrouper.ts` | Hostname에서 사이트명 자동 추출, HA 페어 감지 |
+| `src/utils/configSummaryBuilder.ts` | ParsedConfigV3 → AI용 축약 JSON 변환 |
+| `src/components/v3/Dashboard.tsx` | 사이트별 대시보드 (통계 카드 + 사이트 카드 그리드) |
+| `server/src/services/claudeClient.ts` | AWS Bedrock Converse API 호출 |
+| `server/src/services/dictionaryGenerator.ts` | AI 이름 사전 자동 생성 |
+| `server/src/config.ts` | 환경변수 중앙 관리 (AWS, Bedrock, Rate Limit, RAG) |
 
 ## 주요 기능 구현 위치
 
 ### Config 파싱
-- **v1**: `nokiaParser.ts` → `parseNokiaConfig()`
-- **v3**: `v3/parserV3.ts` → `parseNokiaConfigV3()`
-
-### HA 감지
-- **엔진**: `TopologyEngine.ts` (Static Route 기반, VRRP 기반)
+- `src/utils/v3/parserV3.ts` → `parseNokiaConfigV3()`
 
 ### 다이어그램 생성
-- **v1**: `mermaidGenerator.ts` (단일/HA)
-- **v3**: `v3/mermaidGeneratorV3.ts` (Epipe, VPLS, VPRN, IES)
+- **Epipe/VPLS/VPRN**: `src/utils/v3/mermaidGeneratorV3.ts`
+- **IES/물리**: `src/utils/mermaidGenerator.ts` (v1IESAdapter 경유)
+
+### 대시보드 (v5.0)
+- `src/components/v3/Dashboard.tsx` + `src/utils/siteGrouper.ts`
+
+### 다크모드 (v5.0)
+- `src/hooks/useDarkMode.ts` (localStorage + prefers-color-scheme)
 
 ### 검색
-- **수동**: `InterfaceList.tsx` (AND: ` + `, OR: 띄어쓰기)
-- **AI**: `AIChatPanel.tsx` → `claudeClient.ts` → AWS Bedrock
+- **수동**: `ServiceListV3.tsx` (AND: ` + `, OR: 띄어쓰기, IP 서브넷 LPM)
+- **AI**: `AIChatPanel.tsx` → `chatApi.ts` → `claudeClient.ts` → AWS Bedrock
+
+### 자동 Config 로딩
+- `server/src/services/fileWatcher.ts` (chokidar) + `websocket.ts` (ws)
+- `src/hooks/useConfigWebSocket.ts` (프론트엔드 연결)
+
+### NCV AI Platform (v4.8)
+- REST API: `server/src/routes/ncv.ts` (8개 엔드포인트)
+- MCP Server: `server/src/mcp-server.ts` (stdio/HTTP)
+- RAG: `chunkBuilder.ts` → `embeddingService.ts` → `ragIndexer.ts`
 
 ## 개발 가이드
 
 ### 코드 작성 규칙
 1. **TypeScript Strict**: `any` 사용 금지, 상세 인터페이스 정의
-2. **타입 정의**: `types.ts` 중앙 집중화 (v2 전용은 `types/v2.ts`)
+2. **타입 정의**: `src/types/` 디렉토리에 분리 관리
 3. **컴포넌트**: React 함수형 컴포넌트 + Hooks
-4. **스타일**: Vanilla CSS (CSS-in-JS 사용 안 함)
+4. **스타일**: Tailwind CSS v4 utility classes (Vanilla CSS 사용 안 함)
+   - Mermaid SVG 오버라이드만 `src/styles/mermaid-overrides.css`에 별도 관리
 5. **모듈화**: 파싱 로직(`utils/`)과 UI(`components/`) 분리
 6. **빌드 제약**: 프론트엔드는 정적 자산만 생성. AI 기능은 별도 Express 백엔드
+7. **아이콘**: `lucide-react/dist/esm/icons/<icon>` 직접 경로 import (배럴 import 금지)
+8. **성능**: `useMemo`/`useCallback` 적극 활용, `React.lazy()` 동적 import, `Set`/`Map` 사용
 
 ### 디자인 & UX 원칙
-- **UI 스타일**: 깔끔하고 전문적인 인터페이스
-- **데스크톱 우선**: 복잡한 다이어그램 대상
-- **피드백**: 업로드, 에러, 로딩 상태 명확히 표시
+- 다크모드 지원: 모든 UI에 `dark:` 변형 적용
+- 다이어그램 영역: 다크모드에서도 `bg-white` 유지 (Mermaid SVG 호환)
+- 데스크톱 우선 (복잡한 다이어그램 대상)
 
 ### 파서 작성 시 주의사항
-Nokia Config는 들여쓰기 기반 구조. 정규식으로 블록 추출, 들여쓰기 레벨 추적, `exit` 키워드로 블록 종료 판단.
+Nokia Config는 들여쓰기 기반 구조. 정규식으로 블록 추출, 들여쓰기 레벨 추적, `exit` 키워드로 블록 종료 판단. 정규식은 모듈 레벨 `RE_*` 상수로 호이스팅.
 
 ### Mermaid 코드 생성 시 주의사항
-- 특수문자 이스케이프: `&`, `<`, `>`, `"`
-- HTML 라벨은 Double Quote 사용
-- Non-breaking space 사용 (줄바꿈 방지)
-- CSS class 기반 스타일링 (inline style 불가)
-
-**상세 규칙은 `DIAGRAM_RULES.md` 참조**
+상세 규칙은 `DIAGRAM_RULES.md` 참조. 핵심: 특수문자 이스케이프(`&`, `<`, `>`, `"`), HTML 라벨 Double Quote, CSS class 기반 스타일링.
 
 ## 설정 및 버전 관리
 
-### 환경변수 관리 (server/src/config.ts)
+### 환경변수 관리
 
-**모든 환경변수는 `server/src/config.ts`에서 중앙 집중식으로 관리**합니다.
+**모든 환경변수는 `server/src/config.ts`에서 중앙 관리.**
 
-#### 설정 변경 방법
+우선순위: `docker-compose.yml` > `.env` > `config.ts` 기본값
 
-1. **환경변수 우선순위**:
-   ```
-   docker-compose.yml 환경변수 > .env 파일 > config.ts 기본값
-   ```
+관리 항목: AWS region/profile, Bedrock modelId, CORS, Rate Limit, API Key, RAG 설정
 
-2. **모델 ID 변경 예시**:
-   ```yaml
-   # docker-compose.yml
-   environment:
-     - BEDROCK_MODEL_ID=global.anthropic.claude-sonnet-4-xxxxxx-v1:0
-   ```
+### 보안 (v5.0)
+- CORS 제한, API Key 인증(`X-API-Key`), Path Traversal 방어
+- WebSocket Origin 검증, 글로벌 Rate Limiting (90 req/min)
+- CSP 헤더 (nginx.conf)
 
-3. **기본값 변경**:
-   ```typescript
-   // server/src/config.ts
-   bedrock: {
-     modelId: process.env.BEDROCK_MODEL_ID || 'your-new-default-model-id',
-   }
-   ```
+### 버전 관리
 
-#### 관리되는 설정
+**`package.json`의 `version` 필드가 단일 소스.** 빌드 시 `__APP_VERSION__`으로 자동 주입 (`vite.config.ts`).
 
-- **AWS 설정**: region, profile
-- **Bedrock 모델**: modelId (현재: `global.anthropic.claude-sonnet-4-20250514-v1:0`)
-- **서버**: port, corsOrigin
-- **Rate Limiting**: windowMs, maxRequests
+표시 위치: V3Page 헤더, DictionaryEditor 모달
 
-### 버전 관리 (package.json)
+자동 버전 관리 활성화 시: commit → patch 자동 증가 + tag 생성 → push → Release 자동 생성
 
-**프로젝트 버전은 `package.json`의 `version` 필드에서 단일 소스로 관리**합니다.
-웹 페이지에 표시되는 버전은 빌드 시점에 자동으로 주입됩니다.
-
-#### 버전 형식
-
-```
-v{major}.{minor}.{patch}
-예: v4.4.0, v4.4.1, v4.5.0
-```
-
-- **Major**: 큰 변경, 호환성이 깨지는 변경
-- **Minor**: 새로운 기능 추가 (하위 호환 유지)
-- **Patch**: 버그 수정, 작은 개선
-
-#### 버전 변경 방법 (수동 관리 권장)
-
-```bash
-# Patch 버전 증가 (4.4.0 → 4.4.1)
-npm run version:patch
-
-# Minor 버전 증가 (4.4.0 → 4.5.0)
-npm run version:minor
-
-# Major 버전 증가 (4.4.0 → 5.0.0)
-npm run version:major
-
-# 변경사항 커밋
-git add package.json
-git commit -m "chore: Bump version to vX.X.X"
-git push origin v4-development
-```
-
-#### 자동 버전 관리 (현재 활성화)
-
-Git hook을 활성화하면 **커밋 시마다 자동으로 patch 버전이 증가하고, push 시 Tag와 Release가 자동 생성**됩니다.
-
-```bash
-# 활성화
-ln -s ../../scripts/auto-version.sh .git/hooks/pre-commit   # 버전 자동 증가
-ln -s ../../scripts/auto-tag.sh .git/hooks/post-commit      # Tag 자동 생성
-
-# 비활성화
-rm .git/hooks/pre-commit
-rm .git/hooks/post-commit
-```
-
-**완전 자동화 워크플로우**:
-1. **Commit** → 버전 자동 증가 (pre-commit) + Tag 자동 생성 (post-commit)
-2. **Push** → `git push origin v4-development --follow-tags` (tag도 함께 push)
-3. **GitHub Actions** → Release 자동 생성 (커밋 로그 포함한 Release 노트)
-
-📌 **현재 상태**: **활성화됨** - 모든 커밋마다 버전이 증가하고 Release가 생성됩니다.
-
-#### Minor/Major 버전 변경 워크플로우
-
-사용자가 **"v4.5.0으로 변경해줘"** 같은 요청을 하면, Claude Code 어시스턴트는 다음 절차를 **자동으로 수행**합니다:
-
-1. **Git hook 임시 비활성화**
-   ```bash
-   rm .git/hooks/pre-commit
-   rm .git/hooks/post-commit
-   ```
-
-2. **버전 변경**
-   ```bash
-   npm run version:minor  # Minor 버전 증가
-   # 또는
-   npm run version:major  # Major 버전 증가
-   ```
-
-3. **변경사항 커밋**
-   ```bash
-   git add package.json
-   git commit -m "chore: Bump version to vX.X.X"
-   ```
-
-4. **Git tag 수동 생성**
-   ```bash
-   git tag -a vX.X.X -m "Release vX.X.X"
-   ```
-
-5. **Git hook 재활성화**
-   ```bash
-   ln -s ../../scripts/auto-version.sh .git/hooks/pre-commit
-   ln -s ../../scripts/auto-tag.sh .git/hooks/post-commit
-   ```
-
-6. **사용자에게 Push 확인 요청**
-   ```
-   "변경사항을 GitHub에 푸시하시겠습니까?"
-   → git push origin v4-development --follow-tags
-   ```
-
-⚠️ **중요 정책**:
-- **모든 Git push 작업은 사용자의 명시적 승인 필요** (글로벌 CLAUDE.md 정책 준수)
-- Claude Code 어시스턴트는 자동으로 GitHub에 push하지 않습니다
-- 코드 변경 시 매번 사용자에게 push 여부를 물어봅니다
-- 사용자가 승인한 경우에만 push를 실행합니다
-
-#### 버전 표시 위치
-
-- **웹 페이지 헤더**: [src/pages/V3Page.tsx](src/pages/V3Page.tsx) - `v{__APP_VERSION__}`
-- **이름 사전 모달**: [src/components/v3/DictionaryEditor.tsx](src/components/v3/DictionaryEditor.tsx) - `v{__APP_VERSION__}`
-- **빌드 시 주입**: [vite.config.ts](vite.config.ts) - `__APP_VERSION__` 전역 변수
-
-#### 자동 설정
-
-사용자가 **"자동 버전관리를 해줘"** 요청 시:
-1. npm scripts 추가 (package.json)
-2. Git hooks 활성화 (전역 스크립트 링크)
-3. GitHub Actions workflow 복사
-4. VERSION_MANAGEMENT.md 생성
-
-#### 상세 문서
-
-- [VERSION_MANAGEMENT.md](VERSION_MANAGEMENT.md): 프로젝트별 설정 (전역 문서 참조)
-- `~/Project/Version-Management/VERSION_MANAGEMENT.md`: 전체 버전 관리 가이드, 워크플로우, FAQ
-- `~/.claude/CLAUDE.md`: 전역 버전 관리 정책
+Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 커밋 → tag → hook 재활성화
 
 ## 테스트
 - 표준 테스트 파일: `public/config1.txt`, `public/config2.txt`
 
-## 프로젝트 특화 응답 스타일
-- **톤**: 전문적이고 기술적인 어조 (네트워크 엔지니어링 배경 지식 필요)
-
 ## 참고 문서
-- `README.md`: 사용자 대상 프로젝트 설명 및 빌드/배포 명령어
+- `README.md`: 프로젝트 설명, 빌드/배포 명령어
 - `CHANGELOG.md`: 버전별 변경 이력
-- `DIAGRAM_RULES.md`: 다이어그램 렌더링 규칙 상세
+- `DIAGRAM_RULES.md`: Mermaid 다이어그램 렌더링 규칙 상세
 - `HOWTO-DOCKER.md`: Docker 빌드 및 배포 가이드
-- [Mermaid.js 공식 문서](https://mermaid.js.org/)
-- [Nokia 네트워크 장비 문서](https://documentation.nokia.com/)
 
 ## 브랜치 전략
-- `main`: 프로덕션 코드 (v1.x)
-- `v4-development`: v4 개발 (현재 활성)
+- `main`: 프로덕션 코드
+- `v5-development`: v5 개발 (현재 활성)
 
 ## 최근 버전 히스토리
 
 | 버전 | 날짜 | 주요 내용 |
 |---|---|---|
-| v3.2.0 | 2026-02-15 | QoS 하이라이트, VPRN 라우팅 노드, SAP 파싱 개선 |
-| v4.0.0 | 2026-02-15 | AI 챗봇 서비스 검색, Express 백엔드 (AWS Bedrock) |
-| v4.1.0 | 2026-02-16 | 이름 사전 (Name Dictionary), 전역 단일 사전, 테이블 정렬 |
-| v4.3.0 | 2026-02-16 | Dictionary 구조 간소화 (6 fields → 2 fields), 마이그레이션 스크립트 |
-| v4.4.0 | 2026-02-16 | 3-Field Dictionary (name, configKeywords, searchAliases), 양방향 검색 |
-| v4.4.0+ | 2026-02-18 | 환경변수 중앙 관리 (config.ts), 동적 버전 관리 (package.json) |
-| v4.6.1 | 2026-02-19 | AND/OR 검색 catch-all 강화, 백엔드 TypeScript 오류 수정 |
-| v4.7.0 | 2026-02-20 | 자동 Config 로딩 (chokidar + WebSocket), 멀티파일 선택, 사이드바 개선 |
-| v4.7.1 | 2026-02-20 | Demo 환경에서 WebSocket 연결 시도 방지 |
-| v4.7.4 | 2026-02-21 | React 성능 최적화 (bundle-barrel-imports, dynamic-imports, useMemo/useCallback, Set/Map) |
-| v4.7.5 | 2026-02-21 | React 성능 최적화 추가 (route code splitting, React.memo, toSorted, RegExp 호이스팅) |
-| v4.8.0 | 2026-02-21 | NCV AI Collaboration Platform (JSON API + MCP Server + RAG Indexing) |
-| v4.8.1 | 2026-02-23 | 원격 접속성 개선 (WebSocket 프록시 및 상대 경로 지원) |
-| v4.8.2 | 2026-02-24 | Copy PNG Fallback 버그 수정 (HTTP 환경 PNG 다운로드 지원) |
+| v5.2.0 | 2026-03-02 | Epipe 현행화 상태, VPRN/IES HA 뱃지, VPLS (L2) SAP 필터링, 버그 수정 |
+| v5.1.0 | 2026-03-01 | 대시보드 반응형 레이아웃, 헤더 반응형 개선, 앱 아이콘 |
+| v5.0.0 | 2026-03-01 | 사이트별 대시보드, 다크모드, Tailwind CSS v4, V1 제거, 보안 강화 |
+| v4.8.0 | 2026-02-21 | NCV AI Platform (JSON API + MCP Server + RAG Indexing) |
+| v4.7.0 | 2026-02-20 | 자동 Config 로딩 (chokidar + WebSocket), 멀티파일 선택 |
 
 상세 변경 이력은 `CHANGELOG.md` 참조.
 
 ---
 
-**Last Updated**: 2026-02-24
-**Current Version**: v4.8.2 (Auto-versioning enabled)
-**Branch**: v4-development
+**Last Updated**: 2026-03-02
+**Current Version**: v5.2.0 (Auto-versioning enabled)
+**Branch**: v5-development

@@ -16,6 +16,7 @@ import List from 'lucide-react/dist/esm/icons/list';
 import Sun from 'lucide-react/dist/esm/icons/sun';
 import Moon from 'lucide-react/dist/esm/icons/moon';
 import X from 'lucide-react/dist/esm/icons/x';
+import MousePointerClick from 'lucide-react/dist/esm/icons/mouse-pointer-click';
 import { convertIESToV1Format, generateCrossDeviceIESDiagrams } from '../utils/v1IESAdapter';
 import { useConfigWebSocket } from '../hooks/useConfigWebSocket';
 import { ConfigFileList } from '../components/v3/ConfigFileList';
@@ -605,8 +606,16 @@ export function V3Page() {
                     })}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-gray-400 text-lg gap-4 text-center">
-                    <p>Select a service from the sidebar to view its diagram.</p>
+                  <div className="flex flex-col items-center justify-center h-full gap-5 text-center px-8">
+                    <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center">
+                      <MousePointerClick size={32} className="text-blue-400 dark:text-blue-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-600 dark:text-gray-300 m-0 mb-2">서비스를 선택하세요</h3>
+                      <p className="text-sm text-gray-400 dark:text-gray-500 leading-relaxed m-0">
+                        ← 왼쪽 목록에서 서비스를 클릭하면<br />다이어그램이 표시됩니다.
+                      </p>
+                    </div>
                   </div>
                 )}
               </section>

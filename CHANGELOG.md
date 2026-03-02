@@ -6,6 +6,45 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.2.0] - 2026-03-02
+
+### ✨ 새로운 기능 (New Features)
+
+- **Epipe 현행화 상태 표시** (`ServiceListV3.tsx`):
+  - Epipe는 반드시 2개 장비에 설정되어야 정상. 1개 장비만 설정된 경우 "현행화 필요" 표시
+  - Epipe 그룹 헤더에 `✅ N` (정상), `⚠️ N` (비정상) 카운트 뱃지 표시
+  - 비정상 Epipe 카드에 오렌지 왼쪽 보더 + `⚠️ 현행화 필요 (N개 장비)` 뱃지
+
+- **VPRN/IES HA 뱃지** (`ServiceListV3.tsx`):
+  - VPRN 서비스: 정적 라우트 분석으로 HA 감지 → 서비스 헤더에 `HA` 뱃지 표시
+  - IES 인터페이스: 동일 prefix에 2개 next-hop 존재 시 인터페이스별 `HA` 뱃지 표시
+
+### 🎨 UI/UX 개선 (UI/UX Improvements)
+
+- **VPLS 다이어그램 `(L2)` SAP 필터링** (`mermaidGeneratorV3.ts`):
+  - Nokia 명명 규칙 `To_<hostname>(L2)` 패턴의 SAP는 장비 간 백홀 연결이므로 구성도에서 제외
+  - SAP `description` 및 포트 `portDescription` 양쪽 모두 검사하여 `(L2)` 종료 시 필터링
+  - 고객 facing SAP만 표시되어 구성도 가독성 향상
+
+- **Epipe HA 뱃지 제거** (`ServiceListV3.tsx`):
+  - Epipe는 2개 장비가 1개 서비스를 구성하는 것으로 HA가 아님 (HA = 1461+1462처럼 별도 서비스 ID 쌍)
+  - HA 뱃지 대신 현행화 상태(정상/비정상)로 표시 방식 변경
+
+- **v5.1 대시보드 레이아웃 개선** (`Dashboard.tsx`, `V3Page.tsx`):
+  - 통계 카드 항상 4열 1줄, 브라우저 스크롤 기반으로 전환
+  - 전체 너비 활용, 좁은 화면(모바일) 대응
+  - 헤더 버튼 좁은 화면에서 항상 표시
+  - 앱 제목 반응형 개선: 640px 이상 풀네임 표시
+
+### 🐛 버그 수정 (Bug Fixes)
+
+- **이중화 필터 자동 선택 오류** (`ServiceListV3.tsx`): `filterType === 'ha'` 시 전체 서비스(`services`) 대신 검색 필터 적용 결과(`filteredServices`)를 기반으로 자동 선택하도록 수정
+- **전체 선택 중복 키 오류** (`ServiceListV3.tsx`): `handleSelectAll`에서 동일 serviceId가 2개 config에 존재할 때 중복 키 생성되던 문제 → `Array.from(new Set(allKeys))`로 중복 제거
+- **TypeScript 빌드 오류** (`ServiceListV3.tsx`): `filterType === 'ha'`가 `sendChatMessage` 파라미터 타입에 미할당 오류 → `filterType === 'ha' ? 'all' : filterType`으로 처리
+- **`/api/config` Rate Limit 제외** (`server/`): 글로벌 Rate Limit에서 config 업로드 경로 제외하여 대용량 배치 업로드 가능하도록 수정
+
+---
+
 ## [5.0.0] - 2026-03-01
 
 ### 🎯 주요 변경 (Breaking Changes)

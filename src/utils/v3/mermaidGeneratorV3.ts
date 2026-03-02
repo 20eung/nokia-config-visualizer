@@ -341,8 +341,11 @@ export function generateVPLSDiagram(
         lines.push('direction TB');
 
         // SAP 노드들 (포트 정보만)
+        // (L2) SAP는 장비 간 백홀 연결이므로 다이어그램에서 제외
+        // Nokia 명명 규칙: SAP description 또는 포트 description에 "(L2)" 포함
         const sapIds: string[] = [];
         currentVpls.saps.forEach((sap, sapIdx) => {
+            if (sap.description?.endsWith('(L2)') || sap.portDescription?.endsWith('(L2)')) return;
             const sapNodeId = `SAP_${safeHost}_${vplsIdx}_${sapIdx}`;
             sapIds.push(sapNodeId);
             const label = buildSapLabel(sap);
