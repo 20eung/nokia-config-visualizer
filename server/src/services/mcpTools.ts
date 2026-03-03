@@ -1,5 +1,5 @@
 /**
- * NCV AI Platform - MCP 도구 정의 (v4.8.0)
+ * NCV AI Platform - MCP 도구 정의 (v4.8.1)
  *
  * NCV가 AI 에이전트에게 제공하는 7개 도구 스펙.
  * @modelcontextprotocol/sdk 설치 필요.

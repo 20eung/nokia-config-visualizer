@@ -1,5 +1,5 @@
 /**
- * NCV AI Platform - MCP 서버 진입점 (v4.8.0)
+ * NCV AI Platform - MCP 서버 진입점 (v4.8.1)
  *
  * stdio transport 방식으로 Claude Desktop, Cursor 등에서 직접 사용 가능.
  *
@@ -170,7 +170,7 @@ async function runStdioServer(): Promise<void> {
           result: {
             protocolVersion: '2024-11-05',
             capabilities: { tools: {} },
-            serverInfo: { name: 'ncv-mcp-server', version: '4.8.0' },
+            serverInfo: { name: 'ncv-mcp-server', version: '4.8.1' },
           },
         }) + '\n');
 

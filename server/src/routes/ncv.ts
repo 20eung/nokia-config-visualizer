@@ -1,5 +1,5 @@
 /**
- * NCV AI Platform - REST API 라우터 (v4.8.0)
+ * NCV AI Platform - REST API 라우터 (v4.8.1)
  *
  * Feature 1: Structured JSON Output
  * Feature 3: Semantic Search (RAG) 엔드포인트 포함
@@ -96,7 +96,7 @@ router.get('/services', (req: Request, res: Response): void => {
 
     const stats = configStore.getStats();
     const response: NcvServicesResponse = {
-      version: '4.8.0',
+      version: '4.8.1',
       timestamp: new Date().toISOString(),
       configCount: stats.configCount,
       serviceCount: services.length,
@@ -279,7 +279,7 @@ router.get('/export', (req: Request, res: Response): void => {
 
     // JSON 형식
     const data = {
-      version: '4.8.0',
+      version: '4.8.1',
       exportedAt: new Date().toISOString(),
       configs: configs.map(c => ({
         filename: c.filename,

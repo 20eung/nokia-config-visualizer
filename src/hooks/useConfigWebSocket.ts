@@ -49,8 +49,10 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
     setError(null);
 
     try {
-      // WebSocket 연결 (Backend 포트: 3001)
-      const ws = new WebSocket('ws://localhost:3001/ws');
+      // WebSocket 연결 (Backend 포트: 3001인데 Nginx가 3301에서 /ws로 프록시함)
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         console.log('[ConfigWebSocket] Connected');

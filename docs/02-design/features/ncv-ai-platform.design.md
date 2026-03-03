@@ -1,15 +1,16 @@
 ---
 feature: ncv-ai-platform
-version: v4.8.0
-status: design
-created: 2026-02-21
+version: v4.8.1
+status: done
+createdAt: 2026-02-21
+updatedAt: 2026-02-23
 author: Claude Sonnet 4.6 (Enterprise Team)
 ---
 
 # NCV AI Collaboration Platform - Design Document
 
 > **Feature**: NCV AI 협업 플랫폼 (JSON API + MCP Server + RAG Indexing)
-> **Version**: v4.8.0
+> **Version**: v4.8.1
 > **Status**: 🎨 Design
 > **Type**: Platform Extension (AI-First Architecture)
 
@@ -450,7 +451,7 @@ import { NCV_MCP_TOOLS } from './services/mcpTools';
 import { configStore } from './services/configStore';
 
 const server = new Server(
-  { name: 'ncv-mcp-server', version: '4.8.0' },
+  { name: 'ncv-mcp-server', version: '4.8.1' },
   { capabilities: { tools: {} } }
 );
 
@@ -877,7 +878,7 @@ router.get('/index/status', (req, res) => {
 export const config = {
   // ... 기존 설정 유지
 
-  // NCV AI Platform 설정 (v4.8.0)
+  // NCV AI Platform 설정 (v4.8.1)
   rag: {
     indexPath: process.env.RAG_INDEX_PATH || path.join(process.cwd(), 'data', 'rag-index'),
     embeddingModel: process.env.EMBEDDING_MODEL || 'amazon.titan-embed-text-v2:0',

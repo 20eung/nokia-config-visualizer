@@ -1,10 +1,10 @@
 ---
 feature: ncv-ai-platform
-version: v4.8.0
+version: v4.8.1
 status: check
 matchRate: 95
 createdAt: 2026-02-21
-updatedAt: 2026-02-21
+updatedAt: 2026-02-23
 analyzer: Claude Sonnet 4.6 (Manual Gap Analysis)
 ---
 

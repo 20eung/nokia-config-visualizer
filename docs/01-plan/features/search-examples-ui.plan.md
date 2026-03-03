@@ -1,7 +1,7 @@
 # Plan: 검색창 사용 예시 UI 개선
 
 ## 기능 ID
-`search-examples-ui` (v4.7.0)
+`search-examples-ui` (v4.8.1)
 
 ## 작성일
 2026-02-19
@@ -71,7 +71,7 @@
 5. **포트 검색**: `1/1/1` (인터페이스 찾기)
 6. **서비스 타입**: `vpls` (서비스 타입별 필터링)
 
-> **Phase 2**: 업로드된 config 파일을 파싱하여 실제 존재하는 서비스 ID, 포트, IP 등을 동적 예시로 표시 가능 (v4.8.0)
+> **Phase 2**: 업로드된 config 파일을 파싱하여 실제 존재하는 서비스 ID, 포트, IP 등을 동적 예시로 표시 가능 (v4.8.1)
 
 ## 기술 상세 (Technical Details)
 
@@ -96,7 +96,7 @@ const STATIC_EXAMPLES: SearchExample[] = [
   { label: 'vpls', query: 'vpls', category: 'type', description: 'Filter by service type' },
 ];
 
-// Phase 2: 동적 예시 생성 함수 (v4.8.0)
+// Phase 2: 동적 예시 생성 함수 (v4.8.1)
 const generateDynamicExamples = (configs: ParsedConfigV3[]): SearchExample[] => {
   // 업로드된 config 파일에서 실제 데이터 추출
   // - 첫 번째 서비스 ID (예: "epipe 100")
@@ -196,7 +196,7 @@ const handleExampleClick = (query: string) => {
 - [ ] CSS 스타일링 (hover, active 효과)
 - [ ] 영문 키워드 기반 예시 (보안 고려)
 
-### Phase 2: 동적 예시 생성 (v4.8.0 - 선택적)
+### Phase 2: 동적 예시 생성 (v4.8.1 - 선택적)
 - [ ] 업로드된 config 파일 파싱하여 실제 데이터 추출
   - 첫 번째 서비스 ID (예: "epipe 100")
   - 첫 번째 포트 (예: "1/1/c1/1")

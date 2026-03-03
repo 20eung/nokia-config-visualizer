@@ -1,5 +1,5 @@
 /**
- * NCV AI Platform - Config 청크 빌더 (v4.8.0)
+ * NCV AI Platform - Config 청크 빌더 (v4.8.1)
  *
  * 서비스 데이터를 RAG 임베딩용 텍스트 청크로 변환.
  */

@@ -1,5 +1,5 @@
 /**
- * NCV AI Platform - Config Store (v4.8.0)
+ * NCV AI Platform - Config Store (v4.8.1)
  *
  * 파싱된 Config 결과를 In-Memory로 저장하는 싱글톤 저장소.
  * Feature 1 (JSON API), Feature 2 (MCP), Feature 3 (RAG)의 공통 데이터 허브.

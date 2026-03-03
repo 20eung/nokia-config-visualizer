@@ -15,7 +15,7 @@ export const FileUpload: React.FC<FileUploadProps & { variant?: 'default' | 'hea
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setPreviewFiles(Array.from(e.target.files));
-      e.target.value = ''; // Reset input to allow re-selection if cancelled
+      e.target.value = '';
     }
   };
 
@@ -38,48 +38,28 @@ export const FileUpload: React.FC<FileUploadProps & { variant?: 'default' | 'hea
   return (
     <>
       {variant === 'header' ? (
-        <div className="file-upload-header">
-          <input
-            type="file"
-            accept=".cfg,.txt,.conf"
-            onChange={handleFileChange}
-            id={inputId}
-            style={{ display: 'none' }}
-            multiple
-          />
-          <label htmlFor={inputId} className="btn-upload">
+        <div className="flex items-center">
+          <input type="file" accept=".cfg,.txt,.conf" onChange={handleFileChange} id={inputId} className="hidden" multiple />
+          <label htmlFor={inputId} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium cursor-pointer hover:bg-blue-700 transition-colors">
             <Upload size={16} />
             <span>Upload Config</span>
           </label>
         </div>
       ) : variant === 'compact' ? (
-        <div className="file-upload-compact">
-          <input
-            type="file"
-            accept=".cfg,.txt,.conf"
-            onChange={handleFileChange}
-            id={inputId}
-            style={{ display: 'none' }}
-            multiple
-          />
-          <label htmlFor={inputId} className="btn-upload-compact">
+        <div>
+          <input type="file" accept=".cfg,.txt,.conf" onChange={handleFileChange} id={inputId} className="hidden" multiple />
+          <label htmlFor={inputId} className="flex items-center justify-center gap-1.5 w-full px-3 py-2.5 bg-slate-500 text-white rounded-md cursor-pointer text-sm font-medium hover:bg-slate-600 transition-colors">
             <Upload size={16} />
             <span>Upload</span>
           </label>
         </div>
       ) : (
-        <div className="file-upload-container">
-          <input
-            type="file"
-            accept=".cfg,.txt,.conf"
-            onChange={handleFileChange}
-            id={inputId}
-            multiple
-          />
-          <label htmlFor={inputId} className="file-upload-area compact">
-            <Upload className="icon" size={28} strokeWidth={1.5} />
-            <span className="text">Click to upload Config File</span>
-            <span className="subtext">.cfg, .txt support</span>
+        <div className="flex flex-col gap-4">
+          <input type="file" accept=".cfg,.txt,.conf" onChange={handleFileChange} id={inputId} multiple className="hidden" />
+          <label htmlFor={inputId} className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-gray-300 dark:border-gray-600 p-5 text-center rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-800 hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
+            <Upload className="text-gray-400" size={28} strokeWidth={1.5} />
+            <span className="text-sm text-gray-600 dark:text-gray-300">Click to upload Config File</span>
+            <span className="text-xs text-gray-400">.cfg, .txt support</span>
           </label>
         </div>
       )}

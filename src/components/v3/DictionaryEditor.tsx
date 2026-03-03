@@ -13,8 +13,6 @@ import { getUniqueDescriptions } from '../../utils/descriptionExtractor';
 import { createEmptyDictionary } from '../../utils/dictionaryStorage';
 import { generateDictionary, saveDictionaryToServer } from '../../services/dictionaryApi';
 
-import './DictionaryEditor.css';
-
 interface DictionaryEditorProps {
   configs: ParsedConfigV3[];
   dictionary: NameDictionary | null;
@@ -389,42 +387,42 @@ export function DictionaryEditor({
   };
 
   return (
-    <div className="dict-overlay" onClick={onClose}>
-      <div className="dict-modal" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-[90vw] max-w-[1100px] max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="dict-header">
-          <h2>이름 사전 (Name Dictionary) - v{__APP_VERSION__}</h2>
-          <div className="dict-header-actions">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <h2 className="m-0 text-[1.1rem] text-gray-800 dark:text-gray-100">이름 사전 (Name Dictionary) - v{__APP_VERSION__}</h2>
+          <div className="flex gap-2 items-center">
             <button
-              className="dict-generate-btn"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 text-white border-none rounded-md text-[0.85rem] cursor-pointer transition-colors duration-200 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
               onClick={handleGenerate}
               disabled={loading}
             >
               <Sparkles size={16} />
               AI 자동 생성
             </button>
-            <button className="dict-close-btn" onClick={onClose}>
+            <button className="flex items-center justify-center p-1.5 bg-transparent border border-gray-300 dark:border-gray-600 rounded-md cursor-pointer text-gray-500 dark:text-gray-400 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200" onClick={onClose}>
               <X size={18} />
             </button>
           </div>
         </div>
 
         {/* Body */}
-        <div className="dict-body">
-          {error && <div className="dict-error">{error}</div>}
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {error && <div className="px-4 py-3 mb-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-md text-[0.85rem]">{error}</div>}
 
           {loading ? (
-            <div className="dict-loading">
-              <div className="dict-loading-spinner" />
+            <div className="flex items-center justify-center gap-2.5 py-10 text-gray-500 dark:text-gray-400">
+              <div className="w-5 h-5 border-2 border-gray-200 dark:border-gray-600 border-t-blue-600 rounded-full animate-spin" />
               <span>AI가 이름 사전을 생성하고 있습니다...</span>
             </div>
           ) : entries.length === 0 ? (
-            <div className="dict-empty">
+            <div className="text-center py-10 text-gray-400 dark:text-gray-500">
               <p>아직 사전 항목이 없습니다.</p>
               <p>"AI 자동 생성" 버튼을 클릭하여 Config description에서 엔티티를 추출하세요.</p>
             </div>
           ) : (
-            <table className="dict-table">
+            <table className="w-full border-collapse text-[0.85rem]">
               <thead>
                 <tr>
                   {([
@@ -434,11 +432,15 @@ export function DictionaryEditor({
                   ] as const).map(([field, width, label]) => (
                     <th
                       key={field}
-                      style={{ width, cursor: 'pointer' }}
-                      className={sortField === field ? 'dict-th-active' : ''}
+                      style={{ width }}
+                      className={`text-left px-2.5 py-2 border-b-2 border-gray-200 dark:border-gray-600 font-semibold whitespace-nowrap select-none cursor-pointer transition-colors duration-150 ${
+                        sortField === field
+                          ? 'bg-indigo-100 dark:bg-indigo-900/40 text-blue-600 dark:text-blue-400'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
                       onClick={() => toggleSort(field)}
                     >
-                      <span className="dict-th-content">
+                      <span className="inline-flex items-center gap-1">
                         {label}
                         {sortField === field
                           ? (sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)
@@ -446,22 +448,22 @@ export function DictionaryEditor({
                       </span>
                     </th>
                   ))}
-                  <th style={{ width: '5%' }}></th>
+                  <th style={{ width: '5%' }} className="bg-gray-100 dark:bg-gray-700 border-b-2 border-gray-200 dark:border-gray-600"></th>
                 </tr>
               </thead>
               <tbody>
                 {sortedEntries.map(entry => (
-                  <tr key={entry.id}>
-                    <td>
+                  <tr key={entry.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="px-2.5 py-1.5 border-b border-gray-100 dark:border-gray-700 align-middle">
                       <input
-                        className="dict-input token"
+                        className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-[0.85rem] text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-700 font-medium focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                         value={entry.name}
                         onChange={e => updateEntry(entry.id, 'name', e.target.value)}
                       />
                     </td>
-                    <td>
+                    <td className="px-2.5 py-1.5 border-b border-gray-100 dark:border-gray-700 align-middle">
                       <textarea
-                        className="dict-textarea"
+                        className="w-full px-2 py-1.5 border border-gray-200 dark:border-gray-600 rounded text-[0.85rem] text-gray-800 dark:text-gray-200 dark:bg-gray-700 font-sans leading-relaxed resize-y min-h-[60px] focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                         rows={3}
                         value={keywordTexts[entry.id] ?? entry.configKeywords.join('\n')}
                         onChange={e =>
@@ -470,9 +472,9 @@ export function DictionaryEditor({
                         placeholder="CompanyA&#10;EntA&#10;PartnerA&#10;SecA"
                       />
                     </td>
-                    <td>
+                    <td className="px-2.5 py-1.5 border-b border-gray-100 dark:border-gray-700 align-middle">
                       <textarea
-                        className="dict-textarea"
+                        className="w-full px-2 py-1.5 border border-gray-200 dark:border-gray-600 rounded text-[0.85rem] text-gray-800 dark:text-gray-200 dark:bg-gray-700 font-sans leading-relaxed resize-y min-h-[60px] focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15"
                         rows={3}
                         value={aliasTexts[entry.id] ?? entry.searchAliases.join('\n')}
                         onChange={e =>
@@ -481,9 +483,9 @@ export function DictionaryEditor({
                         placeholder="고객사A&#10;엔터프라이즈A&#10;보안업체A&#10;파트너A"
                       />
                     </td>
-                    <td>
+                    <td className="px-2.5 py-1.5 border-b border-gray-100 dark:border-gray-700 align-middle">
                       <button
-                        className="dict-delete-btn"
+                        className="flex items-center justify-center p-1 bg-transparent border-none text-gray-400 dark:text-gray-500 cursor-pointer rounded transition-all duration-200 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500"
                         onClick={() => handleDeleteEntry(entry.id)}
                         title="삭제"
                       >
@@ -498,14 +500,14 @@ export function DictionaryEditor({
         </div>
 
         {/* Footer */}
-        <div className="dict-footer">
-          <div className="dict-footer-left">
-            <button className="dict-add-btn" onClick={handleAddEntry}>
+        <div className="flex items-center justify-between px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <div className="flex items-center gap-2">
+            <button className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-[0.85rem] cursor-pointer text-gray-700 dark:text-gray-300 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleAddEntry}>
               <Plus size={14} />
               항목 추가
             </button>
             <button
-              className="dict-add-btn"
+              className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-[0.85rem] cursor-pointer text-gray-700 dark:text-gray-300 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleDedup}
               disabled={entries.length === 0}
               title="같은 이름을 공유하는 항목들을 하나로 병합"
@@ -514,7 +516,7 @@ export function DictionaryEditor({
               항목 병합
             </button>
             <button
-              className="dict-add-btn dict-clear-btn"
+              className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-[0.85rem] cursor-pointer text-gray-700 dark:text-gray-300 transition-all duration-200 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-700 hover:text-red-700 dark:hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleClearAll}
               disabled={entries.length === 0}
             >
@@ -522,7 +524,7 @@ export function DictionaryEditor({
               전체 삭제
             </button>
           </div>
-          <button className="dict-save-btn" onClick={handleSave}>
+          <button className="px-5 py-2 bg-emerald-600 text-white border-none rounded-md text-[0.9rem] font-medium cursor-pointer transition-colors duration-200 hover:bg-emerald-700" onClick={handleSave}>
             저장
           </button>
         </div>

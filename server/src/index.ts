@@ -8,6 +8,7 @@ import dictionaryRouter from './routes/dictionary';
 import configRouter from './routes/config';
 import ncvRouter from './routes/ncv';
 import { config } from './config';
+import { apiKeyAuth } from './middleware/auth';
 import { setupWebSocket } from './services/websocket';
 import { fileWatcher } from './services/fileWatcher';
 import { NCV_MCP_TOOLS, mcpTextResult } from './services/mcpTools';
@@ -24,6 +25,17 @@ app.use(cors({
   origin: config.corsOrigin,
 }));
 app.use(express.json({ limit: '2mb' }));
+
+// 글로벌 API Rate Limiting (/api/config 제외 - 대량 파일 로딩 필요)
+app.use('/api', (req, res, next) => {
+  if (req.path.startsWith('/config')) return next();
+  rateLimit({
+    windowMs: config.rateLimit.windowMs,
+    max: config.rateLimit.maxRequests * 3,
+    message: { error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+    validate: { xForwardedForHeader: false },
+  })(req, res, next);
+});
 
 // Rate limiting (AI 챗봇과 사전 API에만 적용)
 app.use('/api/chat', rateLimit({
@@ -44,22 +56,18 @@ app.use('/api/dictionary', rateLimit({
 app.use('/api', chatRouter);
 app.use('/api', dictionaryRouter);
 app.use('/api/config', configRouter); // Config 파일 다운로드는 Rate Limit 제외
-app.use('/api/ncv', ncvRouter);       // NCV AI Platform API (v4.8.0)
+app.use('/api/ncv', apiKeyAuth, ncvRouter);       // NCV AI Platform API (v4.8.1)
 
 // Health check
 app.get('/api/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    region: config.aws.region,
-    model: config.bedrock.modelId,
-  });
+  res.json({ status: 'ok' });
 });
 
 // ─────────────────────────────────────────────────────────
-// MCP HTTP 엔드포인트 (v4.8.0)
+// MCP HTTP 엔드포인트 (v4.8.1)
 // AI 에이전트가 HTTP로 NCV 도구를 직접 호출
 // ─────────────────────────────────────────────────────────
-app.all('/mcp', async (req, res) => {
+app.all('/mcp', apiKeyAuth, async (req, res) => {
   type McpRequest = { jsonrpc: string; id?: unknown; method: string; params?: Record<string, unknown> };
   const request = req.body as McpRequest;
   const { id, method, params = {} } = request;
@@ -71,7 +79,7 @@ app.all('/mcp', async (req, res) => {
         result: {
           protocolVersion: '2024-11-05',
           capabilities: { tools: {} },
-          serverInfo: { name: 'ncv-mcp-server', version: '4.8.0' },
+          serverInfo: { name: 'ncv-mcp-server', version: '4.8.1' },
         },
       });
     } else if (method === 'tools/list') {
@@ -133,7 +141,7 @@ app.all('/mcp', async (req, res) => {
   } catch (err: unknown) {
     res.status(500).json({
       jsonrpc: '2.0', id,
-      error: { code: -32603, message: (err as Error).message },
+      error: { code: -32603, message: 'Internal server error' },
     });
   }
 });

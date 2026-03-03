@@ -4,7 +4,7 @@
  * File Watcher의 이벤트를 WebSocket을 통해 클라이언트에게 실시간으로 전송합니다.
  */
 
-import { Server as HTTPServer } from 'http';
+import { IncomingMessage, Server as HTTPServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { fileWatcher, type FileWatcherEventData, type FileWatcherErrorData } from './fileWatcher';
 
@@ -49,7 +49,17 @@ interface ConnectedClient {
 export function setupWebSocket(server: HTTPServer): WebSocketServer {
   const wss = new WebSocketServer({
     server,
-    path: '/ws'
+    path: '/ws',
+    verifyClient: (info: { origin: string; secure: boolean; req: IncomingMessage }) => {
+      const origin = info.origin || info.req.headers.origin;
+      const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:3301';
+      // 개발 환경이거나 origin이 허용된 경우 통과
+      if (allowedOrigin === '*' || !origin || origin === allowedOrigin) {
+        return true;
+      }
+      console.warn(`[WebSocket] Rejected connection from origin: ${origin}`);
+      return false;
+    },
   });
 
   const clients = new Map<string, ConnectedClient>();

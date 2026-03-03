@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v4.7.4** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI 챗봇 + 이름 사전 + 자동 Config 로딩 + Mermaid 코드 생성 + Grafana 쿼리 생성
+> 🚀 **v5.2.1** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + Type 버튼 통합 선택/해제 + Epipe 현행화 상태 + VPRN/IES HA 감지 + 사이트별 대시보드 + 다크모드 + AI 챗봇
 
 ![Application Screenshot](./public/demo-main.png)
 
@@ -21,7 +21,30 @@
 - **VRRP 설정** (VIP, Priority) 파싱
 - **BGP/OSPF 라우팅 도식화**: 라우팅 프로토콜별 노드 분리 및 관계 시각화
 
-### 2.2 🎨 다이어그램 시각화
+### 2.2 📊 사이트별 대시보드 (v5.0)
+- **서비스 통계 카드**: Epipe/VPLS/VPRN/IES 타입별 총 개수를 색상 카드로 한눈에 확인
+- **사이트 카드 그리드**: Hostname에서 사이트명 자동 추출, 3열 카드 레이아웃
+- **HA 페어 자동 감지**: 동일 사이트의 2대 이상 장비를 HA 배지로 표시
+- **사이트 카드 클릭**: 해당 사이트의 모든 서비스 자동 선택 + Services 뷰 전환
+- **검색 필터**: 사이트명 또는 hostname으로 즉시 필터링
+- **Dashboard / Services 모드 토글**: 헤더에서 원클릭 전환
+
+**사이트별 대시보드 (라이트 모드):**
+
+![Dashboard Light](./public/demo-dashboard.png)
+
+### 2.3 🌙 다크모드 (v5.0)
+- **Sun/Moon 토글**: 헤더 우측의 아이콘 버튼으로 즉시 전환
+- **시스템 설정 연동**: OS의 prefers-color-scheme 설정 자동 감지
+- **localStorage 저장**: 사용자 선택을 브라우저에 기억
+- **NOC/관제센터 최적화**: 야간 근무 시 눈의 피로 감소
+- **다이어그램 호환**: Mermaid SVG 영역은 다크모드에서도 흰색 배경 유지
+
+**다크모드 대시보드:**
+
+![Dashboard Dark](./public/demo-darkmode.png)
+
+### 2.4 🎨 다이어그램 시각화
 - **Single Interface Diagram**: 개별 인터페이스별 독립적인 토폴로지
 - **HA Diagram**: 이중화 구성 자동 감지 및 통합 다이어그램
   - 동적 HA 감지 (Static Route + VRRP 기반)
@@ -35,7 +58,7 @@
 - **Mermaid 코드 보기** 및 복사 기능
 - **Grafana 호환성**: Grafana Diagram 패널과 완벽하게 호환되는 Mermaid 코드 생성
 
-### 2.3 🌐 VPN 서비스 시각화
+### 2.5 🌐 VPN 서비스 시각화
 - **Epipe (P2P)**: 양방향 QoS 정보, Source/Target 통합 다이어그램
 - **VPLS (Multipoint)**: 멀티 장비 통합, Hub-and-Spoke 구조 시각화
 - **VPRN (L3 VPN)**:
@@ -62,7 +85,7 @@
 
 ![IES Diagram](./public/demo-ies.png)
 
-### 2.4 🌍 통합 비주얼라이저
+### 2.6 🌍 통합 비주얼라이저
 - **Base Router / IES 통합**: Global Routing Table 인터페이스 및 Static Route 시각화
 - **VPRN 라우팅 노드**: BGP / OSPF / STATIC 분리 노드로 라우팅 관계 시각화
 - **QoS 색상 강조**: 녹색 배경 + 흰색 글자로 QoS 시인성 향상 (모든 서비스 타입 통일)
@@ -70,14 +93,14 @@
 - **Shutdown 필터링**: adminState='down' 항목 자동 제외
 - **Host 기반 그룹핑**: IES 서비스를 장비별 그룹화, HA 다이어그램 자동 생성
 
-### 2.5 📊 Mermaid 코드 활용
+### 2.7 📊 Mermaid 코드 활용
 생성된 Mermaid 다이어그램 코드를 다양한 방식으로 활용할 수 있습니다.
 
-#### 2.5.1 Mermaid 코드 보기 및 복사
+#### 2.7.1 Mermaid 코드 보기 및 복사
 - 각 다이어그램 우측 상단의 **`</> 코드 보기`** 버튼 클릭
 - **Copy** 버튼으로 Mermaid 코드 복사
 
-#### 2.5.2 Mermaid 코드 활용 방법
+#### 2.7.2 Mermaid 코드 활용 방법
 
 **1. Mermaid Live Editor에서 편집**
 - [Mermaid Live Editor](https://mermaid.live/) 접속
@@ -95,7 +118,7 @@
 
 ![Mermaid Code View](./public/demo-mermaid.png)
 
-### 2.6 📊 Grafana 쿼리 자동 생성
+### 2.8 📊 Grafana 쿼리 자동 생성
 - **InfluxDB InfluxQL 쿼리 생성**: 선택한 서비스의 모든 포트에 대해 트래픽 모니터링 쿼리 자동 생성
 - **모든 서비스 타입 지원**: Epipe, VPLS, VPRN, IES
 - **HA 구성 지원**: 각 장비별 개별 hostname으로 쿼리 생성 (장비1, 장비2 개별 쿼리)
@@ -109,7 +132,7 @@
 
 ![Grafana Query Generation](./public/demo-grafana.png)
 
-### 2.7 🔎 고급 검색 기능
+### 2.9 🔎 고급 검색 기능
 - **AND 검색**: ` + ` (공백 포함)로 구분
 - **OR 검색**: 띄어쓰기로 구분
 - **검색 필드**: Hostname, Port, Port Description, Interface Name, Interface Description, IP Address, Service Description
@@ -124,7 +147,7 @@
 
 ![Search Feature](./public/demo-search.png)
 
-### 2.8 🤖 AI 챗봇 검색
+### 2.10 🤖 AI 챗봇 검색
 - **자연어 질문**: "Epipe 서비스 보여줘", "고객사A 관련 서비스", "QoS 1G 이상 서비스 찾아줘" 등
 - **AWS Bedrock (Claude)**: 파싱된 설정 데이터를 AI가 분석하여 관련 서비스 자동 선택
 - **AI 토글**: AI 검색과 기존 텍스트 검색을 자유롭게 전환
@@ -136,7 +159,7 @@
 
 ![AI Chat Search](./public/demo-aichat.png)
 
-### 2.9 📖 이름 사전 (AI 챗봇 용)
+### 2.11 📖 이름 사전 (AI 챗봇 용)
 - **3개 필드 구조**: 역할별 명확한 분리
   - **그룹명** (name): 대표 이름 (예: "고객사A")
   - **Config 키워드** (configKeywords): Config description에 실제 존재하는 키워드들 (예: ["CompanyA", "EntA", "PartnerA", "SecA"])
@@ -147,7 +170,7 @@
 - **서버 저장**: 서버 파일 시스템에 저장하여 브라우저 간 공유 가능
 - **테이블 정렬**: 3개 컬럼 모두 클릭으로 정렬 가능 (한국어 로케일 지원)
 
-### 2.10 📁 인터페이스 관리
+### 2.12 📁 인터페이스 관리
 - **계층 구조**: 장비별 접기/펼치기 (파일 탐색기 스타일)
 - **스마트 필터**: 
   - **All**: 모든 인터페이스 선택
@@ -156,14 +179,14 @@
 - **자연스러운 정렬** (Natural Sorting)
 - **인터페이스 개수** 표시
 
-### 2.11 🎯 사용자 편의성
+### 2.13 🎯 사용자 편의성
 - **여러 Config 파일** 동시 로드 가능
 - **데모 모드**: 미리 준비된 설정 파일로 즉시 테스트 (Demo 환경)
 - **크기 조절 가능한 사이드바**
 - **다이어그램 전체화면 모드**: 왼쪽 상단 햄버거 버튼(☰)으로 사이드바 숨기기/표시
 - **모던하고 깔끔한 UI** 디자인
 
-### 2.12 📂 자동 Config 로딩
+### 2.14 📂 자동 Config 로딩
 - **로컬 폴더 자동 감시**: Docker volume mount로 백업 폴더 연결
 - **실시간 파일 감지**: 파일 추가/변경/삭제 시 자동으로 목록 업데이트
 - **최신 파일 자동 필터링**: hostname별 최신 날짜의 config만 표시
@@ -185,7 +208,7 @@
 - **Integration**: [Grafana](https://grafana.com/) Diagram Panel 호환
 - **File Watching**: [chokidar](https://github.com/paulmillr/chokidar) (자동 Config 로딩)
 - **Real-time Communication**: [WebSocket](https://github.com/websockets/ws) (파일 변경 알림)
-- **Styling**: Vanilla CSS
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) v4
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Image Export**: [html-to-image](https://github.com/bubkoo/html-to-image)
 - **Infra**: Docker Compose (nginx + Express 별도 컨테이너)
@@ -326,7 +349,7 @@ docker-compose up -d
 - 검색창 아래의 6개 예시 버튼 클릭 시 자동으로 검색 실행
 - 예시: `QoS: 100M`, `IP: 10.0.`, `nokia-1 + port`, `service: 100`, `port: 1/1/c1`, `type: epipe`
 - Hover 시 각 예시에 대한 상세 설명 표시
-- 자세한 내용은 `2.7 🔎 고급 검색 기능` 참조
+- 자세한 내용은 `2.9 🔎 고급 검색 기능` 참조
 
 ### 5.5 다이어그램 확인
 
@@ -449,7 +472,7 @@ docker-compose up -d
 - `.env.example` 파일 참고
 - `docs/02-design/features/ai-chat-search.design.md` 참고
 
-## 6. ⚡ 성능 최적화 (v4.7.4)
+## 8. ⚡ 성능 최적화 (v5.0.0)
 
 ### 번들 크기 축소
 
@@ -459,6 +482,7 @@ docker-compose up -d
 | mermaid 로딩 | 정적 import (초기 번들 포함) | `await import('mermaid')` (동적) |
 | AIChatPanel | 정적 import | `React.lazy()` + `<Suspense>` |
 | DictionaryEditor | 정적 import | `React.lazy()` + `<Suspense>` |
+| CSS 스타일 | 11개 Vanilla CSS 파일 (~4,800줄) | Tailwind CSS utility classes (빌드 시 최적화) |
 
 ### 리렌더링 감소
 
@@ -473,7 +497,7 @@ docker-compose up -d
 - **O(n) → O(1)**: `selectedServiceIds.includes()` → `Set.has()` (14개소)
 - **4회 → 1회 순회**: groupedServices 서비스 타입 분류 단일 패스 처리
 
-## 7. 📂 프로젝트 구조
+## 9. 📂 프로젝트 구조
 
 ```
 nokia-config-visualizer/
@@ -482,18 +506,19 @@ nokia-config-visualizer/
 │   └── config2.txt              # 데모용 Config (nokia-2)
 ├── src/
 │   ├── components/              # UI 컴포넌트
-│   ├── components/v2/           # V2 전용 컴포넌트
-│   ├── components/v3/           # V3 전용 컴포넌트 (AIChatPanel 포함)
-│   ├── pages/                   # 페이지 (V1Page, V2Page, V3Page)
+│   ├── components/v3/           # V3 전용 컴포넌트 (AIChatPanel, Dashboard 포함)
+│   ├── hooks/                   # Custom Hooks (useDarkMode 등)
+│   ├── pages/                   # 페이지 (V3Page)
 │   ├── services/                # API 클라이언트 (chatApi)
-│   ├── utils/                   # 핵심 로직 (v1 파서, 다이어그램, HA 감지)
-│   ├── utils/v2/                # V2 파서 및 다이어그램
+│   ├── styles/                  # 스타일 (mermaid-overrides.css)
+│   ├── utils/                   # 핵심 로직 (다이어그램, siteGrouper)
 │   ├── utils/v3/                # V3 파서 및 다이어그램
 │   ├── types.ts                 # TypeScript 타입 정의
 │   ├── App.tsx                  # 메인 애플리케이션 (라우팅)
-│   └── main.tsx                 # 진입점
+│   └── main.tsx                 # 진입점 (Tailwind CSS 포함)
 ├── server/                      # Express 백엔드 (AI API)
 │   ├── src/                     # 서버 소스 (routes, services, prompts)
+│   ├── src/middleware/           # 미들웨어 (auth.ts 등)
 │   ├── Dockerfile               # 백엔드 Docker 이미지
 │   └── package.json             # 백엔드 의존성
 ├── docs/                        # 프로젝트 문서

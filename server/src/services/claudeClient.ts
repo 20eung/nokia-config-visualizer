@@ -78,7 +78,7 @@ export async function askClaude(
     filterSection = `\n\n## 필터 조건\n\n서비스 타입: ${filterType} (이 타입만 검색하세요)`;
   }
 
-  // RAG 컨텍스트 섹션 (ncv-ai-platform v4.8.0)
+  // RAG 컨텍스트 섹션 (ncv-ai-platform v4.8.1)
   const ragSection = ragContext
     ? `\n\n## 관련 Config 컨텍스트 (RAG 검색 결과)\n\n${ragContext}`
     : '';
