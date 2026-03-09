@@ -15,12 +15,10 @@ import LayoutDashboard from 'lucide-react/dist/esm/icons/layout-dashboard';
 import List from 'lucide-react/dist/esm/icons/list';
 import Sun from 'lucide-react/dist/esm/icons/sun';
 import Moon from 'lucide-react/dist/esm/icons/moon';
-import X from 'lucide-react/dist/esm/icons/x';
 import MousePointerClick from 'lucide-react/dist/esm/icons/mouse-pointer-click';
 import { convertIESToV1Format, generateCrossDeviceIESDiagrams } from '../utils/v1IESAdapter';
 import { useConfigWebSocket } from '../hooks/useConfigWebSocket';
 import { ConfigFileList } from '../components/v3/ConfigFileList';
-import { FolderPathSettings } from '../components/v3/FolderPathSettings';
 import { useConfigSync } from '../hooks/useConfigSync';
 import { useDarkMode } from '../hooks/useDarkMode';
 
@@ -46,7 +44,6 @@ export function V3Page() {
 
   useConfigSync(configs);
 
-  const [showFolderSettings, setShowFolderSettings] = useState(false);
   const [showConfigFileList, setShowConfigFileList] = useState(false);
 
   useEffect(() => {
@@ -508,22 +505,7 @@ export function V3Page() {
         </div>
       </header>
 
-      {/* Folder Settings Modal */}
-      {showFolderSettings && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]">
-          <div className="relative bg-white dark:bg-gray-800 rounded-lg max-w-[700px] w-[90%] max-h-[90vh] overflow-auto">
-            <button
-              onClick={() => setShowFolderSettings(false)}
-              className="absolute top-4 right-4 bg-transparent border-none cursor-pointer p-1 flex items-center text-gray-500 dark:text-gray-400"
-            >
-              <X size={24} />
-            </button>
-            <FolderPathSettings />
-          </div>
-        </div>
-      )}
-
-      <main className="flex flex-1 overflow-hidden" style={{ minHeight: 0, minWidth: 0 }} onMouseUp={stopResizing}>
+<main className="flex flex-1 overflow-hidden" style={{ minHeight: 0, minWidth: 0 }} onMouseUp={stopResizing}>
         {/* Config File List Sidebar */}
         {showConfigFileList && (
         <aside
@@ -536,7 +518,7 @@ export function V3Page() {
             onToggleFile={toggleFile}
             isLoading={wsStatus === 'connecting'}
             connectionStatus={wsStatus}
-            onShowSettings={() => setShowFolderSettings(true)}
+            onShowSettings={() => {}}
             onUploadConfig={handleConfigLoaded}
           />
         </aside>

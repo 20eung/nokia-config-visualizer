@@ -6,6 +6,27 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.3.0] - 2026-03-09
+
+### ✨ 신규 기능 (New Features)
+
+- **폴더 선택 기능** (`ConfigFileList.tsx`, `FolderPathSettings.tsx`):
+  - OS 파일 브라우저(`webkitdirectory`)로 로컬 폴더 직접 선택
+  - 선택한 폴더의 `.txt` 파일 전체 자동 로딩 (서브디렉토리 포함)
+  - 선택 폴더 정보(이름, 파일 수, 날짜)를 `localStorage`에 저장 — 재접속 시에도 유지
+  - Config 파일 목록 헤더에 저장된 폴더 배지 표시
+
+### 🐛 버그 수정 (Bug Fix)
+
+- **폴더 선택 이중 모달 제거** (`ConfigFileList.tsx`):
+  - "폴더 선택" 버튼 클릭 시 모달 없이 OS 파일 브라우저 바로 열림
+  - `folderInputRef` 직접 트리거 방식으로 단계 제거
+- **서브디렉토리 파일 인식** (`ConfigFileList.tsx`):
+  - `webkitdirectory` 속성을 `useEffect` + `setAttribute`로 안정적으로 적용
+  - `webkitRelativePath` 기준 정렬로 서브디렉토리 계층 구조 파일 처리
+
+---
+
 ## [5.2.6] - 2026-03-03
 
 ### ✨ 신규 기능 (New Features)
