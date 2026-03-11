@@ -6,6 +6,57 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.4.0] - 2026-03-11
+
+### ✨ 신규 기능 (New Features)
+
+- **v4 AI Platform 통합** (v5 베이스 유지):
+  - v4-development 브랜치의 AI 기능을 v5로 이식
+  - v5 UI/보안 개선사항 그대로 유지 (Tailwind CSS, Dashboard, 보안 정책)
+  - 외부 시스템 연동을 위한 AI 협업 미들웨어 기능 추가
+
+#### 백엔드 AI 기능
+- **NCV REST API** (`server/src/routes/ncv.ts`):
+  - 8개 엔드포인트: `/api/ncv/analyze`, `/services`, `/services/:key`, `/topology`, `/devices`, `/search`, `/export`, `/stats`
+  - X-API-Key 인증 적용 (v5 보안 정책 준수)
+- **ConfigStore** (`server/src/services/configStore.ts`):
+  - In-Memory 파싱 결과 저장소 (싱글톤)
+  - 서비스 검색, 통계, 토폴로지 생성 지원
+- **MCP Server** (`server/src/mcp-server.ts`, `server/src/services/mcpTools.ts`):
+  - Model Context Protocol 지원 (Claude Desktop, Cursor 등 AI 도구 연동)
+  - HTTP MCP 엔드포인트 (`/mcp`)
+  - 7개 MCP 도구: `get_services`, `get_service_detail`, `get_topology`, `search_config`, `get_devices`, `get_stats`, `get_ha_pairs`
+
+#### 프론트엔드 통합
+- **useConfigSync 훅** (`src/hooks/useConfigSync.ts`):
+  - Config 로드 시 백엔드 ConfigStore 자동 동기화
+  - V3Page에서 `useConfigSync(configs)` 1줄로 활성화
+  - Demo 모드 또는 백엔드 미연결 시 조용히 무시
+
+### 🔧 기술 개선 (Technical Improvements)
+
+- **의존성 추가**:
+  - `@types/html2canvas` v0.5.35 추가 (타입 안전성 개선)
+- **Git 브랜치 통합**:
+  - v4-development → main 선택적 머지 (AI 파일만)
+  - v5 UI 아키텍처 완전 보존
+
+### 📚 문서 업데이트
+
+- **Plan 문서 작성** (`docs/01-plan/features/v4-ai-integration.plan.md`):
+  - v4→v5 통합 전략 상세 문서화
+  - Executive Summary, 목표, 범위, 위험 요소, 성공 기준 포함
+
+### 🎯 통합 결과
+
+- ✅ v5 Tailwind CSS UI 유지
+- ✅ v5 보안 정책 유지 (CORS, API Key, Rate Limiting)
+- ✅ v4 AI Platform 기능 완전 이식
+- ✅ 프론트엔드/백엔드 빌드 성공
+- ✅ 단일 main 브랜치로 통합 완료
+
+---
+
 ## [5.3.1] - 2026-03-11
 
 ### ✨ 신규 기능 (New Features)

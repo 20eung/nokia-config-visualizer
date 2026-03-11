@@ -1,7 +1,7 @@
 {
   "name": "nokia-config-visualizer",
   "private": true,
-  "version": "5.3.1",
+  "version": "5.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -27,6 +27,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@tailwindcss/vite": "^4.2.1",
+    "@types/html2canvas": "^0.5.35",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
