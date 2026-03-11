@@ -6,6 +6,27 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.3.1] - 2026-03-11
+
+### ✨ 신규 기능 (New Features)
+
+- **CORS origin 다중 허용 지원** (`server/src/index.ts`, `server/src/services/websocket.ts`):
+  - 쉼표로 구분된 여러 origin 동시 허용 (예: `https://ncv.hub.sk-net.com,https://nokia-int.hub.sk-net.com`)
+  - Express CORS 미들웨어 및 WebSocket `verifyClient`에서 배열 기반 검증 로직 적용
+  - 다중 프로덕션 도메인 환경에서 안전한 CORS 제어
+- **자동 업데이트 스크립트 추가** (`scripts/auto-update.sh`):
+  - GitHub 최신 커밋 감지 시 자동 pull 및 Docker 재빌드
+  - cron 작업 등에 활용 가능한 무인 배포 스크립트
+
+### 🔧 기술 개선 (Technical Improvements)
+
+- **docker-compose.yml 프로덕션 설정** (v5.3.0 후속):
+  - `portainer-network` 연결로 portal-backend 헬스체크 통합
+  - CORS_ORIGIN 환경변수 기본값을 프로덕션 도메인으로 변경
+  - 볼륨 마운트 경로를 절대 경로(`/data/configs`)로 표준화
+
+---
+
 ## [5.3.0] - 2026-03-09
 
 ### ✨ 신규 기능 (New Features)

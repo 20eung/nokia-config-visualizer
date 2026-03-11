@@ -52,9 +52,10 @@ export function setupWebSocket(server: HTTPServer): WebSocketServer {
     path: '/ws',
     verifyClient: (info: { origin: string; secure: boolean; req: IncomingMessage }) => {
       const origin = info.origin || info.req.headers.origin;
-      const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:3301';
+      const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3301')
+        .split(',').map(o => o.trim());
       // 개발 환경이거나 origin이 허용된 경우 통과
-      if (allowedOrigin === '*' || !origin || origin === allowedOrigin) {
+      if (allowedOrigins.includes('*') || !origin || allowedOrigins.includes(origin)) {
         return true;
       }
       console.warn(`[WebSocket] Rejected connection from origin: ${origin}`);

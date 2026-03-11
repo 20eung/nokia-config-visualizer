@@ -22,7 +22,14 @@ app.set('trust proxy', 1);
 // 미들웨어
 app.use(helmet());
 app.use(cors({
-  origin: config.corsOrigin,
+  origin: (origin, callback) => {
+    const allowed = config.corsOrigin.split(',').map(o => o.trim());
+    if (allowed.includes('*') || !origin || allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
 }));
 app.use(express.json({ limit: '2mb' }));
 
