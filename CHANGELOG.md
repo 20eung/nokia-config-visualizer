@@ -6,6 +6,76 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.5.0] - 2026-03-13
+
+### ✨ 신규 기능 (New Features)
+
+#### AutoParser Service (자동 파싱)
+- **FileWatcher 기반 자동 Config 파싱** (`server/src/services/autoParser.ts`):
+  - 서버 시작 시 `/data/configs` 폴더의 모든 Nokia config 자동 파싱
+  - FileWatcher 이벤트 (`file-added`, `file-changed`, `file-deleted`) 기반 실시간 ConfigStore 업데이트
+  - ConfigStore 항상 최신 상태 유지 (94개 config, 782개 서비스 자동 로드)
+- **Nokia Parser 백엔드 포팅** (`server/src/services/nokiaParserCore.ts`):
+  - Frontend `parserV3.ts` (1,677줄) → Backend로 복사
+  - Backend에서 직접 Nokia config 파싱 가능
+  - Thin wrapper `nokiaParser.ts`로 간결한 API 제공
+
+#### Vendor Detection 개선
+- **Vendor Detector Service** (`server/src/services/vendorDetector.ts`):
+  - Nokia TiMOS-B (7210 SAS) 인식 추가
+  - netdevops-portal 방식 채택 (복잡한 regex → 단순 키워드 매칭)
+  - Nokia/Arista/Cisco/Juniper 패턴 단순화로 유지보수성 향상
+
+#### Telegram Bot 개선
+- **Telegram Bot Service** (`server/src/services/telegramBot.ts`):
+  - Markdown 파싱 오류 수정 (특수문자 자동 이스케이프)
+  - ConfigStore 데이터 매핑 수정 (AutoParser 연동)
+  - 응답 형식 간결화 (불필요한 구분선, 정확도 표시 제거)
+  - 웹 UI와 일관된 사용자 경험 제공
+
+#### AI 응답 품질 개선
+- **시스템 프롬프트 강화** (`server/src/prompts/systemPrompt.ts`):
+  - 리스트 형식 가이드 추가 (구조화된 데이터는 리스트로 표현)
+  - 좋은 예시/나쁜 예시 제공
+  - 포트/인터페이스/서비스 나열 시 가독성 대폭 향상
+
+#### Web UI 개선
+- **AIChatPanel 리스트 형식 지원** (`src/components/v3/AIChatPanel.tsx`):
+  - `whitespace-pre-line` CSS 적용으로 AI 응답 줄바꿈 보존
+  - Telegram 봇과 동일한 리스트 형식 표시
+
+### 🔧 기술 개선 (Technical Improvements)
+
+- **ConfigStore 확장** (`server/src/services/configStore.ts`):
+  - `delete()` 메서드 추가 (파일 삭제 이벤트 처리)
+- **Recursive Scanner** (`server/src/services/recursiveScanner.ts`):
+  - 재귀 디렉토리 스캔 유틸리티 추가
+- **index.ts 개선** (`server/src/index.ts`):
+  - AutoParser 시작 로직 추가
+  - FileWatcher 초기화 완료 후 자동 파싱 시작
+- **Frontend 빌드 수정**:
+  - Stale `.js/.d.ts` 파일 제거로 Vite 빌드 오류 해결
+  - TypeScript 파일을 Vite가 직접 처리하도록 개선
+
+### 📚 문서 업데이트
+
+- **Plan 문서** (`docs/01-plan/features/auto-config-loading-v2.plan.md`)
+- **Design 문서** (`docs/02-design/features/auto-config-loading-v2.design.md`)
+- **Release Notes** (`RELEASE_NOTES_v5.4.0.md`)
+
+### 🎯 주요 성과
+
+- **Telegram 봇과 웹 UI 답변 일관성**: ConfigStore 자동 동기화로 동일한 데이터 사용
+- **운영 편의성 향상**: Config 파일 추가/수정 시 자동 반영 (수동 업로드 불필요)
+- **AI 응답 가독성 대폭 개선**: 리스트 형식 도입으로 구조화된 데이터 표현
+
+### 🐛 버그 수정 (Bug Fixes)
+
+- Telegram Markdown 파싱 오류 수정 (특수문자 이스케이프)
+- ConfigStore 데이터 매핑 오류 수정
+- Frontend 빌드 실패 오류 수정 (stale JS 파일 제거)
+
+
 ## [5.4.0] - 2026-03-11
 
 ### ✨ 신규 기능 (New Features)
