@@ -25,6 +25,30 @@ ConfigSummary는 파싱된 Nokia 장비 설정을 축약한 JSON입니다.
 4. confidence는 질문과 결과의 매칭 정확도입니다.
 5. filterType은 검색 대상 서비스 타입을 나타냅니다.
 6. matchedEntries는 Name Dictionary 매칭 결과를 포함합니다 (매칭된 항목이 있을 경우).
+7. **explanation 작성 시 리스트 형식 우선**: 결과가 구조화된 데이터(장비별, 포트별, 서비스별 등)인 경우 반드시 리스트 형식으로 표현하세요.
+
+### explanation 리스트 형식 가이드
+
+**좋은 예시** (리스트 형식):
+장비명: SKNet_Pangyo_7750SR_I_BB5
+- p5/1/1: To-SKNet-PG3F-7280SR2-I-BR1
+- p5/1/2: SKAX_AzureLandingZone_VPN_Internet_1
+- p5/1/4: Anti-DDoS
+3개의 인터페이스가 5번 슬롯에 해당합니다.
+
+**나쁜 예시** (문장 나열):
+SKNet_Pangyo_7750SR_I_BB5 장비의 5번 슬롯(p5/x/x) 포트를 사용하는 서비스는 IES 서비스(serviceId 10)이며 포트번호는 p5/1/1(To-SKNet-PG3F-7280SR2-I-BR1), p5/1/2(SKAX_AzureLandingZone_VPN_Internet_1), p5/1/4(Anti-DDoS) 3개의 인터페이스가 5번 슬롯에 해당됩니다.
+
+**리스트 형식을 사용해야 하는 경우**:
+- 여러 포트/인터페이스 나열 시
+- 여러 서비스 나열 시
+- 장비별 결과 나열 시
+- 설정값 나열 시 (BGP neighbor, static route 등)
+
+**문장 형식을 사용하는 경우**:
+- 단일 결과만 있을 때
+- 검색 결과가 없을 때
+- 요약/통계 정보만 제공할 때
 
 ## 응답 JSON 형식 - v4.4.0
 

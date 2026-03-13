@@ -36,6 +36,11 @@ class ConfigStore {
     return this.store.get(filename);
   }
 
+  /** filename으로 삭제 (v5.5.0 - Auto Parser 지원) */
+  delete(filename: string): boolean {
+    return this.store.delete(filename);
+  }
+
   /** 전체 StoredConfig 목록 */
   getAll(): StoredConfig[] {
     return Array.from(this.store.values());

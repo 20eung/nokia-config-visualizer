@@ -7,7 +7,10 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import { fileWatcher } from '../services/fileWatcher';
+import { scanConfigsRecursive, validatePath } from '../services/recursiveScanner';
+import type { VendorType } from '../services/vendorDetector';
 
 const router = express.Router();
 
@@ -137,12 +140,18 @@ router.get('/file/:filename', async (req: Request, res: Response) => {
       });
     }
 
-    const watchPath = fileWatcher.getWatchPath();
-    const filePath = path.join(watchPath, safeFilename);
+    // FileWatcher Map에서 전체 경로 조회 (서브디렉토리 지원)
+    let filePath = fileWatcher.getFilePath(safeFilename);
+
+    // Map에 없으면 watchPath에서 직접 찾기 (fallback)
+    if (!filePath) {
+      const watchPath = fileWatcher.getWatchPath();
+      filePath = path.join(watchPath, safeFilename);
+    }
 
     // 경로 검증 (상위 디렉토리 접근 방지)
     const resolvedPath = path.resolve(filePath);
-    const resolvedWatchPath = path.resolve(watchPath);
+    const resolvedWatchPath = path.resolve(fileWatcher.getWatchPath());
 
     if (!resolvedPath.startsWith(resolvedWatchPath)) {
       return res.status(403).json({
@@ -243,6 +252,144 @@ router.get('/groups', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * POST /api/config/scan-server
+ * 서버 디렉토리 재귀적 스캔 및 파일 감시 시작
+ */
+router.post('/scan-server', async (req: Request, res: Response) => {
+  try {
+    const {
+      vendor = 'nokia',
+      recursive = true,
+      maxDepth = 5
+    } = req.body;
+
+    const serverPath = process.env.WATCH_FOLDER_PATH || '/app/configs';
+
+    // 경로 존재 확인
+    if (!fsSync.existsSync(serverPath)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Server config directory not found',
+        path: serverPath
+      });
+    }
+
+    // 디렉토리 확인
+    const stats = fsSync.lstatSync(serverPath);
+    if (!stats.isDirectory()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Server config path is not a directory',
+        path: serverPath
+      });
+    }
+
+    // Vendor 타입 검증
+    const validVendors: VendorType[] = ['nokia', 'arista', 'cisco', 'juniper', 'unknown'];
+    if (vendor !== 'all' && !validVendors.includes(vendor)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid vendor. Must be one of: ${validVendors.join(', ')}, 'all'`
+      });
+    }
+
+    console.log(`[API] Starting server scan: vendor=${vendor}, recursive=${recursive}, maxDepth=${maxDepth}`);
+
+    // 재귀적 스캔 수행
+    const { results, stats: scanStats } = await scanConfigsRecursive(serverPath, {
+      vendor: vendor as VendorType | 'all',
+      maxDepth,
+      maxFileSize: 10 * 1024 * 1024 // 10MB
+    });
+
+    // File Watcher 시작 (recursive 모드)
+    fileWatcher.startWatching(serverPath, {
+      recursive,
+      vendor: vendor as VendorType | 'all',
+      depth: maxDepth
+    });
+
+    res.json({
+      success: true,
+      vendor,
+      path: serverPath,
+      recursive,
+      maxDepth,
+      fileCount: results.length,
+      stats: scanStats,
+      files: results.map(r => ({
+        path: r.path,
+        relativePath: r.relativePath,
+        vendor: r.vendor,
+        filename: r.filename,
+        size: r.size,
+        mtime: r.mtime
+      }))
+    });
+  } catch (error: any) {
+    console.error('[API] Error scanning server configs:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/config/server-status
+ * 서버 디렉토리 사용 가능 여부 확인
+ */
+router.get('/server-status', async (req: Request, res: Response) => {
+  try {
+    const serverPath = process.env.WATCH_FOLDER_PATH || '/app/configs';
+
+    // 경로 존재 확인
+    const exists = fsSync.existsSync(serverPath);
+
+    if (!exists) {
+      return res.json({
+        success: true,
+        available: false,
+        path: serverPath,
+        exists: false,
+        isDirectory: false,
+        readable: false
+      });
+    }
+
+    // 디렉토리 확인
+    const stats = fsSync.lstatSync(serverPath);
+    const isDirectory = stats.isDirectory();
+
+    // 읽기 권한 확인
+    let readable = false;
+    try {
+      await fs.access(serverPath, fsSync.constants.R_OK);
+      readable = true;
+    } catch {
+      readable = false;
+    }
+
+    res.json({
+      success: true,
+      available: exists && isDirectory && readable,
+      path: serverPath,
+      exists,
+      isDirectory,
+      readable
+    });
+  } catch (error: any) {
+    console.error('[API] Error checking server status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
     });
   }
 });

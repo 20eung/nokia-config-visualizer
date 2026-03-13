@@ -13,6 +13,9 @@ import { setupWebSocket } from './services/websocket';
 import { fileWatcher } from './services/fileWatcher';
 import { NCV_MCP_TOOLS, mcpTextResult } from './services/mcpTools';
 import { configStore } from './services/configStore';
+import { scanConfigsRecursive } from './services/recursiveScanner';
+import { startTelegramBot } from './services/telegramBot';
+import { startAutoParser } from './services/autoParser';
 
 const app = express();
 
@@ -159,18 +162,79 @@ const server = http.createServer(app);
 // WebSocket 서버 설정
 setupWebSocket(server);
 
-// File Watcher 자동 시작 (환경변수에서 경로 읽기)
+// File Watcher 자동 시작 (환경변수에서 설정 읽기)
 const defaultWatchPath = process.env.WATCH_FOLDER_PATH || '/app/configs';
+const autoScanEnabled = process.env.AUTO_SCAN_ENABLED === 'true';
+const vendorFilter = (process.env.VENDOR_FILTER || 'nokia') as 'nokia' | 'arista' | 'cisco' | 'juniper' | 'all';
+const maxScanDepth = parseInt(process.env.MAX_SCAN_DEPTH || '5', 10);
+
 console.log(`[nokia-api] Default watch path: ${defaultWatchPath}`);
+console.log(`[nokia-api] Auto-scan enabled: ${autoScanEnabled}`);
+console.log(`[nokia-api] Vendor filter: ${vendorFilter}`);
+console.log(`[nokia-api] Max scan depth: ${maxScanDepth}`);
 
 // 폴더가 존재하면 자동 감시 시작
 import fs from 'fs';
 if (fs.existsSync(defaultWatchPath)) {
-  fileWatcher.startWatching(defaultWatchPath);
-  console.log(`[nokia-api] Auto-started file watcher: ${defaultWatchPath}`);
+  if (autoScanEnabled) {
+    // Server Version: 재귀적 스캔 모드
+    fileWatcher.startWatching(defaultWatchPath, {
+      recursive: true,
+      vendor: vendorFilter,
+      depth: maxScanDepth
+    });
+    console.log(`[nokia-api] Auto-started file watcher (recursive mode, vendor=${vendorFilter})`);
+
+    // 초기 스캔 수행 (chokidar ignoreInitial:false가 작동하지 않는 경우 대비)
+    scanConfigsRecursive(defaultWatchPath, {
+      vendor: vendorFilter,
+      maxDepth: maxScanDepth,
+      maxFileSize: 10 * 1024 * 1024
+    }).then(async ({ results, stats }) => {
+      console.log(`[nokia-api] Initial scan complete: ${results.length} ${vendorFilter} files found (${stats.totalFiles} total)`);
+      console.log(`[nokia-api] Scan stats: Nokia=${stats.nokiaFiles}, Arista=${stats.aristaFiles}, Cisco=${stats.ciscoFiles}, Unknown=${stats.unknownFiles}`);
+
+      // FileWatcher에 초기 파일 목록 추가
+      const filePaths = results.map(r => r.path);
+      await fileWatcher.addFilesManually(filePaths);
+      console.log(`[nokia-api] Added ${filePaths.length} files to FileWatcher`);
+
+      // v5.5.0: Auto Parser 시작 (FileWatcher 초기화 완료 후)
+      startAutoParser();
+    }).catch(error => {
+      console.error('[nokia-api] Initial scan failed:', error);
+    });
+  } else {
+    // User Version: Flat 모드 (기존 동작)
+    fileWatcher.startWatching(defaultWatchPath);
+    console.log(`[nokia-api] Auto-started file watcher (flat mode): ${defaultWatchPath}`);
+
+    // v5.5.0: Auto Parser 시작 (Flat 모드)
+    startAutoParser();
+  }
 } else {
   console.warn(`[nokia-api] Watch path does not exist: ${defaultWatchPath}`);
-  console.warn(`[nokia-api] File watcher not started. Use POST /api/config/watch-folder to set path.`);
+  console.warn(`[nokia-api] File watcher not started. Use POST /api/config/watch-folder or /api/config/scan-server.`);
+}
+
+// 텔레그램 봇 시작
+const telegramToken = process.env.TELEGRAM_TOKEN;
+const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+const telegramTopicId = process.env.TELEGRAM_TOPIC_AI;
+
+if (telegramToken && telegramChatId && telegramTopicId) {
+  try {
+    startTelegramBot({
+      token: telegramToken,
+      chatId: telegramChatId,
+      topicId: parseInt(telegramTopicId, 10),
+    });
+    console.log('[nokia-api] Telegram Bot started for AI Topic');
+  } catch (error) {
+    console.error('[nokia-api] Failed to start Telegram Bot:', error);
+  }
+} else {
+  console.log('[nokia-api] Telegram Bot disabled (missing env vars: TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_TOPIC_AI)');
 }
 
 // 서버 시작

@@ -52,7 +52,7 @@ export function AIChatPanel({ loading, response, error, onClear }: AIChatPanelPr
               <X size={14} />
             </button>
           </div>
-          <div className="text-gray-700 dark:text-gray-300">{response.explanation}</div>
+          <div className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{response.explanation}</div>
 
           {response.matchedEntries && response.matchedEntries.length > 0 && (
             <div className="mt-3 pt-2.5 border-t border-indigo-100 dark:border-indigo-800">
