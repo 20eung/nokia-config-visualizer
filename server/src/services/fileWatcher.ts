@@ -16,6 +16,11 @@ import {
   type ParsedConfigFile,
   type ConfigFileGroup
 } from '../utils/configFilenameParser';
+import {
+  detectVendor,
+  readFirstLines,
+  type VendorType
+} from './vendorDetector';
 
 /**
  * File Watcher 이벤트 타입
@@ -29,8 +34,18 @@ export interface FileWatcherEventData {
   type: FileWatcherEvent;
   filename: string;
   path: string;
+  vendor?: VendorType; // Vendor 정보 추가
   timestamp: number;
   latestFiles?: string[]; // 최신 파일 목록 (file-list-updated 이벤트에서 사용)
+}
+
+/**
+ * Watch 옵션
+ */
+export interface WatchOptions {
+  recursive?: boolean;            // 재귀 감시 여부
+  vendor?: VendorType | 'all';    // Vendor 필터
+  depth?: number;                 // 최대 깊이
 }
 
 /**
@@ -51,6 +66,10 @@ export class FileWatcherService extends EventEmitter {
   private watchPath: string;
   private maxFileSize: number = 10 * 1024 * 1024; // 10MB
   private allFiles: Set<string> = new Set(); // 모든 파일 목록 추적
+  private filePathMap: Map<string, string> = new Map(); // 파일명 → 전체 경로 매핑
+  private watchMode: 'flat' | 'recursive' = 'flat';
+  private vendorFilter: VendorType | 'all' = 'all';
+  private maxDepth: number = 5;
 
   constructor(watchPath: string = '/app/configs') {
     super();
@@ -58,29 +77,39 @@ export class FileWatcherService extends EventEmitter {
   }
 
   /**
-   * 파일 감시 시작
+   * 파일 감시 시작 (재귀 + vendor 필터 지원)
    */
-  startWatching(path?: string): void {
-    if (path) {
-      this.watchPath = path;
+  startWatching(watchPath?: string, options?: WatchOptions): void {
+    if (watchPath) {
+      this.watchPath = watchPath;
     }
+
+    this.watchMode = options?.recursive ? 'recursive' : 'flat';
+    this.vendorFilter = options?.vendor ?? 'all';
+    this.maxDepth = options?.depth ?? 5;
 
     // 기존 watcher 중지
     if (this.watcher) {
       this.stopWatching();
     }
 
-    console.log(`[FileWatcher] Starting to watch: ${this.watchPath}`);
+    console.log(`[FileWatcher] Starting (mode=${this.watchMode}, vendor=${this.vendorFilter}, depth=${this.maxDepth})`);
+
+    // Watch pattern 설정
+    const watchPattern = this.watchMode === 'recursive'
+      ? `${this.watchPath}/**/*.txt`   // 재귀
+      : `${this.watchPath}/*.txt`;     // 단일 레벨
 
     // chokidar 설정
-    this.watcher = chokidar.watch(`${this.watchPath}/*.txt`, {
+    this.watcher = chokidar.watch(watchPattern, {
       persistent: true,
       ignoreInitial: false, // 초기 파일들도 감지
       awaitWriteFinish: {
         stabilityThreshold: 1000, // 1초 동안 변경 없으면 완료
         pollInterval: 100 // 100ms마다 체크
       },
-      depth: 0 // 하위 폴더 제외
+      depth: this.watchMode === 'recursive' ? this.maxDepth : 0,
+      ignored: /(^|[\/\\])\../  // 숨김 파일 제외
     });
 
     // 이벤트 리스너 등록
@@ -101,22 +130,26 @@ export class FileWatcherService extends EventEmitter {
       this.watcher.close();
       this.watcher = null;
       this.allFiles.clear();
+      this.filePathMap.clear();
       console.log('[FileWatcher] Stopped watching');
     }
   }
 
   /**
+   * 파일 목록을 수동으로 추가 (초기 스캔 결과 반영용)
+   */
+  async addFilesManually(filePaths: string[]): Promise<void> {
+    for (const filePath of filePaths) {
+      await this.handleFileAdd(filePath);
+    }
+  }
+
+  /**
    * 현재 파일 목록 조회 (모든 파일)
+   * allFiles Set에서 파일명 목록을 반환 (recursive 모드 지원)
    */
   async getAllFiles(): Promise<string[]> {
-    try {
-      const files = await fs.readdir(this.watchPath);
-      const txtFiles = files.filter(file => file.toLowerCase().endsWith('.txt'));
-      return txtFiles.sort();
-    } catch (error) {
-      console.error('[FileWatcher] Error reading directory:', error);
-      return [];
-    }
+    return Array.from(this.allFiles).sort();
   }
 
   /**
@@ -155,7 +188,7 @@ export class FileWatcherService extends EventEmitter {
   }
 
   /**
-   * 파일 추가 이벤트 핸들러
+   * 파일 추가 이벤트 핸들러 (Vendor 검출 추가)
    */
   private async handleFileAdd(filePath: string): Promise<void> {
     const filename = path.basename(filePath);
@@ -171,21 +204,35 @@ export class FileWatcherService extends EventEmitter {
       return;
     }
 
+    // ===== Vendor 검출 로직 추가 =====
+    const firstLines = await readFirstLines(filePath, 10);
+    const detection = detectVendor(firstLines);
+
+    // Vendor 필터링
+    if (this.vendorFilter !== 'all' && detection.vendor !== this.vendorFilter) {
+      console.log(`[FileWatcher] Skipped ${detection.vendor} file: ${filename}`);
+      return;
+    }
+    // ================================
+
     // 파일 목록에 추가
     this.allFiles.add(filename);
+    // 파일명 → 전체 경로 매핑 저장
+    this.filePathMap.set(filename, filePath);
 
-    // 개별 파일 추가 이벤트
+    // 개별 파일 추가 이벤트 (Vendor 정보 포함)
     this.emit('file-added', {
       type: 'file-added',
       filename,
       path: filePath,
+      vendor: detection.vendor,
       timestamp: Date.now()
     } as FileWatcherEventData);
 
     // 최신 파일 목록 업데이트 이벤트
     await this.emitFileListUpdate();
 
-    console.log(`[FileWatcher] File added: ${filename}`);
+    console.log(`[FileWatcher] File added (${detection.vendor}): ${filename}`);
   }
 
   /**
@@ -227,6 +274,7 @@ export class FileWatcherService extends EventEmitter {
 
     // 파일 목록에서 제거
     this.allFiles.delete(filename);
+    this.filePathMap.delete(filename);
 
     // 개별 파일 삭제 이벤트
     this.emit('file-deleted', {
@@ -284,6 +332,13 @@ export class FileWatcherService extends EventEmitter {
    */
   getWatchPath(): string {
     return this.watchPath;
+  }
+
+  /**
+   * 파일명으로 전체 경로 조회
+   */
+  getFilePath(filename: string): string | undefined {
+    return this.filePathMap.get(filename);
   }
 
   /**
