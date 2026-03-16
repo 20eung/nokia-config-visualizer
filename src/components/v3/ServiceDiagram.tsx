@@ -213,32 +213,43 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
                 throw new Error('Failed to generate image blob');
             }
 
-            // Clipboard API: HTTPS 또는 localhost 환경에서만 동작
+            console.log('Blob generated:', blob.size, 'bytes');
+
+            // Clipboard API 시도
             if (navigator.clipboard && navigator.clipboard.write) {
                 try {
                     await navigator.clipboard.write([
                         new ClipboardItem({ 'image/png': blob })
                     ]);
+                    console.log('Successfully copied to clipboard');
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
-                    return;
-                } catch {
-                    // Clipboard API 실패 시 다운로드 fallback으로 진행
+                    return; // 성공 시 종료
+                } catch (clipboardError) {
+                    console.warn('Clipboard API blocked by policy, falling back to download:', clipboardError);
+                    // Permissions Policy로 차단된 경우 다운로드 fallback으로 진행
                 }
             }
 
-            // Fallback: PNG 파일로 다운로드 (HTTP 환경 등 Clipboard API 미지원 시)
+            // Fallback: PNG 파일로 다운로드
+            // (Permissions Policy 차단 또는 Clipboard API 미지원 시)
+            console.log('Downloading as PNG file (clipboard blocked by proxy policy)');
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `${diagramName || 'diagram'}.png`;
             a.click();
             URL.revokeObjectURL(url);
+
+            // 사용자에게 안내
+            alert('클립보드 접근이 차단되어 PNG 파일로 다운로드됩니다.\n\n프록시 관리자에게 Permissions-Policy 헤더 추가를 요청하세요:\nadd_header Permissions-Policy "clipboard-write=*, clipboard-read=*";');
+
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         } catch (error) {
             console.error('Copy image error:', error);
-            alert('이미지 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            alert(`클립보드 복사 실패: ${errorMessage}`);
         }
     };
 

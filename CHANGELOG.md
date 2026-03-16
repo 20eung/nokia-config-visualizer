@@ -6,6 +6,32 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.5.1] - 2026-03-16
+
+### 🐛 버그 수정 (Bug Fixes)
+
+#### Copy PNG 클립보드 복사 기능 수정
+- **문제**: 'Copy PNG' 버튼이 클립보드 복사 대신 다운로드 기능으로 작동
+- **원인**: NPM(nginx proxy manager)의 Permissions Policy로 Clipboard API 차단
+- **해결**:
+  - Clipboard API 우선 시도, 실패 시 다운로드 fallback 추가
+  - [ServiceDiagram.tsx:218-248](src/components/v3/ServiceDiagram.tsx#L218-L248) 개선된 에러 처리
+  - [nginx.conf](nginx.conf#L44) - Docker 컨테이너에 `Permissions-Policy` 헤더 추가
+  - NPM 프록시 설정 가이드 추가: `add_header Permissions-Policy "clipboard-write=(self), clipboard-read=(self)" always;`
+
+### 📚 문서 개선 (Documentation)
+
+- **릴리즈 노트 디렉토리 구조화**: `docs/releases/` 신규 생성
+- **NPM 프록시 Clipboard API 설정 가이드** 추가
+
+### 🔧 기술 개선 (Technical Improvements)
+
+- **Clipboard API 에러 처리 강화**:
+  - 상세한 콘솔 로그 출력 (Blob 생성, 복사 성공/실패)
+  - Permissions Policy 차단 시 사용자 친화적 안내 메시지
+  - Chrome, Safari 호환 Permissions-Policy 문법 적용
+
+
 ## [5.5.0] - 2026-03-13
 
 ### ✨ 신규 기능 (New Features)

@@ -133,6 +133,7 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 ## 참고 문서
 - `README.md`: 프로젝트 설명, 빌드/배포 명령어
 - `CHANGELOG.md`: 버전별 변경 이력
+- `docs/releases/`: 버전별 상세 릴리즈 노트
 - `DIAGRAM_RULES.md`: Mermaid 다이어그램 렌더링 규칙 상세
 - `HOWTO-DOCKER.md`: Docker 빌드 및 배포 가이드
 
@@ -144,6 +145,8 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 | 버전 | 날짜 | 주요 내용 |
 |---|---|---|
+| v5.5.1 | 2026-03-16 | Copy PNG 클립보드 복사 기능 수정 (NPM Permissions Policy) |
+| v5.5.0 | 2026-03-13 | AutoParser Service (자동 파싱), Vendor Detection 개선 |
 | v5.3.0 | 2026-03-09 | 폴더 선택 기능 (webkitdirectory + localStorage 유지, 서브디렉토리 지원) |
 | v5.2.6 | 2026-03-03 | 대시보드 전체 서비스 수 표시 추가 |
 | v5.2.5 | 2026-03-03 | 이중 스크롤바 제거 + 그룹 헤더 Sticky 고정 |
@@ -154,13 +157,11 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 | v5.2.0 | 2026-03-02 | Epipe 현행화 상태, VPRN/IES HA 뱃지, VPLS (L2) SAP 필터링, 버그 수정 |
 | v5.1.0 | 2026-03-01 | 대시보드 반응형 레이아웃, 헤더 반응형 개선, 앱 아이콘 |
 | v5.0.0 | 2026-03-01 | 사이트별 대시보드, 다크모드, Tailwind CSS v4, V1 제거, 보안 강화 |
-| v4.8.0 | 2026-02-21 | NCV AI Platform (JSON API + MCP Server + RAG Indexing) |
-| v4.7.0 | 2026-02-20 | 자동 Config 로딩 (chokidar + WebSocket), 멀티파일 선택 |
 
-상세 변경 이력은 `CHANGELOG.md` 참조.
+상세 변경 이력은 `CHANGELOG.md` 및 `docs/releases/` 참조.
 
 ---
 
-**Last Updated**: 2026-03-09
-**Current Version**: v5.3.0
-**Branch**: v5-development
+**Last Updated**: 2026-03-16
+**Current Version**: v5.5.1
+**Branch**: main
