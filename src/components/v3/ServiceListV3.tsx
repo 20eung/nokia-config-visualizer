@@ -858,6 +858,18 @@ export function ServiceListV3({
     return acc;
   }, {} as Record<string, NokiaServiceV3[]>);
 
+  // v5.6.0: selectionKey 생성 헬퍼 함수 (networkType 반영)
+  const generateSelectionKey = (service: NokiaServiceV3): string => {
+    if (service.serviceType === 'ies') {
+      const hostname = (service as any)._hostname || 'Unknown';
+      return `ies-${hostname}`;
+    }
+    const networkTypeSuffix = service.networkType && service.networkType !== 'unknown'
+      ? `-${service.networkType}`
+      : '';
+    return `${service.serviceType}-${service.serviceId}${networkTypeSuffix}`;
+  };
+
   // 타입별 그룹화 — 1회 순회로 통합 (js-combine-iterations: 4회 → 1회)
   const { epipeServices, vplsServices, vprnServices, iesServices } = useMemo(() => {
     const result = {
@@ -920,18 +932,6 @@ export function ServiceListV3({
   // 실제 서비스 수 (그룹화된 변수 합산 → Epipe 중복 집계 방지)
   // filteredServices 기반 집계는 Epipe가 2개 장비에 동일 ID로 존재해 2배 카운트됨
   const totalServiceKeys = epipeServices.length + vplsServices.length + vprnServices.length + iesInterfaceCount;
-
-  // v5.6.0: selectionKey 생성 헬퍼 함수 (networkType 반영)
-  const generateSelectionKey = (service: NokiaServiceV3): string => {
-    if (service.serviceType === 'ies') {
-      const hostname = (service as any)._hostname || 'Unknown';
-      return `ies-${hostname}`;
-    }
-    const networkTypeSuffix = service.networkType && service.networkType !== 'unknown'
-      ? `-${service.networkType}`
-      : '';
-    return `${service.serviceType}-${service.serviceId}${networkTypeSuffix}`;
-  };
 
   const handleSelectAll = () => {
     const allKeys: string[] = [];
