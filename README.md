@@ -1,6 +1,6 @@
 # Nokia Config Visualizer
 
-> 🚀 **v5.5.2** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI Platform 통합 (v4→v5) + MCP Server + REST API + Type 버튼 통합 선택/해제 + Epipe 현행화 상태 + VPRN/IES HA 감지 + 사이트별 대시보드 + 다크모드 + AI 챗봇 + AutoParser Service + Unicode 하이픈 검색 지원
+> 🚀 **v5.6.0** (Latest) - Nokia 네트워크 장비 / Unified Network & Service Visualizer + AI Platform 통합 (v4→v5) + MCP Server + REST API + Type 버튼 통합 선택/해제 + Epipe 현행화 상태 + VPRN/IES HA 감지 + 사이트별 대시보드 + 다크모드 + AI 챗봇 + AutoParser Service + Network Type Separation (ISP/MPLS/Cloud)
 
 ![Application Screenshot](./public/demo-main.png)
 

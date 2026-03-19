@@ -6,6 +6,84 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.6.0] - 2026-03-19
+
+### 🚀 신규 기능 (Features)
+
+#### Network Type Separation (Phase 1)
+- **Network Type 분류**: ISP/MPLS/Cloud 망 자동 구분
+  - 파일 경로 기반 networkType 자동 추출 (`/configs/isp/`, `/configs/mpls/`, `/configs/cloud/`)
+  - Hybrid 전략: 경로 → 파일명 → Config 내용 추론
+  - [networkTypeExtractor.ts](server/src/utils/networkTypeExtractor.ts) - extractNetworkType(), determineNetworkType()
+
+- **selectionKey 생성 로직 개선**:
+  - 이전: `${serviceType}-${serviceId}` (예: `vpls-4073`)
+  - 신규: `${serviceType}-${serviceId}-${networkType}` (예: `vpls-4073-isp`, `vpls-4073-mpls`)
+  - Fallback: networkType이 `unknown`이면 기존 포맷 사용 (하위 호환)
+
+- **Service ID 충돌 해결**:
+  - 사례: VPLS 4073 ISP (`SVC_SKSH_Internet_2G`) vs VPLS 4073 MPLS (`Gyowon_Access-Control`)
+  - 결과: 독립된 토폴로지 뷰 생성 (ISP 망, MPLS 망 분리)
+
+- **Frontend UI 추가**:
+  - [ServiceListV3.tsx](src/components/v3/ServiceListV3.tsx) - Network Type 필터 버튼 (ISP/MPLS/CLOUD)
+  - Network Type 배지 (Cyan=ISP, Purple=MPLS, Slate=Cloud)
+  - HA 감지 로직 networkType 반영 (동일 serviceId + networkType HA 그룹)
+
+### 🔧 Backend 구조 개선
+
+- **타입 정의 추가**:
+  - [src/types/services.ts](src/types/services.ts) - NetworkType 타입 (`'isp' | 'mpls' | 'cloud' | 'unknown'`)
+  - [server/src/types.ts](server/src/types.ts) - ServiceSummary.networkType 필드
+  - [server/src/services/configStore.ts](server/src/services/configStore.ts) - StoredConfig.networkType
+
+- **Parser 통합**:
+  - [src/utils/v3/parserV3.ts](src/utils/v3/parserV3.ts) - ParseOptions 인터페이스 추가
+  - [server/src/services/nokiaParserCore.ts](server/src/services/nokiaParserCore.ts) - ParseOptions 파라미터 지원
+  - [server/src/services/autoParser.ts](server/src/services/autoParser.ts) - extractNetworkType 적용
+
+- **Config Summary Builder**:
+  - [src/utils/configSummaryBuilder.ts](src/utils/configSummaryBuilder.ts) - generateSelectionKey 함수 추가
+  - 모든 서비스에 networkType 필드 반영
+
+### 📝 문서화
+
+- **PDCA 문서 생성**:
+  - [docs/01-plan/features/network-type-separation.plan.md](docs/01-plan/features/network-type-separation.plan.md)
+  - [docs/02-design/features/network-type-separation.design.md](docs/02-design/features/network-type-separation.design.md)
+
+### 🧪 검증 (Verification)
+
+- **파싱 결과**: 94개 Nokia config, 782개 서비스
+- **VPLS 4073 분리 확인**:
+  - `vpls-4073-mpls` → Gyowon_Access-Control
+  - `vpls-4073-isp` → SVC_SKSH_Internet_2G_1/2
+- **TypeScript 컴파일**: 오류 없이 성공 ✅
+- **Docker 배포**: 재빌드 및 재시작 완료 ✅
+
+### 📦 배포 정보
+
+- **Branch**: `feature/network-type-separation-phase1` → `main` (merge 필요)
+- **Docker Images**:
+  - `nokia-visualizer-nokia-visualizer:latest`
+  - `nokia-visualizer-nokia-api:latest`
+- **Git Commits**:
+  - `3e49b52` - Backend implementation
+  - `f33a52c` - Frontend implementation
+  - `4a8e6f6`, `2d87880`, `9bde22f` - TypeScript fixes
+
+### 🔄 마이그레이션
+
+- **하위 호환성**: 기존 서비스는 networkType `unknown` 또는 생략 가능
+- **자동 마이그레이션**: 파일 경로 재파싱 시 networkType 자동 할당
+- **Fallback 키 생성**: networkType이 없거나 `unknown`이면 기존 selectionKey 포맷 사용
+
+### 🎯 향후 계획
+
+- **Phase 2 (v5.7.0)**: Parser 모듈화 리팩토링 (1678줄 → 14개 모듈)
+- **Phase 3 (v5.8.0)**: Network Type 기반 통계 대시보드
+
+
 ## [5.5.2] - 2026-03-19
 
 ### 🐛 버그 수정 (Bug Fixes)

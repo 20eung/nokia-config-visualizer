@@ -56,7 +56,7 @@ const TYPE_COLORS = {
 } as const;
 
 /**
- * 검색어 정규화 헬퍼 함수 (v5.5.2)
+ * 검색어 정규화 헬퍼 함수 (v5.5.2, v5.6.0: Network Type Separation)
  * - Unicode 하이픈 문자들을 일반 하이픈(U+002D)으로 통일
  * - NFKD 정규화로 호환 문자 처리
  */
@@ -407,7 +407,7 @@ export function ServiceListV3({
   }, [aiEnabled]);
 
   /**
-   * IES 인터페이스 레벨 필터링 (v4.5.0, v5.5.2: Unicode 하이픈 정규화)
+   * IES 인터페이스 레벨 필터링 (v4.5.0, v5.5.2: Unicode 하이픈 정규화, v5.6.0: Network Type)
    * 검색어에 매칭되는 인터페이스만 포함하는 새 서비스 생성
    */
   const filterIESInterfaces = useCallback((
@@ -417,7 +417,7 @@ export function ServiceListV3({
     if (!query) return service; // 검색어 없으면 전체 반환
 
     const filteredInterfaces = service.interfaces.filter(iface => {
-      // 인터페이스 특화 필드 검색 (v5.5.2: 정규화 적용)
+      // 인터페이스 특화 필드 검색 (v5.5.2: 정규화 적용, v5.6.0: Network Type 필터)
       if (iface.interfaceName && normalizeSearchString(iface.interfaceName).includes(query)) return true;
       if (iface.description && normalizeSearchString(iface.description).includes(query)) return true;
       if (iface.portId && normalizeSearchString(iface.portId).includes(query)) return true;
@@ -603,7 +603,7 @@ export function ServiceListV3({
 
       // 검색 필터 (Enhanced with Hostname, Interfaces, IPs, BGP/OSPF, SAP/SDP)
       if (searchQuery) {
-        // AND/OR 검색 로직 (v1.3.0, v5.5.2: 검색어 정규화 추가)
+        // AND/OR 검색 로직 (v1.3.0, v5.5.2: 검색어 정규화, v5.6.0: Network Type)
         const isAndSearch = searchQuery.includes(' + ');
         const searchTerms = isAndSearch
           ? searchQuery.split(' + ').map(t => normalizeSearchString(t.trim())).filter(t => t.length > 0)
@@ -623,7 +623,7 @@ export function ServiceListV3({
 
           if (basicMatch) return true;
 
-          // Hostname 검색 (v5.5.2: Unicode 하이픈 정규화)
+          // Hostname 검색 (v5.5.2: Unicode 하이픈 정규화, v5.6.0: Network Type)
           const hostname = (service as any)._hostname;
           if (hostname && normalizeSearchString(hostname).includes(query)) return true;
 
@@ -803,7 +803,7 @@ export function ServiceListV3({
             console.warn('[ServiceListV3] JSON.stringify failed for service:', service.serviceId, e);
           }
 
-          // 모든 필드를 정규화 (v5.5.2: Unicode 하이픈 처리)
+          // 모든 필드를 정규화 (v5.5.2: Unicode 하이픈, v5.6.0: Network Type)
           const lowerSearchFields = searchFields.map(f => normalizeSearchString(f));
 
           // AND/OR 검색 로직 (v1.3.0)
@@ -823,7 +823,7 @@ export function ServiceListV3({
 
       return true;
     }).map(service => {
-      // ⭐ IES 인터페이스 레벨 필터링 적용 (v4.5.0, v5.5.2: 정규화 적용)
+      // ⭐ IES 인터페이스 레벨 필터링 적용 (v4.5.0, v5.5.2: 정규화, v5.6.0: Network Type)
       if (service.serviceType === 'ies' && searchQuery) {
         return filterIESInterfaces(
           service as IESService & { _hostname: string },

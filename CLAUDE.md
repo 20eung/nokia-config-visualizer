@@ -1,4 +1,4 @@
-# CLAUDE.md - Nokia Config Visualizer Project Context
+# CLAUDE.md - Nokia Config Visualizer Project Context (v5.6.0)
 
 > 프로젝트 특화 컨텍스트. 전역 지침: `~/.claude/CLAUDE.md` 참조.
 
