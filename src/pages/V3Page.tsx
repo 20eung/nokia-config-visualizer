@@ -2,7 +2,22 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { parseL2VPNConfig } from '../utils/v3/parserV3';
 import { generateServiceDiagram } from '../utils/v3/mermaidGeneratorV3';
 import type { ParsedConfigV3 } from '../utils/v3/parserV3';
-import type { NokiaService, IESService, VPRNService, EpipeService } from '../types/services';
+import type { NokiaService, IESService, VPRNService, EpipeService, NetworkType } from '../types/services';
+
+/**
+ * Config 내용에서 networkType 추론 (백엔드 없는 환경 fallback)
+ * VPRN BGP AS 번호: Private AS (64512-65535) → MPLS, Public AS → ISP
+ */
+function inferNetworkType(config: ParsedConfigV3): NetworkType {
+  const asList = config.services
+    .filter(s => s.serviceType === 'vprn')
+    .map(s => (s as VPRNService).autonomousSystem)
+    .filter((as): as is number => as !== undefined);
+  if (asList.length === 0) return 'unknown';
+  if (asList.some(as => as >= 64512 && as <= 65535)) return 'mpls';
+  if (asList.some(as => as < 64512)) return 'isp';
+  return 'unknown';
+}
 import { ServiceListV3 } from '../components/v3/ServiceListV3';
 import { ServiceDiagram } from '../components/v3/ServiceDiagram';
 import { Dashboard } from '../components/v3/Dashboard';
@@ -69,7 +84,14 @@ export function V3Page() {
       const parsedConfigs: ParsedConfigV3[] = [];
       contents.forEach((content, idx) => {
         const meta = fileMetadata?.[idx];
-        const parsed = parseL2VPNConfig(content, meta?.networkType ? { networkType: meta.networkType as any } : undefined);
+        const parsed = parseL2VPNConfig(content, meta?.networkType ? { networkType: meta.networkType as NetworkType } : undefined);
+        // Fallback: 백엔드 networkType이 없으면 config 내용에서 추론
+        if (!meta?.networkType && parsed.services.some(s => !s.networkType)) {
+          const inferred = inferNetworkType(parsed);
+          if (inferred !== 'unknown') {
+            parsed.services.forEach(s => { s.networkType = inferred; });
+          }
+        }
         if (parsed.hostname || parsed.services.length > 0) {
           parsedConfigs.push(parsed);
         }
