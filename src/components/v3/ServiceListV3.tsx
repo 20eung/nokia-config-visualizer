@@ -365,7 +365,9 @@ export function ServiceListV3({
     setAiResponse(null);
 
     try {
-      const result = await sendChatMessage(trimmed, configSummary, controller.signal, dictionaryCompact, filterType === 'ha' ? 'all' : filterType);
+      // v5.6.0: Network Type 필터는 AI 검색 시 'all'로 처리
+      const aiFilterType = (filterType === 'ha' || filterType === 'isp' || filterType === 'mpls' || filterType === 'cloud') ? 'all' : filterType;
+      const result = await sendChatMessage(trimmed, configSummary, controller.signal, dictionaryCompact, aiFilterType);
       setAiResponse(result);
       handleAIResponse(result);
     } catch (err: unknown) {
@@ -971,7 +973,7 @@ export function ServiceListV3({
   };
 
   // Type 버튼 토글: 다른 타입 → 필터 전환 + 전체선택, 같은 타입 → 해제/재선택
-  const handleTypeButtonClick = (type: 'all' | 'epipe' | 'vpls' | 'vprn' | 'ies' | 'ha') => {
+  const handleTypeButtonClick = (type: 'all' | 'epipe' | 'vpls' | 'vprn' | 'ies' | 'ha' | 'isp' | 'mpls' | 'cloud') => {
     if (filterType === type) {
       // 같은 버튼 재클릭: 선택된 항목 있으면 해제, 없으면 재선택
       if (selectedServiceIds.length > 0) {
