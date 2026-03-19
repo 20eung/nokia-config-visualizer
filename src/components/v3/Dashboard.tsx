@@ -13,6 +13,7 @@ import Search from 'lucide-react/dist/esm/icons/search';
 import Layers from 'lucide-react/dist/esm/icons/layers';
 import type { ParsedConfigV3 } from '../../utils/v3/parserV3';
 import type { SiteGroup } from '../../types/site';
+import type { NetworkType } from '../../types/services';
 import { groupConfigsBySite } from '../../utils/siteGrouper';
 
 interface DashboardProps {
@@ -46,7 +47,18 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
       else if (key.startsWith('vpls-')) vpls++;
       else if (key.startsWith('vprn-')) vprn++;
     }
-    return { epipe, vpls, vprn, ies: iesCount, sites: siteGroups.length, devices };
+    // Network Type별 서비스 수 집계
+    const networkTypeCounts: Record<NetworkType, number> = { isp: 0, mpls: 0, cloud: 0, unknown: 0 };
+    for (const config of configs) {
+      for (const service of config.services) {
+        const nt = (service as any).networkType as NetworkType | undefined;
+        if (nt && nt in networkTypeCounts) {
+          networkTypeCounts[nt]++;
+        }
+      }
+    }
+
+    return { epipe, vpls, vprn, ies: iesCount, sites: siteGroups.length, devices, networkTypeCounts };
   }, [configs, siteGroups.length]);
 
   // 검색 필터
@@ -106,6 +118,27 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
             <Shield size={16} />
             <span>{siteGroups.filter(g => g.isHAPair).length} HA pairs</span>
           </div>
+          {/* Network Type 통계 (v5.6.0) */}
+          {(totalStats.networkTypeCounts.isp > 0 || totalStats.networkTypeCounts.mpls > 0 || totalStats.networkTypeCounts.cloud > 0) && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-400 dark:text-gray-500">|</span>
+              {totalStats.networkTypeCounts.isp > 0 && (
+                <span className="px-1.5 py-0.5 text-xs bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 rounded">
+                  ISP: {totalStats.networkTypeCounts.isp}
+                </span>
+              )}
+              {totalStats.networkTypeCounts.mpls > 0 && (
+                <span className="px-1.5 py-0.5 text-xs bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded">
+                  MPLS: {totalStats.networkTypeCounts.mpls}
+                </span>
+              )}
+              {totalStats.networkTypeCounts.cloud > 0 && (
+                <span className="px-1.5 py-0.5 text-xs bg-slate-50 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400 rounded">
+                  Cloud: {totalStats.networkTypeCounts.cloud}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 검색 */}

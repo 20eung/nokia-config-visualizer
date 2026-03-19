@@ -78,6 +78,15 @@ function generateSelectionKey(
   return `${serviceType}-${serviceId}`;
 }
 
+/**
+ * Service key 생성 (Frontend fallback, v5.6.0)
+ * selectionKey가 없는 legacy 데이터 호환용
+ */
+export function getServiceKey(service: { serviceType: string; serviceId: number; networkType?: NetworkType; selectionKey?: string }): string {
+  if (service.selectionKey) return service.selectionKey;
+  return generateSelectionKey(service.serviceType, service.serviceId, service.networkType);
+}
+
 /** ParsedConfigV3[] → ConfigSummary 변환 */
 export function buildConfigSummary(configs: ParsedConfigV3[]): ConfigSummary {
   const devices: DeviceSummary[] = configs.map(config => {
@@ -165,7 +174,7 @@ export function buildConfigSummary(configs: ParsedConfigV3[]): ConfigSummary {
           serviceId: ies.serviceId,
           description: ies.description,
           serviceName: ies.serviceName,
-          selectionKey: `ies-${config.hostname}`,
+          selectionKey: generateSelectionKey('ies', ies.serviceId, ies.networkType),
           networkType: ies.networkType,
           interfaces: ies.interfaces
             .filter(i => i.adminState !== 'down')

@@ -53,6 +53,7 @@ const TYPE_COLORS = {
   isp:   { active: 'bg-cyan-600 text-white border-cyan-600', inactive: 'border-cyan-300 dark:border-cyan-700 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/40' },
   mpls:  { active: 'bg-purple-600 text-white border-purple-600', inactive: 'border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40' },
   cloud: { active: 'bg-slate-600 text-white border-slate-600', inactive: 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/20 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/40' },
+  unknown: { active: 'bg-gray-500 text-white border-gray-500', inactive: 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/20 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800' },
 } as const;
 
 /**
@@ -75,7 +76,7 @@ export function ServiceListV3({
   onSetSelected,
 }: ServiceListProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'epipe' | 'vpls' | 'vprn' | 'ies' | 'ha' | 'isp' | 'mpls' | 'cloud'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'epipe' | 'vpls' | 'vprn' | 'ies' | 'ha' | 'isp' | 'mpls' | 'cloud' | 'unknown'>('all');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiQuery, setAiQuery] = useState('');
@@ -366,7 +367,7 @@ export function ServiceListV3({
 
     try {
       // v5.6.0: Network Type 필터는 AI 검색 시 'all'로 처리
-      const aiFilterType = (filterType === 'ha' || filterType === 'isp' || filterType === 'mpls' || filterType === 'cloud') ? 'all' : filterType;
+      const aiFilterType = (filterType === 'ha' || filterType === 'isp' || filterType === 'mpls' || filterType === 'cloud' || filterType === 'unknown') ? 'all' : filterType;
       const result = await sendChatMessage(trimmed, configSummary, controller.signal, dictionaryCompact, aiFilterType);
       setAiResponse(result);
       handleAIResponse(result);
@@ -497,7 +498,7 @@ export function ServiceListV3({
         if (s.serviceType === 'ies') return haServiceKeys.has(`ies-${(s as any)._hostname || 'Unknown'}`);
         return haServiceKeys.has(`${s.serviceType}-${s.serviceId}`);
       });
-    } else if (filterType === 'isp' || filterType === 'mpls' || filterType === 'cloud') {
+    } else if (filterType === 'isp' || filterType === 'mpls' || filterType === 'cloud' || filterType === 'unknown') {
       // Network Type 필터 (v5.6.0)
       targetServices = services.filter(s => s.networkType === filterType);
     } else if (filterType !== 'all') {
@@ -594,7 +595,7 @@ export function ServiceListV3({
         } else if (!haServiceKeys.has(`${service.serviceType}-${service.serviceId}`)) {
           return false;
         }
-      } else if (filterType === 'isp' || filterType === 'mpls' || filterType === 'cloud') {
+      } else if (filterType === 'isp' || filterType === 'mpls' || filterType === 'cloud' || filterType === 'unknown') {
         // Network Type 필터 (v5.6.0)
         if (service.networkType !== filterType) return false;
       } else if (filterType !== 'all' && service.serviceType !== filterType) {
@@ -973,7 +974,7 @@ export function ServiceListV3({
   };
 
   // Type 버튼 토글: 다른 타입 → 필터 전환 + 전체선택, 같은 타입 → 해제/재선택
-  const handleTypeButtonClick = (type: 'all' | 'epipe' | 'vpls' | 'vprn' | 'ies' | 'ha' | 'isp' | 'mpls' | 'cloud') => {
+  const handleTypeButtonClick = (type: 'all' | 'epipe' | 'vpls' | 'vprn' | 'ies' | 'ha' | 'isp' | 'mpls' | 'cloud' | 'unknown') => {
     if (filterType === type) {
       // 같은 버튼 재클릭: 선택된 항목 있으면 해제, 없으면 재선택
       if (selectedServiceIds.length > 0) {
@@ -1170,7 +1171,7 @@ export function ServiceListV3({
           {/* Network Type 필터 (v5.6.0) */}
           <div className="flex gap-1 flex-nowrap items-center">
             <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">망 구분:</span>
-            {(['isp', 'mpls', 'cloud'] as const).map(type => (
+            {(['isp', 'mpls', 'cloud', 'unknown'] as const).map(type => (
               <button
                 key={type}
                 className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${

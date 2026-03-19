@@ -138,7 +138,7 @@ function buildConfigSummary(parsed: ParsedConfigV3): ConfigSummary {
         serviceId: ies.serviceId,
         description: ies.description,
         serviceName: ies.serviceName,
-        selectionKey: `ies-${parsed.hostname}`,
+        selectionKey: generateSelectionKey('ies', ies.serviceId, ies.networkType),
         networkType: ies.networkType,
         interfaces: ies.interfaces
           .filter(i => i.adminState !== 'down')
@@ -281,6 +281,33 @@ async function parseAllFiles(): Promise<void> {
 }
 
 /**
+ * 기존 데이터 마이그레이션 (v5.6.0)
+ * networkType이 없는 ConfigStore 항목에 경로 기반 networkType을 추가
+ */
+async function migrateExistingConfigs(): Promise<void> {
+  let migratedCount = 0;
+  let failedCount = 0;
+
+  for (const entry of configStore.getAll()) {
+    if (!entry.networkType) {
+      const filePath = fileWatcher.getFilePath(entry.filename);
+      if (filePath) {
+        const networkType = extractNetworkType(filePath);
+        configStore.set(entry.filename, { ...entry, networkType });
+        migratedCount++;
+      } else {
+        configStore.set(entry.filename, { ...entry, networkType: 'unknown' });
+        failedCount++;
+      }
+    }
+  }
+
+  if (migratedCount > 0 || failedCount > 0) {
+    console.log(`[AutoParser] Migration complete: ${migratedCount} migrated, ${failedCount} set to unknown`);
+  }
+}
+
+/**
  * Auto Parser 시작 (FileWatcher 이벤트 리스너 등록 + 초기 파싱)
  * FileWatcher는 이미 index.ts에서 시작되어 있어야 함
  */
@@ -294,9 +321,10 @@ export function startAutoParser(): void {
 
   console.log('[AutoParser] Event listeners registered');
 
-  // 초기 파싱 (FileWatcher 초기화 완료 후 3초 대기)
-  setTimeout(() => {
-    parseAllFiles();
+  // 초기 파싱 (FileWatcher 초기화 완료 후 3초 대기) + 마이그레이션
+  setTimeout(async () => {
+    await parseAllFiles();
+    await migrateExistingConfigs();
   }, 3000);
 
   console.log('[AutoParser] ✅ Auto Parser Service started (initial parsing will begin in 3s)');
