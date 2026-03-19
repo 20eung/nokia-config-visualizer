@@ -1,4 +1,4 @@
-# CLAUDE.md - Nokia Config Visualizer Project Context
+# CLAUDE.md - Nokia Config Visualizer Project Context (v5.6.1)
 
 > 프로젝트 특화 컨텍스트. 전역 지침: `~/.claude/CLAUDE.md` 참조.
 
@@ -145,6 +145,8 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 | 버전 | 날짜 | 주요 내용 |
 |---|---|---|
+| v5.6.1 | 2026-03-19 | VPLS 4073 ISP/MPLS 다이어그램 분리, networkType 덮어쓰기 버그 수정 |
+| v5.6.0 | 2026-03-19 | Network Type Separation Phase 1 (ISP/MPLS/Cloud 망 자동 구분) |
 | v5.5.2 | 2026-03-19 | Unicode 하이픈 문자 검색 오류 수정 (U+2011 Non-Breaking Hyphen) |
 | v5.5.1 | 2026-03-16 | Copy PNG 클립보드 복사 기능 수정 (NPM Permissions Policy) |
 | v5.5.0 | 2026-03-13 | AutoParser Service (자동 파싱), Vendor Detection 개선 |
@@ -164,5 +166,5 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 ---
 
 **Last Updated**: 2026-03-19
-**Current Version**: v5.5.2
+**Current Version**: v5.6.1
 **Branch**: main

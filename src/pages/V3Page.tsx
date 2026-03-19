@@ -64,15 +64,29 @@ export function V3Page() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleConfigLoaded = (contents: string[]) => {
+  const handleConfigLoaded = (contents: string[], fileMetadata?: { filename: string; networkType?: string }[]) => {
     try {
       const parsedConfigs: ParsedConfigV3[] = [];
-      contents.forEach(content => {
-        const parsed = parseL2VPNConfig(content);
+      contents.forEach((content, idx) => {
+        const meta = fileMetadata?.[idx];
+        const parsed = parseL2VPNConfig(content, meta?.networkType ? { networkType: meta.networkType as any } : undefined);
         if (parsed.hostname || parsed.services.length > 0) {
           parsedConfigs.push(parsed);
         }
+        // DEBUG: networkType propagation check
+        const vpls4073 = parsed.services.filter(s => s.serviceId === 4073 && s.serviceType === 'vpls');
+        if (vpls4073.length > 0) {
+          console.log(`[DEBUG] VPLS 4073 in ${parsed.hostname}:`, vpls4073.map(s => ({
+            networkType: s.networkType,
+            serviceId: s.serviceId,
+          })));
+        }
       });
+
+      // DEBUG: all parsed services networkType summary
+      const allSvcs = parsedConfigs.flatMap(c => c.services);
+      const withNT = allSvcs.filter(s => s.networkType);
+      console.log(`[DEBUG] Parsed ${parsedConfigs.length} configs, ${allSvcs.length} services, ${withNT.length} with networkType`);
 
       if (parsedConfigs.length > 0) {
         setConfigs(parsedConfigs);
@@ -92,13 +106,17 @@ export function V3Page() {
       const customEvent = event as CustomEvent;
       const { activeFiles: newActiveFiles } = customEvent.detail;
       try {
-        const contents = await Promise.all(
+        const results = await Promise.all(
           newActiveFiles.map(async (filename: string) => {
             const res = await fetch(`/api/config/file/${filename}`);
-            return res.text();
+            const networkType = res.headers.get('X-Network-Type') || undefined;
+            const text = await res.text();
+            return { text, filename, networkType };
           })
         );
-        handleConfigLoaded(contents);
+        const contents = results.map(r => r.text);
+        const metadata = results.map(r => ({ filename: r.filename, networkType: r.networkType }));
+        handleConfigLoaded(contents, metadata);
       } catch (error) {
         console.error('[V3Page] Failed to load config files:', error);
         alert('Config 파일 로드 실패');
@@ -121,17 +139,21 @@ export function V3Page() {
         // 배치 fetch: 브라우저 동시 연결 제한 대응 (10개씩)
         const BATCH_SIZE = 10;
         const contents: string[] = [];
+        const metadata: { filename: string; networkType?: string }[] = [];
         for (let i = 0; i < filenames.length; i += BATCH_SIZE) {
           const batch = filenames.slice(i, i + BATCH_SIZE);
-          const batchContents = await Promise.all(
+          const batchResults = await Promise.all(
             batch.map(async (filename: string) => {
               const res = await fetch(`/api/config/file/${filename}`);
-              return res.text();
+              const networkType = res.headers.get('X-Network-Type') || undefined;
+              const text = await res.text();
+              return { text, filename, networkType };
             })
           );
-          contents.push(...batchContents);
+          contents.push(...batchResults.map(r => r.text));
+          metadata.push(...batchResults.map(r => ({ filename: r.filename, networkType: r.networkType })));
         }
-        handleConfigLoaded(contents);
+        handleConfigLoaded(contents, metadata);
       } catch (error) {
         console.error('[V3Page] Failed to load config files:', error);
         alert('Config 파일 로드 실패');
@@ -152,13 +174,17 @@ export function V3Page() {
       const customEvent = event as CustomEvent;
       const { filename } = customEvent.detail;
       try {
-        const contents = await Promise.all(
+        const results = await Promise.all(
           activeFilesRef.current.map(async (fname: string) => {
             const res = await fetch(`/api/config/file/${fname}`);
-            return res.text();
+            const networkType = res.headers.get('X-Network-Type') || undefined;
+            const text = await res.text();
+            return { text, filename: fname, networkType };
           })
         );
-        handleConfigLoaded(contents);
+        const contents = results.map(r => r.text);
+        const fileMetadata = results.map(r => ({ filename: r.filename, networkType: r.networkType }));
+        handleConfigLoaded(contents, fileMetadata);
         alert(`파일이 변경되어 자동으로 다시 로드되었습니다: ${filename}`);
       } catch (error) {
         console.error('[V3Page] Failed to reload changed file:', error);
@@ -278,7 +304,11 @@ export function V3Page() {
         }
         return [];
       }
-      if (selectedServiceIds.includes(`${s.serviceType}-${s.serviceId}`)) return [s];
+      // v5.6.1: networkType suffix 지원 (vpls-4073-isp, vpls-4073-mpls)
+      const networkTypeSuffix = s.networkType && s.networkType !== 'unknown' ? `-${s.networkType}` : '';
+      const keyWithNT = `${s.serviceType}-${s.serviceId}${networkTypeSuffix}`;
+      const keyWithoutNT = `${s.serviceType}-${s.serviceId}`;
+      if (selectedServiceIds.includes(keyWithNT) || selectedServiceIds.includes(keyWithoutNT)) return [s];
       return [];
     })) as (NokiaService & { _hostname: string })[],
     [allServices, selectedServiceIds]
@@ -296,10 +326,14 @@ export function V3Page() {
   );
 
   const serviceGroups = useMemo(() => selectedServices.reduce((acc, service) => {
-    let key = `${service.serviceType}-${service.serviceId}`;
+    let key: string;
     if (service.serviceType === 'ies') {
       const hostname = (service as any)._hostname || 'Unknown';
       key = `ies-${hostname}`;
+    } else {
+      // v5.6.1: networkType로 ISP/MPLS 분리 (VPLS 4073 등 동일 ID 다른 망)
+      const ntSuffix = service.networkType && service.networkType !== 'unknown' ? `-${service.networkType}` : '';
+      key = `${service.serviceType}-${service.serviceId}${ntSuffix}`;
     }
     if (!acc[key]) acc[key] = [];
     acc[key].push(service);
@@ -558,18 +592,25 @@ export function V3Page() {
                   <div className="flex flex-col gap-6 max-w-[1200px] mx-auto">
                     {Object.entries(
                       diagrams.reduce((acc, item) => {
-                        const key = `${item.service.serviceType}_${item.service.serviceId}`;
+                        // v5.6.1: networkType로 ISP/MPLS 분리
+                        const nt = item.service.networkType && item.service.networkType !== 'unknown' ? `_${item.service.networkType}` : '';
+                        const key = `${item.service.serviceType}_${item.service.serviceId}${nt}`;
                         if (!acc[key]) acc[key] = [];
                         acc[key].push(item);
                         return acc;
                       }, {} as Record<string, typeof diagrams>)
                     ).map(([groupKey, group]) => {
                       const firstService = group[0].service;
+                      const networkLabel = firstService.networkType && firstService.networkType !== 'unknown'
+                        ? firstService.networkType.toUpperCase() : '';
                       return (
                         <div key={groupKey} className={`flex flex-col gap-4 ${group.length > 1 ? 'bg-slate-200/40 dark:bg-gray-800/60 border-2 border-dashed border-slate-300 dark:border-gray-600 rounded-xl p-5' : ''}`}>
                           {group.length > 1 && firstService.serviceType !== 'ies' && (
                             <div className="flex items-center gap-2 pb-2 border-b-2 border-dashed border-slate-300 dark:border-gray-600 mb-2">
-                              <h3 className="m-0 text-lg text-slate-600 dark:text-gray-300 font-semibold">Service Group (ID: {firstService.serviceId})</h3>
+                              <h3 className="m-0 text-lg text-slate-600 dark:text-gray-300 font-semibold">
+                                Service Group (ID: {firstService.serviceId})
+                                {networkLabel && <span className={`ml-2 px-2 py-0.5 text-xs font-bold rounded ${firstService.networkType === 'isp' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300' : firstService.networkType === 'mpls' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}>{networkLabel}</span>}
+                              </h3>
                             </div>
                           )}
                           <div className="flex flex-col gap-6">

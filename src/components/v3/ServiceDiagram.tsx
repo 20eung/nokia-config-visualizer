@@ -276,6 +276,14 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
         service.serviceType === 'vpls' ? 'bg-emerald-500' :
         service.serviceType === 'vprn' ? 'bg-violet-500' : 'bg-gray-500';
 
+    // v5.6.1: networkType 배지 색상
+    const networkType = (service as any).networkType as string | undefined;
+    const ntBadge = networkType && networkType !== 'unknown' ? networkType.toUpperCase() : null;
+    const ntBadgeClass = networkType === 'isp' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300 border-cyan-300 dark:border-cyan-700'
+        : networkType === 'mpls' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-300 dark:border-purple-700'
+        : networkType === 'cloud' ? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600'
+        : '';
+
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col">
             {/* 헤더 */}
@@ -284,6 +292,11 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
                     <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded text-white uppercase ${badgeBgClass}`}>
                         {service.serviceType.toUpperCase()}
                     </span>
+                    {ntBadge && (
+                        <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded border ${ntBadgeClass}`}>
+                            {ntBadge}
+                        </span>
+                    )}
                     <div className="min-w-0">
                         <h3 className="m-0 text-base text-gray-900 dark:text-gray-100 font-semibold truncate">
                             {service.serviceType === 'epipe' ? '🔗' : '🌐'}{' '}

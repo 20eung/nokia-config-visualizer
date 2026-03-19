@@ -1,5 +1,10 @@
 /** 서비스 요약 (AI에 전달되는 축약 데이터) */
 
+/**
+ * 네트워크 타입 (ISP/MPLS/Cloud 망 구분)
+ */
+export type NetworkType = 'isp' | 'mpls' | 'cloud' | 'unknown';
+
 export interface SapSummary {
   sapId: string;
   description: string;
@@ -26,6 +31,7 @@ export interface ServiceSummary {
   description: string;
   serviceName?: string;
   selectionKey: string;
+  networkType?: NetworkType;
   saps?: SapSummary[];
   interfaces?: InterfaceSummary[];
   bgpNeighbors?: string[];
@@ -368,6 +374,7 @@ export interface BaseService {
   adminState: AdminState;
   operState?: OperState;
   serviceMtu?: number;
+  networkType?: NetworkType;  // Network Type (ISP/MPLS/Cloud)
 }
 
 /**

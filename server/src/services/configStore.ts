@@ -5,7 +5,7 @@
  * Feature 1 (JSON API), Feature 2 (MCP), Feature 3 (RAG)의 공통 데이터 허브.
  */
 
-import type { ConfigSummary, ServiceSummary } from '../types';
+import type { ConfigSummary, ServiceSummary, NetworkType } from '../types';
 
 export interface StoredConfig {
   filename: string;
@@ -15,6 +15,7 @@ export interface StoredConfig {
   serviceCount: number;
   uploadedAt: Date;
   indexedAt?: Date;
+  networkType?: NetworkType;
 }
 
 /** hostname + serviceType + serviceId 포함 flat service 항목 */

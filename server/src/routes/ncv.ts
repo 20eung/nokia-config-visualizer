@@ -37,6 +37,23 @@ router.post('/analyze', (req: Request, res: Response): void => {
       return;
     }
 
+    // v5.6.1: Preserve existing networkType from AutoParser (prevent frontend overwrite)
+    const existing = configStore.get(body.filename);
+    const preservedNetworkType = existing?.networkType;
+
+    if (preservedNetworkType && preservedNetworkType !== 'unknown') {
+      for (const device of body.configSummary.devices) {
+        for (const svc of device.services) {
+          if (!svc.networkType) {
+            svc.networkType = preservedNetworkType;
+          }
+          if (!svc.selectionKey.includes(`-${preservedNetworkType}`)) {
+            svc.selectionKey = `${svc.serviceType}-${svc.serviceId}-${preservedNetworkType}`;
+          }
+        }
+      }
+    }
+
     const serviceCount = body.configSummary.devices.reduce(
       (sum, d) => sum + d.services.length, 0
     );
@@ -48,6 +65,7 @@ router.post('/analyze', (req: Request, res: Response): void => {
       configSummary: body.configSummary,
       serviceCount,
       uploadedAt: new Date(),
+      networkType: preservedNetworkType,
     });
 
     const response: NcvAnalyzeResponse = {

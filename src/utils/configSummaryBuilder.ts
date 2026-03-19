@@ -4,6 +4,7 @@ import type {
   VPLSService,
   VPRNService,
   IESService,
+  NetworkType,
 } from '../types/services';
 
 /** ConfigSummary 타입 (서버와 공유) */
@@ -34,6 +35,7 @@ interface ServiceSummary {
   description: string;
   serviceName?: string;
   selectionKey: string;
+  networkType?: NetworkType;
   saps?: SapSummary[];
   interfaces?: InterfaceSummary[];
   bgpNeighbors?: string[];
@@ -62,6 +64,29 @@ function formatRate(rateKbps: number | undefined, isMax: boolean | undefined): s
   return `${rateKbps}K`;
 }
 
+/**
+ * Generate selection key for service (v5.6.0 - with networkType)
+ */
+function generateSelectionKey(
+  serviceType: string,
+  serviceId: number,
+  networkType?: NetworkType
+): string {
+  if (networkType && networkType !== 'unknown') {
+    return `${serviceType}-${serviceId}-${networkType}`;
+  }
+  return `${serviceType}-${serviceId}`;
+}
+
+/**
+ * Service key 생성 (Frontend fallback, v5.6.0)
+ * selectionKey가 없는 legacy 데이터 호환용
+ */
+export function getServiceKey(service: { serviceType: string; serviceId: number; networkType?: NetworkType; selectionKey?: string }): string {
+  if (service.selectionKey) return service.selectionKey;
+  return generateSelectionKey(service.serviceType, service.serviceId, service.networkType);
+}
+
 /** ParsedConfigV3[] → ConfigSummary 변환 */
 export function buildConfigSummary(configs: ParsedConfigV3[]): ConfigSummary {
   const devices: DeviceSummary[] = configs.map(config => {
@@ -78,7 +103,8 @@ export function buildConfigSummary(configs: ParsedConfigV3[]): ConfigSummary {
           serviceId: epipe.serviceId,
           description: epipe.description,
           serviceName: epipe.serviceName,
-          selectionKey: `epipe-${epipe.serviceId}`,
+          selectionKey: generateSelectionKey('epipe', epipe.serviceId, epipe.networkType),
+          networkType: epipe.networkType,
           saps: epipe.saps
             .filter(s => s.adminState !== 'down')
             .map(s => ({
@@ -97,7 +123,8 @@ export function buildConfigSummary(configs: ParsedConfigV3[]): ConfigSummary {
           serviceId: vpls.serviceId,
           description: vpls.description,
           serviceName: vpls.serviceName,
-          selectionKey: `vpls-${vpls.serviceId}`,
+          selectionKey: generateSelectionKey('vpls', vpls.serviceId, vpls.networkType),
+          networkType: vpls.networkType,
           saps: vpls.saps
             .filter(s => s.adminState !== 'down')
             .map(s => ({
@@ -116,7 +143,8 @@ export function buildConfigSummary(configs: ParsedConfigV3[]): ConfigSummary {
           serviceId: vprn.serviceId,
           description: vprn.description,
           serviceName: vprn.serviceName,
-          selectionKey: `vprn-${vprn.serviceId}`,
+          selectionKey: generateSelectionKey('vprn', vprn.serviceId, vprn.networkType),
+          networkType: vprn.networkType,
           interfaces: vprn.interfaces
             .filter(i => i.adminState !== 'down')
             .map(i => ({
@@ -146,7 +174,8 @@ export function buildConfigSummary(configs: ParsedConfigV3[]): ConfigSummary {
           serviceId: ies.serviceId,
           description: ies.description,
           serviceName: ies.serviceName,
-          selectionKey: `ies-${config.hostname}`,
+          selectionKey: generateSelectionKey('ies', ies.serviceId, ies.networkType),
+          networkType: ies.networkType,
           interfaces: ies.interfaces
             .filter(i => i.adminState !== 'down')
             .map(i => ({
