@@ -61,31 +61,23 @@ export function V3Page() {
 
   const [showConfigFileList, setShowConfigFileList] = useState(false);
 
-  // 샘플 config 자동 로드 함수
-  const autoLoadSampleConfigs = useCallback(() => {
-    if (configs.length > 0) return; // 이미 로드됨
+  // Demo 환경에서만 샘플 config 자동 로드 (hostname에 'demo' 또는 'beta' 포함)
+  useEffect(() => {
+    const isDemoEnvironment = window.location.hostname.includes('demo') || window.location.hostname.includes('beta');
+    if (!isDemoEnvironment || configs.length > 0) return;
+
     Promise.all([
       fetch('/config1.txt').then(r => r.text()),
       fetch('/config2.txt').then(r => r.text())
     ])
       .then(texts => {
         handleConfigLoaded(texts);
-        console.log('[AutoLoad] Sample configs loaded (config1.txt & config2.txt)');
+        console.log('[AutoLoad] Demo environment: loaded sample configs');
       })
       .catch(error => {
         console.warn('[AutoLoad] Could not load sample configs:', error);
       });
-  }, [configs.length]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 백엔드 미연결 시 샘플 config 자동 로드 (WebSocket 실패 또는 정적 환경 감지)
-  useEffect(() => {
-    const handleWsUnavailable = () => {
-      console.log('[AutoLoad] Backend unavailable. Loading sample configs...');
-      autoLoadSampleConfigs();
-    };
-    window.addEventListener('config-ws-unavailable', handleWsUnavailable);
-    return () => window.removeEventListener('config-ws-unavailable', handleWsUnavailable);
-  }, [autoLoadSampleConfigs]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConfigLoaded = (contents: string[], fileMetadata?: { filename: string; networkType?: string }[]) => {
     try {
