@@ -884,15 +884,15 @@ export function ServiceListV3({
     }, 0);
   }, 0);
 
-  // 선택된 서비스의 Type별 갯수 계산 (v4.5.0)
+  // 선택된 서비스의 Type별 갯수 계산 (v4.5.0, v5.6.0: networkType 반영)
   const selectedEpipeCount = epipeServices.filter(group =>
-    selectedSet.has(`${group[0].serviceType}-${group[0].serviceId}`)
+    selectedSet.has(generateSelectionKey(group[0]))
   ).length;
   const selectedVplsCount = vplsServices.filter(group =>
-    selectedSet.has(`${group[0].serviceType}-${group[0].serviceId}`)
+    selectedSet.has(generateSelectionKey(group[0]))
   ).length;
   const selectedVprnCount = vprnServices.filter(group =>
-    selectedSet.has(`${group[0].serviceType}-${group[0].serviceId}`)
+    selectedSet.has(generateSelectionKey(group[0]))
   ).length;
 
   // 선택된 IES 인터페이스 개수 계산
