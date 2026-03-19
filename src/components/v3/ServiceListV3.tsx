@@ -836,6 +836,15 @@ export function ServiceListV3({
       .toSorted((a, b) => a.serviceId - b.serviceId);
   }
 
+  // DEBUG: networkType check
+  const debugVpls4073 = filteredServices.filter(s => s.serviceId === 4073 && s.serviceType === 'vpls');
+  if (debugVpls4073.length > 0) {
+    console.log('[DEBUG ServiceListV3] VPLS 4073:', debugVpls4073.map(s => ({
+      networkType: s.networkType,
+      hostname: (s as any)._hostname,
+    })));
+  }
+
   // 서비스를 serviceId와 serviceType별로 그룹화 (v5.6.0: networkType 반영)
   const groupedServices = filteredServices.reduce((acc, service) => {
     let key: string;
@@ -1165,21 +1174,6 @@ export function ServiceListV3({
                 onClick={() => handleTypeButtonClick(type)}
               >
                 {type === 'all' ? 'All' : type === 'ha' ? '이중화' : type.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          {/* Network Type 필터 (v5.6.0) */}
-          <div className="flex gap-1 flex-nowrap items-center">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">망 구분:</span>
-            {(['isp', 'mpls', 'cloud', 'unknown'] as const).map(type => (
-              <button
-                key={type}
-                className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
-                  filterType === type ? TYPE_COLORS[type].active : TYPE_COLORS[type].inactive
-                }`}
-                onClick={() => handleTypeButtonClick(type)}
-              >
-                {type.toUpperCase()}
               </button>
             ))}
           </div>

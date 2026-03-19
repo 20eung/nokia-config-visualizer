@@ -10,6 +10,7 @@ import fs from 'fs/promises';
 import fsSync from 'fs';
 import { fileWatcher } from '../services/fileWatcher';
 import { scanConfigsRecursive, validatePath } from '../services/recursiveScanner';
+import { extractNetworkType } from '../utils/networkTypeExtractor';
 import type { VendorType } from '../services/vendorDetector';
 
 const router = express.Router();
@@ -180,6 +181,11 @@ router.get('/file/:filename', async (req: Request, res: Response) => {
         error: `File too large (max: ${maxSize / 1024 / 1024}MB)`
       });
     }
+
+    // v5.6.1: networkType 헤더 추가 (프론트엔드 파서에 전달용)
+    const networkType = extractNetworkType(resolvedPath);
+    res.setHeader('X-Network-Type', networkType);
+    res.setHeader('Access-Control-Expose-Headers', 'X-Network-Type');
 
     // 파일 전송
     res.sendFile(resolvedPath);

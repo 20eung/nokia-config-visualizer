@@ -6,6 +6,44 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.6.1] - 2026-03-19
+
+### 🐛 버그 수정 (Bug Fixes)
+
+- **networkType 덮어쓰기 버그 수정**:
+  - 프론트엔드 `useConfigSync`가 `POST /api/ncv/analyze` 호출 시 configStore의 networkType 데이터를 덮어쓰는 문제 해결
+  - `POST /analyze` 엔드포인트에서 기존 networkType을 보존하고 incoming 서비스에 적용
+  - [server/src/routes/ncv.ts](server/src/routes/ncv.ts) - preservedNetworkType 로직
+
+- **ISP/MPLS 다이어그램 분리**:
+  - 동일 Service ID (VPLS 4073 등)가 다른 망에 있을 때 All 필터에서도 별도 다이어그램으로 표시
+  - `serviceGroups` 그룹핑 키에 networkType suffix 추가
+  - 다이어그램 렌더링 그룹핑에도 networkType 반영
+  - [src/pages/V3Page.tsx](src/pages/V3Page.tsx) - serviceGroups, diagram rendering 수정
+
+- **프론트엔드 networkType 전파**:
+  - `GET /api/config/file/:filename` 응답에 `X-Network-Type` 헤더 추가
+  - 파일 로드 시 networkType을 파서에 전달하여 서비스별 networkType 설정
+  - [server/src/routes/config.ts](server/src/routes/config.ts), [src/pages/V3Page.tsx](src/pages/V3Page.tsx)
+
+### 🚀 UI 개선 (Enhancements)
+
+- **다이어그램 networkType 배지**:
+  - ServiceDiagram 헤더에 ISP (Cyan) / MPLS (Purple) / Cloud (Slate) 배지 표시
+  - Service Group 헤더에도 망 구분 배지 추가
+  - [src/components/v3/ServiceDiagram.tsx](src/components/v3/ServiceDiagram.tsx)
+
+- **망 구분 필터 버튼 제거**:
+  - ServiceListV3 좌측 패널에서 ISP/MPLS/CLOUD/UNKNOWN 필터 버튼 삭제
+  - 다이어그램 자체에 망 구분이 표시되므로 별도 필터 불필요
+  - [src/components/v3/ServiceListV3.tsx](src/components/v3/ServiceListV3.tsx)
+
+### 📝 문서화
+
+- **PDCA Plan**: `docs/01-plan/features/vpls4073-networktype-overwrite.plan.md`
+
+---
+
 ## [5.6.0] - 2026-03-19
 
 ### 🚀 신규 기능 (Features)
