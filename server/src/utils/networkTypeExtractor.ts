@@ -5,7 +5,7 @@
  */
 
 import path from 'path';
-import type { NetworkType } from '../../../src/types/services';
+import type { NetworkType } from '../types';
 
 /**
  * 파일 경로에서 Network Type 추출
