@@ -5,7 +5,7 @@
  * Demo 모드 또는 백엔드 미연결 시에는 조용히 무시.
  */
 
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { buildConfigSummary } from '../utils/configSummaryBuilder';
 import type { ParsedConfigV3 } from '../utils/v3/parserV3';
 
@@ -15,25 +15,32 @@ const IS_DEMO = (import.meta.env['VITE_DEMO_MODE'] as string | undefined) === 't
 /**
  * configs가 변경될 때마다 각 장비의 ConfigSummary를 백엔드에 동기화.
  * - 동일 hostname은 덮어씀 (최신 데이터 유지)
- * - 오류 시 조용히 무시 (선택 기능)
+ * - 백엔드 미연결 시 조용히 무시 (선택 기능)
  */
 export function useConfigSync(configs: ParsedConfigV3[]): void {
-  // 이전 hostname Set을 추적하여 변경 없으면 API 호출 생략
   const prevKeysRef = useRef<string>('');
+  const [backendAvailable, setBackendAvailable] = useState(!IS_DEMO);
+
+  // 백엔드 미연결 이벤트 수신 (WebSocket 실패 시 발생)
+  useEffect(() => {
+    const handleWsUnavailable = () => {
+      setBackendAvailable(false);
+    };
+    window.addEventListener('config-ws-unavailable', handleWsUnavailable);
+    return () => window.removeEventListener('config-ws-unavailable', handleWsUnavailable);
+  }, []);
 
   useEffect(() => {
-    if (IS_DEMO || configs.length === 0) return;
+    if (!backendAvailable || configs.length === 0) return;
 
-    // hostname 목록 기반으로 변경 감지 (JSON stringify로 순서도 비교)
+    // hostname 목록 기반으로 변경 감지
     const currentKey = configs.map(c => c.hostname).sort().join(',');
     if (currentKey === prevKeysRef.current) return;
     prevKeysRef.current = currentKey;
 
-    // 각 Config를 개별적으로 백엔드에 전송 (장비별 분리)
     const configSummary = buildConfigSummary(configs);
 
     for (let i = 0; i < configs.length; i++) {
-      const raw = configs[i];
       const device = configSummary.devices[i];
       if (!device) continue;
 
@@ -57,9 +64,6 @@ export function useConfigSync(configs: ParsedConfigV3[]): void {
         .catch(() => {
           // 백엔드 미연결 시 조용히 무시
         });
-
-      // raw는 미사용이지만 의도적 보관 (향후 filename 추출 목적)
-      void raw;
     }
-  }, [configs]);
+  }, [configs, backendAvailable]);
 }
