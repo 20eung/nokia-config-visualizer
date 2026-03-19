@@ -33,8 +33,8 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
 
-  const maxReconnectAttempts = 5;
-  const reconnectDelay = 3000; // 3초
+  const maxReconnectAttempts = 2;
+  const reconnectDelay = 2000; // 2초
 
   /**
    * WebSocket 연결
@@ -92,8 +92,10 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
             connect();
           }, reconnectDelay);
         } else {
-          console.error('[ConfigWebSocket] Max reconnect attempts reached');
-          setError('Connection lost. Please refresh the page.');
+          console.log('[ConfigWebSocket] Max reconnect attempts reached. Backend unavailable.');
+          setStatus('disconnected');
+          // 백엔드 미연결 → 정적 배포 환경으로 판단, 이벤트 발생
+          window.dispatchEvent(new CustomEvent('config-ws-unavailable'));
         }
       };
 
@@ -269,16 +271,19 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
    * 초기 연결 및 정리
    */
   useEffect(() => {
-    // Demo/Beta 환경에서는 WebSocket 연결 시도하지 않음
-    const isDemoEnvironment =
+    // Demo/Static 환경에서는 WebSocket 연결 시도하지 않음
+    const isStaticMode = import.meta.env['VITE_DEMO_MODE'] === 'true';
+    const isDemoHostname =
       window.location.hostname.includes('demo') ||
       window.location.hostname.includes('beta') ||
       window.location.hostname.includes('pages.dev') ||
       window.location.hostname.includes('cloudflare');
 
-    if (isDemoEnvironment) {
-      console.log('[ConfigWebSocket] Demo environment detected. WebSocket disabled.');
+    if (isStaticMode || isDemoHostname) {
+      console.log('[ConfigWebSocket] Static/Demo environment detected. WebSocket disabled.');
       setStatus('disconnected');
+      // 정적 환경 → 샘플 config 자동 로드 이벤트
+      window.dispatchEvent(new CustomEvent('config-ws-unavailable'));
       return;
     }
 
