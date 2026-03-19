@@ -46,6 +46,7 @@ export function V3Page() {
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const [isResizing, setIsResizing] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
+  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
 
   const { isDark, toggleTheme } = useDarkMode();
 
@@ -100,6 +101,10 @@ export function V3Page() {
       if (parsedConfigs.length > 0) {
         setConfigs(parsedConfigs);
         setSelectedServiceIds([]);
+        // 업로드된 파일 목록 설정 (WS 미연결 시 ConfigFileList에 표시)
+        if (fileMetadata?.length) {
+          setUploadedFiles(fileMetadata.map(m => m.filename));
+        }
       } else {
         alert('No valid configuration found in the uploaded files.');
       }
@@ -555,9 +560,9 @@ export function V3Page() {
           className="w-[300px] min-w-[300px] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shrink-0 overflow-hidden"
         >
           <ConfigFileList
-            files={configFiles}
+            files={configFiles.length > 0 ? configFiles : uploadedFiles}
             groups={fileGroups}
-            activeFiles={activeFiles}
+            activeFiles={configFiles.length > 0 ? activeFiles : uploadedFiles}
             onToggleFile={toggleFile}
             isLoading={wsStatus === 'connecting'}
             connectionStatus={wsStatus}

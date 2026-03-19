@@ -277,7 +277,8 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
       window.location.hostname.includes('demo') ||
       window.location.hostname.includes('beta') ||
       window.location.hostname.includes('pages.dev') ||
-      window.location.hostname.includes('cloudflare');
+      window.location.hostname.includes('cloudflare') ||
+      window.location.hostname === 'nokia.hub.sk-net.com';
 
     if (isStaticMode || isDemoHostname) {
       console.log('[ConfigWebSocket] Static/Demo environment detected. WebSocket disabled.');
