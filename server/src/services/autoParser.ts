@@ -10,6 +10,7 @@ import path from 'path';
 import { fileWatcher, type FileWatcherEventData } from './fileWatcher';
 import { configStore } from './configStore';
 import { parseNokiaConfig } from './nokiaParser';
+import { extractNetworkType } from '../utils/networkTypeExtractor';
 import type {
   ParsedConfigV3,
   ConfigSummary,
@@ -35,6 +36,20 @@ function formatRate(rateKbps: number | undefined, isMax: boolean | undefined): s
 }
 
 /**
+ * Generate selection key for service (v5.6.0 - with networkType)
+ */
+function generateSelectionKey(
+  serviceType: string,
+  serviceId: number,
+  networkType?: string
+): string {
+  if (networkType && networkType !== 'unknown') {
+    return `${serviceType}-${serviceId}-${networkType}`;
+  }
+  return `${serviceType}-${serviceId}`;
+}
+
+/**
  * ParsedConfigV3 → ConfigSummary 변환
  * (Frontend configSummaryBuilder.ts 로직 이식)
  */
@@ -52,7 +67,8 @@ function buildConfigSummary(parsed: ParsedConfigV3): ConfigSummary {
         serviceId: epipe.serviceId,
         description: epipe.description,
         serviceName: epipe.serviceName,
-        selectionKey: `epipe-${epipe.serviceId}`,
+        selectionKey: generateSelectionKey('epipe', epipe.serviceId, epipe.networkType),
+        networkType: epipe.networkType,
         saps: epipe.saps
           .filter(s => s.adminState !== 'down')
           .map(s => ({
@@ -71,7 +87,8 @@ function buildConfigSummary(parsed: ParsedConfigV3): ConfigSummary {
         serviceId: vpls.serviceId,
         description: vpls.description,
         serviceName: vpls.serviceName,
-        selectionKey: `vpls-${vpls.serviceId}`,
+        selectionKey: generateSelectionKey('vpls', vpls.serviceId, vpls.networkType),
+        networkType: vpls.networkType,
         saps: vpls.saps
           .filter(s => s.adminState !== 'down')
           .map(s => ({
@@ -90,7 +107,8 @@ function buildConfigSummary(parsed: ParsedConfigV3): ConfigSummary {
         serviceId: vprn.serviceId,
         description: vprn.description,
         serviceName: vprn.serviceName,
-        selectionKey: `vprn-${vprn.serviceId}`,
+        selectionKey: generateSelectionKey('vprn', vprn.serviceId, vprn.networkType),
+        networkType: vprn.networkType,
         interfaces: vprn.interfaces
           .filter(i => i.adminState !== 'down')
           .map(i => ({
@@ -121,6 +139,7 @@ function buildConfigSummary(parsed: ParsedConfigV3): ConfigSummary {
         description: ies.description,
         serviceName: ies.serviceName,
         selectionKey: `ies-${parsed.hostname}`,
+        networkType: ies.networkType,
         interfaces: ies.interfaces
           .filter(i => i.adminState !== 'down')
           .map(i => ({
@@ -154,11 +173,14 @@ async function parseAndStoreFile(filePath: string, filename: string): Promise<vo
   try {
     console.log(`[AutoParser] Parsing file: ${filename}`);
 
+    // Network Type 추출 (v5.6.0)
+    const networkType = extractNetworkType(filePath);
+
     // 파일 읽기
     const content = await fs.readFile(filePath, 'utf-8');
 
-    // Nokia config 파싱
-    const parsed = parseNokiaConfig(content);
+    // Nokia config 파싱 (networkType 전달)
+    const parsed = parseNokiaConfig(content, { networkType });
 
     // ConfigSummary 생성
     const configSummary = buildConfigSummary(parsed);
@@ -173,9 +195,10 @@ async function parseAndStoreFile(filePath: string, filename: string): Promise<vo
       configSummary,
       serviceCount,
       uploadedAt: new Date(),
+      networkType, // v5.6.0
     });
 
-    console.log(`[AutoParser] ✅ Parsed successfully: ${parsed.hostname} (${serviceCount} services)`);
+    console.log(`[AutoParser] ✅ Parsed successfully: ${parsed.hostname} (${serviceCount} services, network=${networkType})`);
   } catch (error) {
     console.error(`[AutoParser] ❌ Parsing failed: ${filename}`, error);
     // 파싱 실패해도 서버는 계속 실행 (다른 파일들은 정상 처리)

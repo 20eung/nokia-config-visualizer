@@ -6,6 +6,11 @@
 export type ServiceType = 'epipe' | 'vpls' | 'ies' | 'vprn';
 
 /**
+ * 네트워크 타입 (ISP/MPLS/Cloud 망 구분)
+ */
+export type NetworkType = 'isp' | 'mpls' | 'cloud' | 'unknown';
+
+/**
  * 관리 상태
  */
 export type AdminState = 'up' | 'down';
@@ -32,6 +37,7 @@ export interface BaseService {
     adminState: AdminState;
     operState?: OperState;
     serviceMtu?: number;
+    networkType?: NetworkType;  // Network Type (ISP/MPLS/Cloud)
 }
 
 /**
