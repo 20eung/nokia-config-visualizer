@@ -62,7 +62,7 @@ export function V3Page() {
   const [showConfigFileList, setShowConfigFileList] = useState(false);
 
   useEffect(() => {
-    const isDemoEnvironment = window.location.hostname.includes('demo') || window.location.hostname.includes('beta');
+    const isDemoEnvironment = window.location.hostname.includes('demo') || window.location.hostname.includes('beta') || window.location.hostname.includes('pages.dev');
 
     if (isDemoEnvironment && configs.length === 0) {
       Promise.all([
