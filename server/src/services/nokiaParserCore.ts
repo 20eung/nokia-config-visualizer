@@ -16,11 +16,19 @@ import type {
     OSPFInterface,
     IESService,
     PortEthernetConfig,
-    BGPGroup
+    BGPGroup,
+    NetworkType
 } from '../types';
 
 // Use NokiaService from v2 types which now includes IES
 export type NokiaServiceV3 = NokiaService;
+
+/**
+ * Parser Options (v5.6.0 - Network Type Separation)
+ */
+export interface ParseOptions {
+    networkType?: NetworkType;
+}
 
 // js-hoist-regexp: 루프 내 RegExp 재생성 방지 — 모듈 레벨 상수
 const RE_DESCRIPTION = /description\s+"([^"]+)"/i;
@@ -1250,11 +1258,18 @@ export function parseSDPs(configText: string): SDP[] {
 /**
  * L2 VPN 설정 파싱 (메인 함수)
  */
-export function parseL2VPNConfig(configText: string): ParsedConfigV3 {
+export function parseL2VPNConfig(configText: string, options?: ParseOptions): ParsedConfigV3 {
     const hostname = extractHostname(configText);
     const systemIp = extractSystemIp(configText);
     const services = parseL2VPNServices(configText);
     const sdps = parseSDPs(configText);
+
+    // Apply networkType to all services (v5.6.0)
+    if (options?.networkType) {
+        services.forEach(service => {
+            service.networkType = options.networkType;
+        });
+    }
 
     // Enrich SAPs and Interfaces with Port Info (Description + Ethernet config)
     const portInfoMap = extractPortInfo(configText);
