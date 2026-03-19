@@ -89,7 +89,7 @@ export interface ConfigFileListProps {
   /** 자동 로딩 설정 모달 표시 핸들러 */
   onShowSettings: () => void;
   /** Config 업로드 핸들러 */
-  onUploadConfig: (contents: string[]) => void;
+  onUploadConfig: (contents: string[], fileMetadata?: { filename: string; networkType?: string }[]) => void;
 }
 
 /**

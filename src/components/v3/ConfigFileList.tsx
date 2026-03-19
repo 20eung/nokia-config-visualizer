@@ -67,6 +67,11 @@ const ConfigFileListImpl: React.FC<ConfigFileListProps> = ({
 
     try {
       const contents = await Promise.all(txtFiles.map(f => f.text()));
+      // 폴더 경로에서 networkType 추출 (예: configs/isp/router.txt → 'isp')
+      const fileMetadata = txtFiles.map(f => {
+        const pathMatch = f.webkitRelativePath.match(/(?:^|\/)(isp|mpls|cloud)\//i);
+        return { filename: f.name, networkType: pathMatch ? pathMatch[1].toLowerCase() : undefined };
+      });
       const saved: SavedFolder = {
         name: folderName,
         fileCount: txtFiles.length,
@@ -74,7 +79,7 @@ const ConfigFileListImpl: React.FC<ConfigFileListProps> = ({
       };
       localStorage.setItem(LS_KEY, JSON.stringify(saved));
       setSavedFolder(saved);
-      onUploadConfig(contents);
+      onUploadConfig(contents, fileMetadata);
     } catch {
       // 읽기 실패 시 무시
     }

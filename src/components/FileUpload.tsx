@@ -3,7 +3,7 @@ import Upload from 'lucide-react/dist/esm/icons/upload';
 import { FilePreviewModal } from './FilePreviewModal';
 
 interface FileUploadProps {
-  onConfigLoaded: (contents: string[]) => void;
+  onConfigLoaded: (contents: string[], fileMetadata?: { filename: string; networkType?: string }[]) => void;
 }
 
 export const FileUpload: React.FC<FileUploadProps & { variant?: 'default' | 'header' | 'compact' }> = ({
@@ -21,11 +21,19 @@ export const FileUpload: React.FC<FileUploadProps & { variant?: 'default' | 'hea
 
   const handleConfirmUpload = async (files: File[]) => {
     const fileContents: string[] = [];
+    const fileMetadata: { filename: string; networkType?: string }[] = [];
     for (const file of files) {
       const text = await file.text();
       fileContents.push(text);
+
+      // 폴더 경로에서 networkType 추출 (예: configs/isp/router.txt → 'isp')
+      const relativePath = (file as any).webkitRelativePath || '';
+      const pathMatch = relativePath.match(/(?:^|\/)(isp|mpls|cloud)\//i);
+      const networkType = pathMatch ? pathMatch[1].toLowerCase() : undefined;
+
+      fileMetadata.push({ filename: file.name, networkType });
     }
-    onConfigLoaded(fileContents);
+    onConfigLoaded(fileContents, fileMetadata);
     setPreviewFiles(null);
   };
 
