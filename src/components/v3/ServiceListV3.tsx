@@ -50,6 +50,9 @@ const TYPE_COLORS = {
   vprn:  { active: 'bg-violet-600 text-white border-violet-600', inactive: 'border-violet-300 dark:border-violet-700 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40' },
   ies:   { active: 'bg-amber-600 text-white border-amber-600', inactive: 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40' },
   ha:    { active: 'bg-green-600 text-white border-green-600', inactive: 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40' },
+  isp:   { active: 'bg-cyan-600 text-white border-cyan-600', inactive: 'border-cyan-300 dark:border-cyan-700 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/40' },
+  mpls:  { active: 'bg-purple-600 text-white border-purple-600', inactive: 'border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40' },
+  cloud: { active: 'bg-slate-600 text-white border-slate-600', inactive: 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/20 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/40' },
 } as const;
 
 /**
@@ -72,7 +75,7 @@ export function ServiceListV3({
   onSetSelected,
 }: ServiceListProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'epipe' | 'vpls' | 'vprn' | 'ies' | 'ha'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'epipe' | 'vpls' | 'vprn' | 'ies' | 'ha' | 'isp' | 'mpls' | 'cloud'>('all');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiQuery, setAiQuery] = useState('');
@@ -243,13 +246,18 @@ export function ServiceListV3({
 
     if (configs.length === 0) return { haServiceKeys, haInterfaceKeys };
 
-    // 1. VPLS: 동일 serviceId가 2개 이상의 config에 존재 → HA (이중화 장비 구성)
+    // 1. VPLS: 동일 serviceId + networkType가 2개 이상의 config에 존재 → HA (이중화 장비 구성)
     // Epipe는 성격상 2개 장비가 1개 서비스를 구성하는 것이므로 HA 아님
+    // v5.6.0: networkType 반영 (ISP/MPLS 망 독립성)
     const serviceHostCounts: Record<string, Set<string>> = {};
     configs.forEach(config => {
       config.services.forEach(service => {
         if (service.serviceType === 'vpls') {
-          const key = `${service.serviceType}-${service.serviceId}`;
+          // selectionKey 형식: vpls-4073-isp / vpls-4073-mpls
+          const networkTypeSuffix = service.networkType && service.networkType !== 'unknown'
+            ? `-${service.networkType}`
+            : '';
+          const key = `${service.serviceType}-${service.serviceId}${networkTypeSuffix}`;
           if (!serviceHostCounts[key]) serviceHostCounts[key] = new Set();
           serviceHostCounts[key].add(config.hostname);
         }
@@ -487,6 +495,9 @@ export function ServiceListV3({
         if (s.serviceType === 'ies') return haServiceKeys.has(`ies-${(s as any)._hostname || 'Unknown'}`);
         return haServiceKeys.has(`${s.serviceType}-${s.serviceId}`);
       });
+    } else if (filterType === 'isp' || filterType === 'mpls' || filterType === 'cloud') {
+      // Network Type 필터 (v5.6.0)
+      targetServices = services.filter(s => s.networkType === filterType);
     } else if (filterType !== 'all') {
       targetServices = services.filter(s => s.serviceType === filterType);
     }
@@ -574,13 +585,16 @@ export function ServiceListV3({
   } else {
     // 기존 문자열 검색 로직 (AND/OR 검색 지원 - v1.3.0)
     filteredServices = services.filter(service => {
-      // 타입 필터 (IES 포함, HA 포함)
+      // 타입 필터 (IES 포함, HA 포함, Network Type 포함 - v5.6.0)
       if (filterType === 'ha') {
         if (service.serviceType === 'ies') {
           if (!haServiceKeys.has(`ies-${(service as any)._hostname || 'Unknown'}`)) return false;
         } else if (!haServiceKeys.has(`${service.serviceType}-${service.serviceId}`)) {
           return false;
         }
+      } else if (filterType === 'isp' || filterType === 'mpls' || filterType === 'cloud') {
+        // Network Type 필터 (v5.6.0)
+        if (service.networkType !== filterType) return false;
       } else if (filterType !== 'all' && service.serviceType !== filterType) {
         return false;
       }
@@ -819,14 +833,20 @@ export function ServiceListV3({
       .toSorted((a, b) => a.serviceId - b.serviceId);
   }
 
-  // 서비스를 serviceId와 serviceType별로 그룹화
+  // 서비스를 serviceId와 serviceType별로 그룹화 (v5.6.0: networkType 반영)
   const groupedServices = filteredServices.reduce((acc, service) => {
-    let key = `${service.serviceType}-${service.serviceId}`;
+    let key: string;
 
     // IES (Base Router) special grouping by Hostname
     if (service.serviceType === 'ies') {
       const hostname = (service as any)._hostname || 'Unknown';
       key = `ies-${hostname}`;
+    } else {
+      // v5.6.0: networkType 반영 (selectionKey 형식)
+      const networkTypeSuffix = service.networkType && service.networkType !== 'unknown'
+        ? `-${service.networkType}`
+        : '';
+      key = `${service.serviceType}-${service.serviceId}${networkTypeSuffix}`;
     }
 
     if (!acc[key]) {
@@ -899,6 +919,18 @@ export function ServiceListV3({
   // filteredServices 기반 집계는 Epipe가 2개 장비에 동일 ID로 존재해 2배 카운트됨
   const totalServiceKeys = epipeServices.length + vplsServices.length + vprnServices.length + iesInterfaceCount;
 
+  // v5.6.0: selectionKey 생성 헬퍼 함수 (networkType 반영)
+  const generateSelectionKey = (service: NokiaServiceV3): string => {
+    if (service.serviceType === 'ies') {
+      const hostname = (service as any)._hostname || 'Unknown';
+      return `ies-${hostname}`;
+    }
+    const networkTypeSuffix = service.networkType && service.networkType !== 'unknown'
+      ? `-${service.networkType}`
+      : '';
+    return `${service.serviceType}-${service.serviceId}${networkTypeSuffix}`;
+  };
+
   const handleSelectAll = () => {
     const allKeys: string[] = [];
 
@@ -910,7 +942,7 @@ export function ServiceListV3({
           allKeys.push(`ies___${hostname}___${intf.interfaceName}`);
         });
       } else {
-        allKeys.push(`${s.serviceType}-${s.serviceId}`);
+        allKeys.push(generateSelectionKey(s));
       }
     });
 
@@ -1118,18 +1150,36 @@ export function ServiceListV3({
 
       {/* 타입 필터 버튼 (클릭: 전체선택 + 다이어그램 표시 / 재클릭: 해제) */}
       <div className="px-4 py-2.5 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex gap-1 flex-nowrap">
-          {(['all', 'epipe', 'vpls', 'vprn', 'ies', 'ha'] as const).map(type => (
-            <button
-              key={type}
-              className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
-                filterType === type ? TYPE_COLORS[type].active : TYPE_COLORS[type].inactive
-              }`}
-              onClick={() => handleTypeButtonClick(type)}
-            >
-              {type === 'all' ? 'All' : type === 'ha' ? '이중화' : type.toUpperCase()}
-            </button>
-          ))}
+        <div className="flex flex-col gap-2">
+          {/* Service Type 필터 */}
+          <div className="flex gap-1 flex-nowrap">
+            {(['all', 'epipe', 'vpls', 'vprn', 'ies', 'ha'] as const).map(type => (
+              <button
+                key={type}
+                className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                  filterType === type ? TYPE_COLORS[type].active : TYPE_COLORS[type].inactive
+                }`}
+                onClick={() => handleTypeButtonClick(type)}
+              >
+                {type === 'all' ? 'All' : type === 'ha' ? '이중화' : type.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          {/* Network Type 필터 (v5.6.0) */}
+          <div className="flex gap-1 flex-nowrap items-center">
+            <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">망 구분:</span>
+            {(['isp', 'mpls', 'cloud'] as const).map(type => (
+              <button
+                key={type}
+                className={`px-2 py-1 border rounded text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                  filterType === type ? TYPE_COLORS[type].active : TYPE_COLORS[type].inactive
+                }`}
+                onClick={() => handleTypeButtonClick(type)}
+              >
+                {type.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -1166,24 +1216,34 @@ export function ServiceListV3({
                   const representative = serviceGroup[0];
                   // 비정상: Epipe는 반드시 2개 장비에 설정되어야 함
                   const isAbnormal = serviceGroup.length !== 2;
+                  const selectionKey = generateSelectionKey(representative);
 
                   return (
                     <div
-                      key={representative.serviceId}
+                      key={selectionKey}
                       className={`px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-start gap-3 cursor-pointer transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
-                        selectedSet.has(`${representative.serviceType}-${representative.serviceId}`) ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                        selectedSet.has(selectionKey) ? 'bg-blue-50 dark:bg-blue-900/30' : ''
                       } ${isAbnormal ? 'border-l-4 border-l-orange-400 dark:border-l-orange-500' : ''}`}
-                      onClick={() => onToggleService(`${representative.serviceType}-${representative.serviceId}`)}
+                      onClick={() => onToggleService(selectionKey)}
                     >
                       <input
                         type="checkbox"
-                        checked={selectedSet.has(`${representative.serviceType}-${representative.serviceId}`)}
+                        checked={selectedSet.has(selectionKey)}
                         onChange={() => { }}
                         className="mt-0.5 cursor-pointer"
                       />
                       <div className="flex-1">
                         <div className="font-semibold text-sm mb-1 dark:text-gray-200 flex items-center gap-2">
                           Epipe {representative.serviceId}
+                          {representative.networkType && representative.networkType !== 'unknown' && (
+                            <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                              representative.networkType === 'isp' ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300' :
+                              representative.networkType === 'mpls' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
+                              'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300'
+                            }`}>
+                              {representative.networkType.toUpperCase()}
+                            </span>
+                          )}
                           {isAbnormal && (
                             <span className="px-1.5 py-0.5 text-[10px] font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded">
                               ⚠️ 현행화 필요 ({serviceGroup.length}개 장비)
@@ -1249,25 +1309,35 @@ export function ServiceListV3({
               <div className="overflow-hidden">
                 {vplsServices.map(serviceGroup => {
                   const representative = serviceGroup[0];
+                  const selectionKey = generateSelectionKey(representative);
 
                   return (
                     <div
-                      key={representative.serviceId}
+                      key={selectionKey}
                       className={`px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-start gap-3 cursor-pointer transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
-                        selectedSet.has(`${representative.serviceType}-${representative.serviceId}`) ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                        selectedSet.has(selectionKey) ? 'bg-blue-50 dark:bg-blue-900/30' : ''
                       }`}
-                      onClick={() => onToggleService(`${representative.serviceType}-${representative.serviceId}`)}
+                      onClick={() => onToggleService(selectionKey)}
                     >
                       <input
                         type="checkbox"
-                        checked={selectedSet.has(`${representative.serviceType}-${representative.serviceId}`)}
+                        checked={selectedSet.has(selectionKey)}
                         onChange={() => { }}
                         className="mt-0.5 cursor-pointer"
                       />
                       <div className="flex-1">
                         <div className="font-semibold text-sm mb-1 dark:text-gray-200 flex items-center gap-2">
                           VPLS {representative.serviceId}
-                          {haServiceKeys.has(`vpls-${representative.serviceId}`) && (
+                          {representative.networkType && representative.networkType !== 'unknown' && (
+                            <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                              representative.networkType === 'isp' ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300' :
+                              representative.networkType === 'mpls' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
+                              'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300'
+                            }`}>
+                              {representative.networkType.toUpperCase()}
+                            </span>
+                          )}
+                          {haServiceKeys.has(selectionKey) && (
                             <span className="px-1.5 py-0.5 text-[10px] font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">HA</span>
                           )}
                         </div>
@@ -1334,8 +1404,8 @@ export function ServiceListV3({
 
                   const isServiceExpanded = expandedVPRNServices[serviceKey];
 
-                  // Calculate Selection State
-                  const fullServiceKey = `vprn-${serviceId}`;
+                  // Calculate Selection State (v5.6.0: networkType 반영)
+                  const fullServiceKey = generateSelectionKey(representative);
                   const isFullServiceSelected = selectedSet.has(fullServiceKey);
                   const selectedCount = allInterfaces.filter(intf =>
                     isFullServiceSelected || selectedSet.has(`vprn___${serviceId}___${hostname}___${intf.interfaceName}`)
@@ -1406,12 +1476,21 @@ export function ServiceListV3({
                           onClick={handleServiceSelect}
                           className="mr-2"
                         />
-                        <span className="font-semibold text-sm flex-1 m-0 dark:text-gray-200">
-                          VPRN {serviceId} - {hostname} ({allInterfaces.length})
+                        <span className="font-semibold text-sm flex-1 m-0 dark:text-gray-200 flex items-center gap-2">
+                          <span>VPRN {serviceId} - {hostname} ({allInterfaces.length})</span>
+                          {representative.networkType && representative.networkType !== 'unknown' && (
+                            <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                              representative.networkType === 'isp' ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300' :
+                              representative.networkType === 'mpls' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
+                              'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300'
+                            }`}>
+                              {representative.networkType.toUpperCase()}
+                            </span>
+                          )}
+                          {haServiceKeys.has(fullServiceKey) && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">HA</span>
+                          )}
                         </span>
-                        {haServiceKeys.has(`vprn-${serviceId}`) && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-bold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded ml-2">HA</span>
-                        )}
                       </div>
 
                       {/* Service Description */}
