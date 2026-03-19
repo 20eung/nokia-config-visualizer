@@ -145,6 +145,7 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 | 버전 | 날짜 | 주요 내용 |
 |---|---|---|
+| v5.5.2 | 2026-03-19 | Unicode 하이픈 문자 검색 오류 수정 (U+2011 Non-Breaking Hyphen) |
 | v5.5.1 | 2026-03-16 | Copy PNG 클립보드 복사 기능 수정 (NPM Permissions Policy) |
 | v5.5.0 | 2026-03-13 | AutoParser Service (자동 파싱), Vendor Detection 개선 |
 | v5.3.0 | 2026-03-09 | 폴더 선택 기능 (webkitdirectory + localStorage 유지, 서브디렉토리 지원) |
@@ -162,6 +163,6 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 ---
 
-**Last Updated**: 2026-03-16
-**Current Version**: v5.5.1
+**Last Updated**: 2026-03-19
+**Current Version**: v5.5.2
 **Branch**: main

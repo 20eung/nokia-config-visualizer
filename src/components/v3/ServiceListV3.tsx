@@ -52,6 +52,18 @@ const TYPE_COLORS = {
   ha:    { active: 'bg-green-600 text-white border-green-600', inactive: 'border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40' },
 } as const;
 
+/**
+ * 검색어 정규화 헬퍼 함수 (v5.5.2)
+ * - Unicode 하이픈 문자들을 일반 하이픈(U+002D)으로 통일
+ * - NFKD 정규화로 호환 문자 처리
+ */
+function normalizeSearchString(str: string): string {
+  return str
+    .normalize('NFKD')
+    .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, '-') // 모든 하이픈 변형 → ASCII hyphen
+    .toLowerCase();
+}
+
 export function ServiceListV3({
   services,
   configs,
@@ -385,7 +397,7 @@ export function ServiceListV3({
   }, [aiEnabled]);
 
   /**
-   * IES 인터페이스 레벨 필터링 (v4.5.0)
+   * IES 인터페이스 레벨 필터링 (v4.5.0, v5.5.2: Unicode 하이픈 정규화)
    * 검색어에 매칭되는 인터페이스만 포함하는 새 서비스 생성
    */
   const filterIESInterfaces = useCallback((
@@ -395,15 +407,15 @@ export function ServiceListV3({
     if (!query) return service; // 검색어 없으면 전체 반환
 
     const filteredInterfaces = service.interfaces.filter(iface => {
-      // 인터페이스 특화 필드 검색
-      if (iface.interfaceName && iface.interfaceName.toLowerCase().includes(query)) return true;
-      if (iface.description && iface.description.toLowerCase().includes(query)) return true;
-      if (iface.portId && iface.portId.toLowerCase().includes(query)) return true;
-      if (iface.ipAddress && iface.ipAddress.toLowerCase().includes(query)) return true;
+      // 인터페이스 특화 필드 검색 (v5.5.2: 정규화 적용)
+      if (iface.interfaceName && normalizeSearchString(iface.interfaceName).includes(query)) return true;
+      if (iface.description && normalizeSearchString(iface.description).includes(query)) return true;
+      if (iface.portId && normalizeSearchString(iface.portId).includes(query)) return true;
+      if (iface.ipAddress && normalizeSearchString(iface.ipAddress).includes(query)) return true;
 
       // Catch-all: 인터페이스 전체 JSON 검색
       try {
-        const ifaceJson = JSON.stringify(iface).toLowerCase();
+        const ifaceJson = normalizeSearchString(JSON.stringify(iface));
         if (ifaceJson.includes(query)) return true;
       } catch (e) {
         console.warn('[filterIESInterfaces] JSON.stringify failed:', e);
@@ -575,11 +587,11 @@ export function ServiceListV3({
 
       // 검색 필터 (Enhanced with Hostname, Interfaces, IPs, BGP/OSPF, SAP/SDP)
       if (searchQuery) {
-        // AND/OR 검색 로직 (v1.3.0)
+        // AND/OR 검색 로직 (v1.3.0, v5.5.2: 검색어 정규화 추가)
         const isAndSearch = searchQuery.includes(' + ');
         const searchTerms = isAndSearch
-          ? searchQuery.split(' + ').map(t => t.trim().toLowerCase()).filter(t => t.length > 0)
-          : searchQuery.split(/\s+/).map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+          ? searchQuery.split(' + ').map(t => normalizeSearchString(t.trim())).filter(t => t.length > 0)
+          : searchQuery.split(/\s+/).map(t => normalizeSearchString(t.trim())).filter(t => t.length > 0);
 
         // 단일 검색어인 경우 기존 로직 유지 (성능 최적화)
         if (searchTerms.length === 1) {
@@ -588,16 +600,16 @@ export function ServiceListV3({
           // 기본 서비스 정보
           const basicMatch = (
             service.serviceId.toString().includes(query) ||
-            service.description.toLowerCase().includes(query) ||
-            (service.serviceName && service.serviceName.toLowerCase().includes(query)) ||
+            normalizeSearchString(service.description).includes(query) ||
+            (service.serviceName && normalizeSearchString(service.serviceName).includes(query)) ||
             service.customerId.toString().includes(query)
           );
 
           if (basicMatch) return true;
 
-          // Hostname 검색
+          // Hostname 검색 (v5.5.2: Unicode 하이픈 정규화)
           const hostname = (service as any)._hostname;
-          if (hostname && hostname.toLowerCase().includes(query)) return true;
+          if (hostname && normalizeSearchString(hostname).includes(query)) return true;
 
           // 서비스 타입별 상세 검색
           if (service.serviceType === 'epipe') {
@@ -775,8 +787,8 @@ export function ServiceListV3({
             console.warn('[ServiceListV3] JSON.stringify failed for service:', service.serviceId, e);
           }
 
-          // 모든 필드를 소문자로 변환
-          const lowerSearchFields = searchFields.map(f => f.toLowerCase());
+          // 모든 필드를 정규화 (v5.5.2: Unicode 하이픈 처리)
+          const lowerSearchFields = searchFields.map(f => normalizeSearchString(f));
 
           // AND/OR 검색 로직 (v1.3.0)
           if (isAndSearch) {
@@ -795,11 +807,11 @@ export function ServiceListV3({
 
       return true;
     }).map(service => {
-      // ⭐ IES 인터페이스 레벨 필터링 적용 (v4.5.0)
+      // ⭐ IES 인터페이스 레벨 필터링 적용 (v4.5.0, v5.5.2: 정규화 적용)
       if (service.serviceType === 'ies' && searchQuery) {
         return filterIESInterfaces(
           service as IESService & { _hostname: string },
-          searchQuery.toLowerCase()
+          normalizeSearchString(searchQuery)
         );
       }
       return service;

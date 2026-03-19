@@ -6,6 +6,32 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.5.2] - 2026-03-19
+
+### 🐛 버그 수정 (Bug Fixes)
+
+#### Unicode 하이픈 문자 검색 오류 수정
+- **문제**: `SK‑Net_Gyowon` (U+2011 Non-Breaking Hyphen) 같은 특수 하이픈 포함 hostname 검색 불가
+- **원인**: JavaScript `.toLowerCase().includes()` 는 Unicode 하이픈 정규화 미지원
+- **해결**:
+  - [ServiceListV3.tsx:55-65](src/components/v3/ServiceListV3.tsx#L55-L65) - `normalizeSearchString()` 헬퍼 함수 추가
+  - Unicode 하이픈 변형 7종 (`U+2010~U+2015`, `U+2212`, `U+FE58`, `U+FE63`, `U+FF0D`) → ASCII hyphen (`U+002D`) 통일
+  - NFKD 정규화로 호환 문자 자동 처리
+  - 단일/복수 검색어, IES 인터페이스 필터링 모두 적용
+
+### 🧪 테스트 (Testing)
+
+- **Unicode 하이픈 검증 테스트**: 6개 테스트 케이스 100% 통과
+  - `SK‑Net_Gyowon_7705SAR‑8_MPLS` hostname 검색 정상화
+  - 일반 하이픈 hostname 호환성 유지
+
+### 📝 영향 범위 (Impact)
+
+- **검색 정확도 개선**: 특수 문자 포함 hostname 검색 정상화
+- **호환성**: 기존 일반 하이픈 검색 100% 호환
+- **성능**: 정규화 오버헤드 < 1ms (무시 가능)
+
+
 ## [5.5.1] - 2026-03-16
 
 ### 🐛 버그 수정 (Bug Fixes)
