@@ -5,7 +5,7 @@
  * 폴더 선택(webkitdirectory) 기능이 내장되어 있습니다.
  */
 
-import React, { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import React, { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw';
 import AlertCircle from 'lucide-react/dist/esm/icons/alert-circle';
@@ -29,13 +29,14 @@ const ConfigFileListImpl: React.FC<ConfigFileListProps> = ({
   onUploadConfig
 }) => {
   const [savedFolder, setSavedFolder] = useState<SavedFolder | null>(null);
-  const folderInputRef = useRef<HTMLInputElement>(null);
 
-  // webkitdirectory 속성은 React JSX로 전달되지 않을 수 있으므로 직접 setAttribute 사용
-  useEffect(() => {
-    if (folderInputRef.current) {
-      folderInputRef.current.setAttribute('webkitdirectory', '');
-      folderInputRef.current.setAttribute('directory', ''); // Firefox 호환
+  // ref callback: 렌더링될 때마다 webkitdirectory 속성 보장
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const setFolderInputRef = useCallback((el: HTMLInputElement | null) => {
+    folderInputRef.current = el;
+    if (el) {
+      el.setAttribute('webkitdirectory', '');
+      el.setAttribute('directory', '');
     }
   }, []);
 
@@ -142,7 +143,7 @@ const ConfigFileListImpl: React.FC<ConfigFileListProps> = ({
     <div className="flex gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
       {/* 숨겨진 폴더 선택 input — webkitdirectory는 useEffect에서 setAttribute로 설정 */}
       <input
-        ref={folderInputRef}
+        ref={setFolderInputRef}
         type="file"
         multiple
         className="hidden"
