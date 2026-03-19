@@ -836,15 +836,6 @@ export function ServiceListV3({
       .toSorted((a, b) => a.serviceId - b.serviceId);
   }
 
-  // DEBUG: networkType check
-  const debugVpls4073 = filteredServices.filter(s => s.serviceId === 4073 && s.serviceType === 'vpls');
-  if (debugVpls4073.length > 0) {
-    console.log('[DEBUG ServiceListV3] VPLS 4073:', debugVpls4073.map(s => ({
-      networkType: s.networkType,
-      hostname: (s as any)._hostname,
-    })));
-  }
-
   // 서비스를 serviceId와 serviceType별로 그룹화 (v5.6.0: networkType 반영)
   const groupedServices = filteredServices.reduce((acc, service) => {
     let key: string;

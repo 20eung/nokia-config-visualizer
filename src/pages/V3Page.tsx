@@ -73,20 +73,7 @@ export function V3Page() {
         if (parsed.hostname || parsed.services.length > 0) {
           parsedConfigs.push(parsed);
         }
-        // DEBUG: networkType propagation check
-        const vpls4073 = parsed.services.filter(s => s.serviceId === 4073 && s.serviceType === 'vpls');
-        if (vpls4073.length > 0) {
-          console.log(`[DEBUG] VPLS 4073 in ${parsed.hostname}:`, vpls4073.map(s => ({
-            networkType: s.networkType,
-            serviceId: s.serviceId,
-          })));
-        }
       });
-
-      // DEBUG: all parsed services networkType summary
-      const allSvcs = parsedConfigs.flatMap(c => c.services);
-      const withNT = allSvcs.filter(s => s.networkType);
-      console.log(`[DEBUG] Parsed ${parsedConfigs.length} configs, ${allSvcs.length} services, ${withNT.length} with networkType`);
 
       if (parsedConfigs.length > 0) {
         setConfigs(parsedConfigs);
