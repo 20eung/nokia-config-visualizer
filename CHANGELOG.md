@@ -6,6 +6,16 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.6.2] - 2026-03-21
+
+### 🐛 버그 수정 (Bug Fixes)
+
+- **Dashboard 검색 Unicode 하이픈 정규화 수정**:
+  - Dashboard 검색창에서 U+2011 Non-Breaking Hyphen(`‑`) 포함 hostname 검색 불가 문제 해결
+  - `siteName`, `hostnames` 필터에 `normalizeSearchString()` 적용 (ServiceListV3와 동일 로직)
+  - [src/components/v3/Dashboard.tsx](src/components/v3/Dashboard.tsx)
+
+
 ## [5.6.1] - 2026-03-19
 
 ### 🐛 버그 수정 (Bug Fixes)

@@ -16,6 +16,17 @@ import type { SiteGroup } from '../../types/site';
 import type { NetworkType } from '../../types/services';
 import { groupConfigsBySite } from '../../utils/siteGrouper';
 
+/**
+ * 검색어 정규화 헬퍼 (v5.6.2: ServiceListV3와 동일 로직)
+ * Unicode 하이픈 변형(U+2011 등)을 ASCII 하이픈으로 통일
+ */
+function normalizeSearchString(str: string): string {
+  return str
+    .normalize('NFKD')
+    .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, '-')
+    .toLowerCase();
+}
+
 interface DashboardProps {
   configs: ParsedConfigV3[];
   onSiteClick: (hostnames: string[]) => void;
@@ -61,13 +72,13 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
     return { epipe, vpls, vprn, ies: iesCount, sites: siteGroups.length, devices, networkTypeCounts };
   }, [configs, siteGroups.length]);
 
-  // 검색 필터
+  // 검색 필터 (v5.6.2: Unicode 하이픈 정규화 적용)
   const filteredGroups = useMemo(() => {
     if (!searchQuery.trim()) return siteGroups;
-    const q = searchQuery.toLowerCase();
+    const q = normalizeSearchString(searchQuery);
     return siteGroups.filter(g =>
-      g.siteName.toLowerCase().includes(q) ||
-      g.hostnames.some(h => h.toLowerCase().includes(q))
+      normalizeSearchString(g.siteName).includes(q) ||
+      g.hostnames.some(h => normalizeSearchString(h).includes(q))
     );
   }, [siteGroups, searchQuery]);
 
