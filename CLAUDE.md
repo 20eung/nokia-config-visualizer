@@ -132,10 +132,25 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 ## 참고 문서
 - `README.md`: 프로젝트 설명, 빌드/배포 명령어
-- `CHANGELOG.md`: 버전별 변경 이력
+- `CHANGELOG.md`: 버전별 변경 이력 (요약)
 - `docs/releases/`: 버전별 상세 릴리즈 노트
+  - `docs/releases/README.md`: 전체 버전 인덱스 테이블
+  - `docs/releases/vX.X.X.md`: 버전별 상세 노트 (v1.4.0 ~ v5.6.2, 36개)
 - `DIAGRAM_RULES.md`: Mermaid 다이어그램 렌더링 규칙 상세
 - `HOWTO-DOCKER.md`: Docker 빌드 및 배포 가이드
+
+### 릴리즈 노트 작성 규칙
+
+- **저장 위치**: `docs/releases/vX.X.X.md` (루트에 `RELEASE_NOTES_*.md` 생성 금지)
+- **인덱스 관리**: 새 버전 추가 시 `docs/releases/README.md` 테이블 업데이트
+- **헤더 형식**:
+  ```markdown
+  # Release Notes - vX.X.X
+
+  > **Date**: YYYY-MM-DD
+  > **Branch**: `main`
+  > **Type**: Feature / Bug Fix / Performance / Major Release
+  ```
 
 ## 브랜치 전략
 - `main`: 프로덕션 코드
