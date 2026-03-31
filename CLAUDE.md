@@ -160,6 +160,7 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 | 버전 | 날짜 | 주요 내용 |
 |---|---|---|
+| v5.6.3 | 2026-03-31 | Mermaid HTML 속성 따옴표 충돌, 노드 ID 하이픈 파싱 오류 수정 |
 | v5.6.2 | 2026-03-21 | Dashboard 검색 Unicode 하이픈(U+2011) 정규화 버그 수정 |
 | v5.6.1 | 2026-03-19 | VPLS 4073 ISP/MPLS 다이어그램 분리, networkType 덮어쓰기 버그 수정 |
 | v5.6.0 | 2026-03-19 | Network Type Separation Phase 1 (ISP/MPLS/Cloud 망 자동 구분) |
@@ -181,6 +182,6 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 ---
 
-**Last Updated**: 2026-03-21
-**Current Version**: v5.6.2
+**Last Updated**: 2026-03-31
+**Current Version**: v5.6.3
 **Branch**: main

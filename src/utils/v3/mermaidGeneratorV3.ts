@@ -5,9 +5,9 @@ import type { ParsedConfigV3, NokiaServiceV3 } from './parserV3';
  * Mermaid 노드 ID 생성 (특수문자 제거)
  */
 function sanitizeNodeId(id: string): string {
-    // Replace all non-alphanumeric characters (except underscore and hyphen) with underscore
-    // This prevents Mermaid syntax errors when Hostnames contain (), ., etc.
-    return id.replace(/[^a-zA-Z0-9_-]/g, '_');
+    // Replace all non-alphanumeric characters (except underscore) with underscore
+    // Hyphens are also replaced: Mermaid misparses hyphens in subgraph/node IDs as arrow syntax
+    return id.replace(/[^a-zA-Z0-9_]/g, '_');
 }
 
 // -----------------------------------------------------------------------------
@@ -56,7 +56,7 @@ function isIpInSubnet(ip: string, cidr: string): boolean {
 //   - 인라인 스타일: html2canvas foreignObject 캡처 시 외부 CSS 미적용 문제 보완
 //   - display:inline-block: html2canvas가 inline 요소의 background-color를 렌더링하지 못하는 버그 우회
 const qosHighlight = (text: string): string =>
-    `<span class="qos-hl" style="background-color:#4caf50;color:#ffffff;-webkit-text-fill-color:#ffffff;padding:1px 4px;border-radius:3px;border:1px solid #388e3c;display:inline-block;">${text}</span>`;
+    `<span class='qos-hl' style='background-color:#4caf50;color:#ffffff;-webkit-text-fill-color:#ffffff;padding:1px 4px;border-radius:3px;border:1px solid #388e3c;display:inline-block;'>${text}</span>`;
 
 // Helper: QoS rate를 KMG 단위로 변환 (kbps → K/M/G)
 // rate 파싱 성공 시: "100M", "2G", "500K", "Max"
@@ -149,7 +149,7 @@ export function generateEpipeDiagram(
 
             epipe.saps.forEach((sap, sapIdx) => {
                 const sapNodeId = `SAP_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
-                let label = `\u003cdiv style=\"text-align: left\"\u003e`;
+                let label = `\u003cdiv style='text-align: left'\u003e`;
                 // SAP + QoS (SAP 하위 항목)
                 label += `\u003cb\u003eSAP:\u003c/b\u003e ${sap.sapId}<br/>`;
                 if (sap.ingressQos) label += qosHighlight(`\u2011\u00A0In\u2011QoS:\u00A0${formatRateKMG(sap.ingressQos)}`) + `<br/>`;
@@ -181,7 +181,7 @@ export function generateEpipeDiagram(
 
         // Render Service Node
         // 여러 호스트의 name/description이 다를 수 있으므로 모든 고유값 표시
-        let svcLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
+        let svcLabel = `\u003cdiv style='text-align: left'\u003e`;
         svcLabel += `\u003cb\u003eService:\u003c/b\u003e EPIPE ${first.serviceId}<br/>`;
 
         // Name: 고유값이 1개면 인라인, 여러개면 헤더 + 들여쓰기 목록
@@ -300,7 +300,7 @@ export function generateVPLSDiagram(
     // --- Helper: SAP 노드 라벨 생성 (SAP + QoS + Port + Ethernet) ---
     // Config 구조: SAP 블록 안에 ingress/egress qos가 있으므로 QoS는 SAP 하위 항목으로 표시
     const buildSapLabel = (sap: SAP): string => {
-        let label = `\u003cdiv style=\"text-align: left\"\u003e`;
+        let label = `\u003cdiv style='text-align: left'\u003e`;
         // SAP + QoS (SAP 하위 항목)
         label += `\u003cb\u003eSAP:\u003c/b\u003e ${sap.sapId}<br/>`;
         if (sap.ingressQos) label += qosHighlight(`\u2011\u00A0In\u2011QoS:\u00A0${formatRateKMG(sap.ingressQos)}`) + `<br/>`;
@@ -369,7 +369,7 @@ export function generateVPLSDiagram(
         }
         if (sdpItems.length > 0) {
             const sdpNodeId = `SDP_${safeHost}_${vplsIdx}`;
-            const sdpLabel = `\u003cdiv style=\"text-align: left\"\u003e${sdpItems.join('<br/>')}\u003c/div\u003e`;
+            const sdpLabel = `\u003cdiv style='text-align: left'\u003e${sdpItems.join('<br/>')}\u003c/div\u003e`;
             lines.push(`${sdpNodeId}["${sdpLabel}"]`);
             lines.push(`class ${sdpNodeId} svcinfo;`);
         }
@@ -382,7 +382,7 @@ export function generateVPLSDiagram(
     // 여러 호스트의 name/description이 다를 수 있으므로 모든 고유값 표시
     const renderServiceNode = () => {
         lines.push('');
-        let vplsLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
+        let vplsLabel = `\u003cdiv style='text-align: left'\u003e`;
         vplsLabel += `\u003cb\u003eService:\u003c/b\u003e VPLS ${firstVpls.serviceId}<br/>`;
 
         // Name: 고유값이 1개면 인라인, 여러개면 헤더 + 들여쓰기 목록
@@ -694,7 +694,7 @@ export function generateVPRNDiagram(
             currentVprn.interfaces.forEach((iface, ifIdx) => {
                 const ifId = `IF_${safeHost}_${idx}_${ifIdx}`;
 
-                let label = `\u003cdiv style=\"text-align: left\"\u003e`;
+                let label = `\u003cdiv style='text-align: left'\u003e`;
 
                 // Interface (최상위 헤더)
                 label += `\u003cb\u003eInterface:\u003c/b\u003e ${noWrap(iface.interfaceName)}<br/>`;
@@ -788,7 +788,7 @@ export function generateVPRNDiagram(
 
     // --- BGP Node ---
     if (hasBgp) {
-        let bgpLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
+        let bgpLabel = `\u003cdiv style='text-align: left'\u003e`;
         bgpLabel += `\u003cb\u003eBGP:\u003c/b\u003e<br/>`;
         if (bgpRouterId) {
             bgpLabel += `\u2011\u00A0Router\u2011ID:\u00A0${bgpRouterId}<br/>`;
@@ -821,7 +821,7 @@ export function generateVPRNDiagram(
 
     // --- OSPF Node ---
     if (hasOspf) {
-        let ospfLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
+        let ospfLabel = `\u003cdiv style='text-align: left'\u003e`;
         ospfLabel += `\u003cb\u003eOSPF:\u003c/b\u003e<br/>`;
         allOspfAreas.forEach(a => {
             ospfLabel += `\u2011\u00A0Area:\u00A0${a.areaId}<br/>`;
@@ -845,7 +845,7 @@ export function generateVPRNDiagram(
         staticByNextHop.forEach((prefixes, nextHop) => {
             const nodeId = `ROUTING_STATIC_${firstVprn.serviceId}_${staticCounter}`;
             staticNodeIds.set(nextHop, nodeId);
-            let staticLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
+            let staticLabel = `\u003cdiv style='text-align: left'\u003e`;
             staticLabel += `\u003cb\u003eSTATIC:\u003c/b\u003e ${allStaticRoutes.length}개<br/>`;
             staticLabel += `\u003cb\u003eNext\u2011Hop:\u003c/b\u003e\u00A0${nextHop}<br/>`;
             prefixes.forEach(p => {
@@ -859,7 +859,7 @@ export function generateVPRNDiagram(
     }
 
     // ========== 오른쪽: Service Node (BGP/OSPF/STATIC 제거) ==========
-    let svcLabel = `\u003cdiv style=\"text-align: left\"\u003e`;
+    let svcLabel = `\u003cdiv style='text-align: left'\u003e`;
 
     // Service header
     if (firstVprn.serviceName) {

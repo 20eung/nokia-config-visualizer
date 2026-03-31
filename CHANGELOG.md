@@ -6,6 +6,20 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.6.3] - 2026-03-31
+
+### 🐛 버그 수정 (Bug Fixes)
+
+- **Mermaid 노드 라벨 HTML 속성 따옴표 충돌 수정**:
+  - 노드 라벨 `["..."]` 내부 HTML 속성의 이중 따옴표 → 단일 따옴표로 변경 (Grafana 렌더링 깨짐 해결)
+  - `qosHighlight()` span 태그 및 전체 div 라벨 적용 (Epipe/VPLS/VPRN/BGP/OSPF/STATIC)
+  - [src/utils/v3/mermaidGeneratorV3.ts](src/utils/v3/mermaidGeneratorV3.ts)
+- **노드 ID 하이픈 파싱 오류 수정**:
+  - `sanitizeNodeId()`에서 하이픈도 언더스코어로 변환 (`SK-Net` → `SK_Net`)
+  - Mermaid가 서브그래프/노드 ID의 하이픈을 화살표 문법으로 오파싱하는 문제 해결
+  - [src/utils/v3/mermaidGeneratorV3.ts](src/utils/v3/mermaidGeneratorV3.ts)
+
+
 ## [5.6.2] - 2026-03-21
 
 ### 🐛 버그 수정 (Bug Fixes)
