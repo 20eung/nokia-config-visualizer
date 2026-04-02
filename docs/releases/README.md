@@ -4,6 +4,7 @@
 
 | 버전 | 날짜 | 타입 | 주요 내용 |
 |------|------|------|----------|
+| [v5.7.0](v5.7.0.md) | 2026-04-02 | Security | Authentik SSO Forward Auth 인증 게이트, iframe 허용, 쿠키 도메인 공유 |
 | [v5.6.3](v5.6.3.md) | 2026-03-31 | Bug Fix | Mermaid HTML 속성 따옴표 충돌, 노드 ID 하이픈 파싱 오류 수정 |
 | [v5.6.2](v5.6.2.md) | 2026-03-21 | Bug Fix | Dashboard 검색 Unicode 하이픈(U+2011) 정규화 버그 수정 |
 | [v5.6.1](v5.6.1.md) | 2026-03-19 | Bug Fix | VPLS 4073 ISP/MPLS 다이어그램 분리, networkType 덮어쓰기 버그 수정 |

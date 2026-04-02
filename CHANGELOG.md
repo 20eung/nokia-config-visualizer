@@ -6,6 +6,24 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.7.0] - 2026-04-02
+
+### 🔒 보안 (Security)
+
+- **Authentik SSO Forward Auth 인증 게이트 구현**:
+  - nginx `auth_request`로 Authentik Embedded Outpost 연동, 미인증 접근 전면 차단
+  - 모든 경로 적용 (`/`, `/api/*`, `/ws`, 정적 파일)
+  - `/health` 엔드포인트 인증 예외 (포털 모니터링용)
+  - [nginx.conf](nginx.conf)
+- **포털 iframe 임베딩 허용**:
+  - `X-Frame-Options: SAMEORIGIN` 제거
+  - CSP `frame-ancestors 'self' https://portal.hub.sk-net.com` 추가
+- **SSO 쿠키 도메인 공유 (`hub.sk-net.com`)**:
+  - Authentik Proxy Provider `cookie_domain=hub.sk-net.com` 설정
+  - 포털 로그인 1회로 Nokia Visualizer iframe 자동 인증
+- **포털 헬스체크 URL 수정**:
+  - Nokia Visualizer 헬스체크를 `/health` 엔드포인트로 변경 (인증 우회)
+
 ## [5.6.3] - 2026-03-31
 
 ### 🐛 버그 수정 (Bug Fixes)
