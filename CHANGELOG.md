@@ -6,6 +6,20 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.7.1] - 2026-04-03
+
+### 🐛 버그 수정 (Bug Fixes)
+
+- **포털 iframe Nokia Visualizer 접속 불가 수정**:
+  - `Sec-Fetch-Dest: iframe` 헤더로 iframe 컨텍스트 감지
+  - 인증 실패 시 iframe 내부 리다이렉트 대신 TOP 프레임을 Nokia Visualizer로 이동 (`?_pr=1`)
+  - `auth.hub.sk-net.com` X-Frame-Options 차단 우회
+  - [nginx.conf](nginx.conf)
+- **`?_pr=1` 포털 자동 복귀 처리**:
+  - Nokia Visualizer 인증 완료 후 `?_pr=1` 감지 시 포털 `/visualizer`로 즉시 복귀
+  - React 렌더링 이전 동기 처리로 화면 깜빡임 없음
+  - [src/main.tsx](src/main.tsx)
+
 ## [5.7.0] - 2026-04-02
 
 ### 🔒 보안 (Security)
