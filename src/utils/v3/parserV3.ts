@@ -124,6 +124,18 @@ export function extractSection(configText: string, sectionName: string): string 
             // If we find an 'exit' at the same indentation as the section start, we are done
             if (line.trim() === 'exit' && currentIndent === sectionIndent) {
                 sectionLines.push(line);
+                // Check if this section is empty (only has start line + optional blanks + exit)
+                const hasContent = sectionLines.some(l => {
+                    const t = l.trim();
+                    return t && t !== sectionName && t !== 'exit' && !t.startsWith('#') && !t.startsWith('echo');
+                });
+                if (!hasContent) {
+                    // Empty section — reset and keep searching for the next occurrence
+                    sectionLines = [];
+                    inSection = false;
+                    sectionIndent = -1;
+                    continue;
+                }
                 break;
             }
 

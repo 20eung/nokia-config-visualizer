@@ -4,6 +4,7 @@
 
 | 버전 | 날짜 | 타입 | 주요 내용 |
 |------|------|------|----------|
+| [v5.8.4](v5.8.4.md) | 2026-04-10 | Bug Fix | extractSection 빈 service 블록 건너뜀 — 7750SR-a8 파일 서비스 미파싱 버그 수정 |
 | [v5.8.3](v5.8.3.md) | 2026-04-10 | Feature | watchFolder 전체 파일 텍스트 검색 (search-global-config) — 미로드 파일 발견 + 즉시 로드 |
 | [v5.8.2](v5.8.2.md) | 2026-04-10 | Enhancement | Dashboard 카드 클릭 시 해당 장비 서비스 필터링 (사이드바 배너 + X 해제) |
 | [v5.8.1](v5.8.1.md) | 2026-04-10 | Performance | React 성능 최적화 v2 (groupedDiagrams useMemo, handleCopyCode/handleZoom useCallback, Dashboard 상수화) |
