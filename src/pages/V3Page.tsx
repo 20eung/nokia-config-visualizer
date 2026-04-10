@@ -31,6 +31,7 @@ import List from 'lucide-react/dist/esm/icons/list';
 import Sun from 'lucide-react/dist/esm/icons/sun';
 import Moon from 'lucide-react/dist/esm/icons/moon';
 import MousePointerClick from 'lucide-react/dist/esm/icons/mouse-pointer-click';
+import X from 'lucide-react/dist/esm/icons/x';
 import { convertIESToV1Format, generateCrossDeviceIESDiagrams } from '../utils/v1IESAdapter';
 import { useConfigWebSocket } from '../hooks/useConfigWebSocket';
 import { ConfigFileList } from '../components/v3/ConfigFileList';
@@ -47,6 +48,7 @@ export function V3Page() {
   const [isResizing, setIsResizing] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [dashboardFilterHostnames, setDashboardFilterHostnames] = useState<string[]>([]);
 
   const { isDark, toggleTheme } = useDarkMode();
 
@@ -224,6 +226,37 @@ export function V3Page() {
     []
   );
 
+  // 파일 검색에서 미로드 파일 로드 (search-global-config)
+  const handleLoadFile = useCallback(async (filename: string) => {
+    try {
+      const res = await fetch(`/api/config/file/${encodeURIComponent(filename)}`);
+      if (!res.ok) throw new Error(`파일 로드 실패 (${res.status})`);
+      const networkType = res.headers.get('X-Network-Type') || undefined;
+      const text = await res.text();
+      const parsed = parseL2VPNConfig(text, networkType ? { networkType: networkType as NetworkType } : undefined);
+      if (!networkType && parsed.services.some(s => !s.networkType)) {
+        const inferred = inferNetworkType(parsed);
+        if (inferred !== 'unknown') {
+          parsed.services.forEach(s => { s.networkType = inferred; });
+        }
+      }
+      if (parsed.hostname || parsed.services.length > 0) {
+        setConfigs(prev => {
+          const exists = prev.findIndex(c => c.hostname === parsed.hostname);
+          if (exists >= 0) {
+            const updated = [...prev];
+            updated[exists] = parsed;
+            return updated;
+          }
+          return [...prev, parsed];
+        });
+      }
+    } catch (error) {
+      console.error('[V3Page] Failed to load file from search:', error);
+      alert('파일 로드 실패');
+    }
+  }, []);
+
   // Dashboard에서 사이트 클릭 시 해당 사이트 Config 선택 + 서비스 뷰 전환
   const handleSiteClick = useCallback((hostnames: string[]) => {
     // 해당 사이트의 모든 서비스를 선택
@@ -242,6 +275,7 @@ export function V3Page() {
       }
     });
     setSelectedServiceIds(keys);
+    setDashboardFilterHostnames(hostnames);
     setViewMode('services');
   }, [configs]);
 
@@ -287,6 +321,14 @@ export function V3Page() {
       })
     ),
     [configs]
+  );
+
+  // Dashboard 카드 클릭으로 진입 시 해당 장비의 서비스만 표시
+  const displayedServices = useMemo(() =>
+    dashboardFilterHostnames.length > 0
+      ? allServices.filter(s => dashboardFilterHostnames.includes((s as any)._hostname))
+      : allServices,
+    [allServices, dashboardFilterHostnames]
   );
 
   const selectedServices = useMemo(() =>
@@ -544,7 +586,7 @@ export function V3Page() {
                     ? 'bg-blue-600 text-white'
                     : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}
-                onClick={() => setViewMode('services')}
+                onClick={() => { setViewMode('services'); setDashboardFilterHostnames([]); }}
                 title="Services"
               >
                 <List size={16} />
@@ -594,12 +636,27 @@ export function V3Page() {
                 }`}
                 style={{ width: isSidebarCollapsed ? 0 : sidebarWidth, transition: isResizing ? 'none' : undefined }}
               >
+                {dashboardFilterHostnames.length > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-700 text-xs shrink-0">
+                    <span className="text-blue-700 dark:text-blue-300 font-medium truncate flex-1 min-w-0">
+                      {dashboardFilterHostnames.join(', ')}
+                    </span>
+                    <button
+                      onClick={() => { setDashboardFilterHostnames([]); setSelectedServiceIds([]); }}
+                      className="text-blue-400 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-200 shrink-0"
+                      title="필터 해제 (전체 서비스 표시)"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
                 <ServiceListV3
-                  services={allServices}
+                  services={displayedServices}
                   configs={configs}
                   selectedServiceIds={selectedServiceIds}
                   onToggleService={handleToggleService}
                   onSetSelected={handleSetSelected}
+                  onLoadFile={handleLoadFile}
                 />
               </aside>
 
