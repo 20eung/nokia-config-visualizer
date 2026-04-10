@@ -4,6 +4,8 @@
 
 | 버전 | 날짜 | 타입 | 주요 내용 |
 |------|------|------|----------|
+| [v5.7.3](v5.7.3.md) | 2026-04-10 | Enhancement | Show Code → Copy Code 버튼 변환 (1단계 클립보드 복사) |
+| [v5.7.2](v5.7.2.md) | 2026-04-08 | Bug Fix | Mermaid 다이어그램 silent failure 수정 |
 | [v5.7.1](v5.7.1.md) | 2026-04-03 | Bug Fix | 포털 iframe Nokia Visualizer Authentik 인증 흐름 수정 (TOP 프레임 리다이렉트) |
 | [v5.7.0](v5.7.0.md) | 2026-04-02 | Security | Authentik SSO Forward Auth 인증 게이트, iframe 허용, 쿠키 도메인 공유 |
 | [v5.6.3](v5.6.3.md) | 2026-03-31 | Bug Fix | Mermaid HTML 속성 따옴표 충돌, 노드 ID 하이픈 파싱 오류 수정 |

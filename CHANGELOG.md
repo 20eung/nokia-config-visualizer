@@ -6,6 +6,12 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.7.3] - 2026-04-10
+
+### ✨ 개선 (Enhancement)
+
+- **Show Code → Copy Code 버튼 변환**: 기존 2단계(코드 표시 → Copy 클릭) → 1단계(Copy Code 클릭 즉시 복사), 복사 후 2초간 초록색 `Copied!` 피드백 표시
+
 ## [5.7.1] - 2026-04-03
 
 ### 🐛 버그 수정 (Bug Fixes)

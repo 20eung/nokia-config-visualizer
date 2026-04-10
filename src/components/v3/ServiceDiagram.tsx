@@ -22,10 +22,10 @@ interface ServiceDiagramProps {
 // rerender-memo: diagram/service props 불변 시 재렌더링 방지 (mermaid async 렌더링 비용 절감)
 export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, hostname, diagramName }: ServiceDiagramProps) {
     const diagramRef = useRef<HTMLDivElement>(null);
-    const [showCode, setShowCode] = useState(false);
     const [zoom, setZoom] = useState(1);
     const [showGrafanaModal, setShowGrafanaModal] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [copiedCode, setCopiedCode] = useState(false);
 
     useEffect(() => {
         if (!diagramRef.current || !diagram) return;
@@ -261,9 +261,22 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
         }
     };
 
-    const handleCopyCode = () => {
-        navigator.clipboard.writeText(diagram);
-        alert('Mermaid code copied to clipboard!');
+    const handleCopyCode = async () => {
+        try {
+            await navigator.clipboard.writeText(diagram);
+            setCopiedCode(true);
+            setTimeout(() => setCopiedCode(false), 2000);
+        } catch {
+            // fallback: execCommand
+            const el = document.createElement('textarea');
+            el.value = diagram;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            setCopiedCode(true);
+            setTimeout(() => setCopiedCode(false), 2000);
+        }
     };
 
     const handleZoomIn = () => {
@@ -340,9 +353,13 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <button onClick={() => setShowCode(!showCode)} className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-900 dark:hover:text-gray-100" title="Toggle Code">
-                        <Code size={18} />
-                        {showCode ? ' Hide Code' : ' Show Code'}
+                    <button
+                        onClick={handleCopyCode}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-md cursor-pointer transition-all duration-200 border ${copiedCode ? 'bg-emerald-500 border-emerald-500 text-white hover:bg-emerald-600 hover:border-emerald-600' : 'text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-900 dark:hover:text-gray-100'}`}
+                        title="Copy Mermaid code to clipboard"
+                    >
+                        {copiedCode ? <Check size={18} /> : <Code size={18} />}
+                        {copiedCode ? ' Copied!' : ' Copy Code'}
                     </button>
                     <button
                         onClick={handleCopyImagePNG}
@@ -367,20 +384,6 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
                 />
             </div>
 
-            {/* Mermaid 코드 */}
-            {showCode && (
-                <div className="border-t border-gray-200 dark:border-gray-700 bg-slate-800 text-gray-200">
-                    <div className="flex justify-between items-center px-4 py-2 border-b border-slate-700 bg-slate-900 text-sm">
-                        <span>Mermaid Code</span>
-                        <button onClick={handleCopyCode} className="bg-transparent border border-slate-600 text-slate-300 px-2 py-0.5 rounded text-xs cursor-pointer hover:bg-slate-700 hover:text-white">
-                            Copy
-                        </button>
-                    </div>
-                    <pre className="m-0 p-4 font-mono text-sm overflow-x-auto whitespace-pre-wrap">
-                        <code>{diagram}</code>
-                    </pre>
-                </div>
-            )}
 
             {/* Grafana Export 모달 */}
             {showGrafanaModal && (
