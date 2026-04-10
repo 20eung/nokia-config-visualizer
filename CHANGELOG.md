@@ -6,6 +6,16 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.8.1] - 2026-04-10
+
+### ⚡ 성능 (Performance)
+
+- **React 성능 최적화 v2 (Vercel React Best Practices 재점검)**: v5.8.0 이후 잔존 이슈 4종 해결
+  - `groupedDiagrams` useMemo 추출 → JSX 내 inline `diagrams.reduce()` 제거, 매 렌더마다 O(n) 재계산 방지
+  - `handleCopyCode` useCallback 적용 (`[diagram]` 의존성) → `handleCopyImagePNG`와 일관성 확보
+  - `handleZoomIn/handleZoomOut/handleResetZoom` useCallback 적용 (`[]` 의존성) → functional updater로 안전한 빈 의존성
+  - `Dashboard` `STAT_CARD_DEFS` 컴포넌트 외부 상수화 → 정적 설정과 동적 데이터 분리, `statCards` useMemo 불필요 제거
+
 ## [5.8.0] - 2026-04-10
 
 ### ⚡ 성능 (Performance)

@@ -22,6 +22,14 @@ interface DashboardProps {
   onSiteClick: (hostnames: string[]) => void;
 }
 
+// 서비스 타입별 통계 카드 정적 설정 (렌더링과 무관한 상수)
+const STAT_CARD_DEFS = [
+  { key: 'epipe' as const, label: 'Epipe', color: 'bg-blue-500', darkColor: 'dark:bg-blue-600' },
+  { key: 'vpls' as const, label: 'VPLS', color: 'bg-emerald-500', darkColor: 'dark:bg-emerald-600' },
+  { key: 'vprn' as const, label: 'VPRN', color: 'bg-violet-500', darkColor: 'dark:bg-violet-600' },
+  { key: 'ies' as const, label: 'IES', color: 'bg-amber-500', darkColor: 'dark:bg-amber-600' },
+];
+
 export function Dashboard({ configs, onSiteClick }: DashboardProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -72,12 +80,7 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
     );
   }, [siteGroups, searchQuery]);
 
-  const statCards = useMemo(() => [
-    { label: 'Epipe', count: totalStats.epipe, color: 'bg-blue-500', darkColor: 'dark:bg-blue-600' },
-    { label: 'VPLS', count: totalStats.vpls, color: 'bg-emerald-500', darkColor: 'dark:bg-emerald-600' },
-    { label: 'VPRN', count: totalStats.vprn, color: 'bg-violet-500', darkColor: 'dark:bg-violet-600' },
-    { label: 'IES', count: totalStats.ies, color: 'bg-amber-500', darkColor: 'dark:bg-amber-600' },
-  ], [totalStats]);
+  const statCards = STAT_CARD_DEFS.map(def => ({ ...def, count: totalStats[def.key] }));
 
   return (
     <div

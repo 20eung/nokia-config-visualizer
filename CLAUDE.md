@@ -160,6 +160,7 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 | 버전 | 날짜 | 주요 내용 |
 |---|---|---|
+| v5.8.1 | 2026-04-10 | React 성능 최적화 v2 (groupedDiagrams useMemo, handleCopyCode/handleZoom useCallback, Dashboard 상수화) |
 | v5.8.0 | 2026-04-10 | React 성능 최적화 (메모리 누수, Stale Closure, 정규식 최적화, useCallback/useMemo) |
 | v5.7.1 | 2026-04-03 | 포털 iframe Nokia Visualizer Authentik 인증 흐름 수정 (TOP 프레임 리다이렉트) |
 | v5.7.0 | 2026-04-02 | Authentik SSO Forward Auth 인증 게이트, iframe 허용, 쿠키 도메인 공유 |
@@ -186,5 +187,5 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 ---
 
 **Last Updated**: 2026-04-10
-**Current Version**: v5.8.0
+**Current Version**: v5.8.1
 **Branch**: main

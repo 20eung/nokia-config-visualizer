@@ -265,7 +265,7 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
         }
     }, [diagram, service.serviceId, hostname]);
 
-    const handleCopyCode = async () => {
+    const handleCopyCode = useCallback(async () => {
         try {
             await navigator.clipboard.writeText(diagram);
             setCopiedCode(true);
@@ -281,19 +281,19 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
             setCopiedCode(true);
             setTimeout(() => setCopiedCode(false), 2000);
         }
-    };
+    }, [diagram]);
 
-    const handleZoomIn = () => {
+    const handleZoomIn = useCallback(() => {
         setZoom(prev => Math.min(prev + 0.1, 2));
-    };
+    }, []);
 
-    const handleZoomOut = () => {
+    const handleZoomOut = useCallback(() => {
         setZoom(prev => Math.max(prev - 0.1, 0.5));
-    };
+    }, []);
 
-    const handleResetZoom = () => {
+    const handleResetZoom = useCallback(() => {
         setZoom(1);
-    };
+    }, []);
 
     // service-type-badge 배경색 결정
     const badgeBgClass =

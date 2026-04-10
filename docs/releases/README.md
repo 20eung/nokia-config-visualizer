@@ -4,6 +4,7 @@
 
 | 버전 | 날짜 | 타입 | 주요 내용 |
 |------|------|------|----------|
+| [v5.8.1](v5.8.1.md) | 2026-04-10 | Performance | React 성능 최적화 v2 (groupedDiagrams useMemo, handleCopyCode/handleZoom useCallback, Dashboard 상수화) |
 | [v5.8.0](v5.8.0.md) | 2026-04-10 | Performance | React 성능 최적화 (메모리 누수, Stale Closure, 정규식 최적화, useCallback/useMemo) |
 | [v5.7.5](v5.7.5.md) | 2026-04-10 | Bug Fix | IES QoS 엣지 레이블 Copy PNG 렌더링 수정 (초록 배지 스타일 누락) |
 | [v5.7.4](v5.7.4.md) | 2026-04-10 | Enhancement | Mermaid flowchart LR 전환, 노드 포맷 개편, Hostname 줄바꿈 방지 |

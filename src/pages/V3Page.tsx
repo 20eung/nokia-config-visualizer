@@ -464,6 +464,19 @@ export function V3Page() {
 
   const diagrams: DiagramItem[] = useMemo(() => [...iesDiagrams, ...nonIesDiagrams], [iesDiagrams, nonIesDiagrams]);
 
+  // 다이어그램 표시용 그루핑 (serviceType + serviceId + networkType 키)
+  const groupedDiagrams = useMemo(() =>
+    diagrams.reduce((acc, item) => {
+      // v5.6.1: networkType로 ISP/MPLS 분리
+      const nt = item.service.networkType && item.service.networkType !== 'unknown' ? `_${item.service.networkType}` : '';
+      const key = `${item.service.serviceType}_${item.service.serviceId}${nt}`;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(item);
+      return acc;
+    }, {} as Record<string, typeof diagrams>),
+    [diagrams]
+  );
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-gray-900">
       {/* Header */}
@@ -602,16 +615,7 @@ export function V3Page() {
               <section className="flex-1 overflow-y-auto p-6 bg-slate-100 dark:bg-gray-900">
                 {diagrams.length > 0 ? (
                   <div className="flex flex-col gap-6 max-w-[1200px] mx-auto">
-                    {Object.entries(
-                      diagrams.reduce((acc, item) => {
-                        // v5.6.1: networkType로 ISP/MPLS 분리
-                        const nt = item.service.networkType && item.service.networkType !== 'unknown' ? `_${item.service.networkType}` : '';
-                        const key = `${item.service.serviceType}_${item.service.serviceId}${nt}`;
-                        if (!acc[key]) acc[key] = [];
-                        acc[key].push(item);
-                        return acc;
-                      }, {} as Record<string, typeof diagrams>)
-                    ).map(([groupKey, group]) => {
+                    {Object.entries(groupedDiagrams).map(([groupKey, group]) => {
                       const firstService = group[0].service;
                       const networkLabel = firstService.networkType && firstService.networkType !== 'unknown'
                         ? firstService.networkType.toUpperCase() : '';
