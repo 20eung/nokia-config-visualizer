@@ -23,7 +23,7 @@ function sanitizeNodeId(id: string): string {
  */
 export function generateIESDiagram(_services: NokiaServiceV3[], _hostnames: string[]): string {
     console.warn('⚠️ generateIESDiagram is deprecated. Use v1IESAdapter instead.');
-    return 'graph LR\n    Deprecated["This function is deprecated. Use V1 IES Adapter."]';
+    return 'flowchart LR\n    Deprecated["This function is deprecated. Use V1 IES Adapter."]';
 }
 
 // Helper: Non-wrapping text (from V1)
@@ -119,19 +119,18 @@ export function generateEpipeDiagram(
         }
     });
 
-    // Check Trigger Condition: Always group by SDP for consistency
-    // User Request: "Host=1 should look like Host>=2 format"
-    // We remove the fallback 'Merge Mode' and always use the 'Split/Group Mode' 
-    // which generates consistent Service Labels and separates discongruent SDPs.
-
     // SPLIT MODE: Generate separate diagrams for each SDP Group + NoSDP Group
-    const lines: string[] = ['graph LR'];
-    lines.push('classDef default fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left;');
-    lines.push('classDef service fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000;');
-    // QoS는 SAP 노드 내부에 표시 (엣지 라벨 사용 안 함)
+    const lines: string[] = ['flowchart LR'];
+    lines.push('    %% 렌더링 최적화 설정');
+    lines.push('    %% 텍스트 정렬을 위해 class에 직접 할당');
+    lines.push('    classDef hostNode fill:#ffffff,stroke:#333,stroke-width:1px,color:#000,text-align:left;');
+    lines.push('    classDef serviceNode fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000,text-align:left;');
     lines.push('');
 
     let groupCounter = 0;
+    const arrowLines: string[] = [];
+    const allSapNodeIds: string[] = [];
+    const allServiceNodeIds: string[] = [];
 
     // Helper to render a subset
     const renderSubset = (subsetEpipes: EpipeService[], subsetHosts: string[], _groupLabel: string) => {
@@ -144,45 +143,47 @@ export function generateEpipeDiagram(
             const safeHost = sanitizeNodeId(host);
             const hostId = `HOST_${safeHost}_G${groupCounter}_${idx}`;
 
-            lines.push(`subgraph ${hostId} ["\u003cb\u003e${noWrap(host)}\u003c/b\u003e"]`);
-            lines.push('direction TB');
+            lines.push(`    subgraph ${hostId} ["${noWrap(host)}"]`);
+            lines.push('        direction TB');
 
             epipe.saps.forEach((sap, sapIdx) => {
                 const sapNodeId = `SAP_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
-                let label = `\u003cdiv style='text-align: left'\u003e`;
+                allSapNodeIds.push(sapNodeId);
+
+                let label = '';
                 // SAP + QoS (SAP 하위 항목)
-                label += `\u003cb\u003eSAP:\u003c/b\u003e ${sap.sapId}<br/>`;
-                if (sap.ingressQos) label += qosHighlight(`\u2011\u00A0In\u2011QoS:\u00A0${formatRateKMG(sap.ingressQos)}`) + `<br/>`;
-                if (sap.egressQos) label += qosHighlight(`\u2011\u00A0Out\u2011QoS:\u00A0${formatRateKMG(sap.egressQos)}`) + `<br/>`;
+                label += `<b>SAP:</b> ${sap.sapId}<br/>`;
+                if (sap.ingressQos) label += qosHighlight(`- In-QoS: ${formatRateKMG(sap.ingressQos)}`) + `<br/>`;
+                if (sap.egressQos) label += qosHighlight(`- Out-QoS: ${formatRateKMG(sap.egressQos)}`) + `<br/>`;
                 // Port
-                label += `\u003cb\u003ePort:\u003c/b\u003e ${sap.portId}<br/>`;
+                label += `<b>Port:</b> ${sap.portId}<br/>`;
                 if (sap.portDescription) {
-                    label += `\u2011\u00A0\u003cb\u003eDesc:\u003c/b\u003e ${noWrap(sap.portDescription)}<br/>`;
+                    label += `- <b>Desc:</b> ${noWrap(sap.portDescription)}<br/>`;
                 }
                 // Ethernet sub-fields (only show fields that have values)
                 const pe = sap.portEthernet;
                 const ethItems: string[] = [];
-                if (pe?.mode) ethItems.push(`\u00A0\u00A0\u2011\u00A0Mode:\u00A0${pe.mode}`);
-                if (pe?.mtu) ethItems.push(`\u00A0\u00A0\u2011\u00A0MTU:\u00A0${pe.mtu}`);
-                if (pe?.speed) ethItems.push(`\u00A0\u00A0\u2011\u00A0Speed:\u00A0${pe.speed}`);
-                if (pe?.autonegotiate) ethItems.push(`\u00A0\u00A0\u2011\u00A0AutoNego:\u00A0${pe.autonegotiate}`);
-                if (pe?.networkQueuePolicy) ethItems.push(`\u00A0\u00A0\u2011\u00A0Network:\u00A0${pe.networkQueuePolicy}`);
-                if (sap.llf) ethItems.push(`\u00A0\u00A0\u2011\u00A0LLF:\u00A0On`);
-                if (pe?.lldp) ethItems.push(`\u00A0\u00A0\u2011\u00A0LLDP:\u00A0${pe.lldp}`);
+                if (pe?.mode) ethItems.push(`&nbsp;&nbsp;&nbsp;- Mode: ${pe.mode}`);
+                if (pe?.mtu) ethItems.push(`&nbsp;&nbsp;&nbsp;- MTU: ${pe.mtu}`);
+                if (pe?.speed) ethItems.push(`&nbsp;&nbsp;&nbsp;- Speed: ${pe.speed}`);
+                if (pe?.autonegotiate) ethItems.push(`&nbsp;&nbsp;&nbsp;- AutoNego: ${pe.autonegotiate}`);
+                if (pe?.networkQueuePolicy) ethItems.push(`&nbsp;&nbsp;&nbsp;- Network: ${pe.networkQueuePolicy}`);
+                if (sap.llf) ethItems.push(`&nbsp;&nbsp;&nbsp;- LLF: On`);
+                if (pe?.lldp) ethItems.push(`&nbsp;&nbsp;&nbsp;- LLDP: ${pe.lldp}`);
                 if (ethItems.length > 0) {
-                    label += `\u2011\u00A0\u003cb\u003eEthernet:\u003c/b\u003e<br/>`;
+                    label += `- <b>Ethernet:</b><br/>`;
                     label += ethItems.join('<br/>') + '<br/>';
                 }
-                label += `\u003c/div\u003e`;
-                lines.push(`${sapNodeId}[\"${label}\"]`);
+                lines.push(`        ${sapNodeId}["${label}"]`);
             });
-            lines.push('end');
+            lines.push('    end');
+            lines.push('');
         });
 
         // Render Service Node
         // 여러 호스트의 name/description이 다를 수 있으므로 모든 고유값 표시
-        let svcLabel = `\u003cdiv style='text-align: left'\u003e`;
-        svcLabel += `\u003cb\u003eService:\u003c/b\u003e EPIPE ${first.serviceId}<br/>`;
+        let svcLabel = '';
+        svcLabel += `<b>Service:</b> EPIPE ${first.serviceId}<br/>`;
 
         // Name: 고유값이 1개면 인라인, 여러개면 헤더 + 들여쓰기 목록
         const nameEntries: {hostname: string, value: string}[] = [];
@@ -191,15 +192,15 @@ export function generateEpipeDiagram(
         });
         const uniqueNameValues = new Set(nameEntries.map(e => e.value));
         if (uniqueNameValues.size === 1) {
-            svcLabel += `\u003cb\u003eEPIPE\u00A0Name:\u003c/b\u003e ${noWrap([...uniqueNameValues][0])}<br/>`;
+            svcLabel += `<b>EPIPE&nbsp;Name:</b> ${noWrap([...uniqueNameValues][0])}<br/>`;
         } else if (uniqueNameValues.size > 1) {
-            svcLabel += `\u003cb\u003eEPIPE\u00A0Name:\u003c/b\u003e<br/>`;
+            svcLabel += `<b>EPIPE&nbsp;Name:</b><br/>`;
             const seenNames = new Set<string>();
             nameEntries.forEach(e => {
                 const key = `${e.hostname}:${e.value}`;
                 if (!seenNames.has(key)) {
                     seenNames.add(key);
-                    svcLabel += `\u2011\u00A0${noWrap(e.hostname)}:\u00A0${noWrap(e.value)}<br/>`;
+                    svcLabel += `- ${noWrap(e.hostname)}: ${noWrap(e.value)}<br/>`;
                 }
             });
         }
@@ -210,35 +211,36 @@ export function generateEpipeDiagram(
         });
         const uniqueDescValues = new Set(descEntries.map(e => e.value));
         if (uniqueDescValues.size === 1) {
-            svcLabel += `\u003cb\u003eEPIPE\u00A0Desc:\u003c/b\u003e ${noWrap([...uniqueDescValues][0])}<br/>`;
+            svcLabel += `<b>EPIPE&nbsp;Desc:</b> ${noWrap([...uniqueDescValues][0])}<br/>`;
         } else if (uniqueDescValues.size > 1) {
-            svcLabel += `\u003cb\u003eEPIPE\u00A0Desc:\u003c/b\u003e<br/>`;
+            svcLabel += `<b>EPIPE&nbsp;Desc:</b><br/>`;
             const seenDescs = new Set<string>();
             descEntries.forEach(e => {
                 const key = `${e.hostname}:${e.value}`;
                 if (!seenDescs.has(key)) {
                     seenDescs.add(key);
-                    svcLabel += `\u2011\u00A0${noWrap(e.hostname)}:\u00A0${noWrap(e.value)}<br/>`;
+                    svcLabel += `- ${noWrap(e.hostname)}: ${noWrap(e.value)}<br/>`;
                 }
             });
         }
         // Spoke-SDP Info
         if (first.spokeSdps && first.spokeSdps.length > 0) {
             const sdp = first.spokeSdps[0];
-            svcLabel += `\u003cb\u003eSpoke\u2011Sdp:\u003c/b\u003e ${sdp.sdpId}:${sdp.vcId}<br/>`;
+            svcLabel += `<b>Spoke-Sdp:</b> ${sdp.sdpId}:${sdp.vcId}<br/>`;
         }
-        svcLabel += `\u003c/div\u003e`;
 
-        lines.push(`${svcNodeId}[\"${svcLabel}\"]`);
-        lines.push(`class ${svcNodeId} service;`);
+        lines.push('    %% 서비스 노드');
+        lines.push(`    ${svcNodeId}["${svcLabel}"]`);
+        allServiceNodeIds.push(svcNodeId);
+        lines.push('');
 
-        // Links: plain arrows (QoS는 SAP 노드 안에 표시)
+        // 화살표 수집 (최하단에서 일괄 출력)
         subsetEpipes.forEach((epipe, idx) => {
             const host = subsetHosts[idx];
             const safeHost = sanitizeNodeId(host);
             epipe.saps.forEach((_sap, sapIdx) => {
                 const sapNodeId = `SAP_${safeHost}_G${groupCounter}_${idx}_${sapIdx}`;
-                lines.push(`${sapNodeId} --> ${svcNodeId}`);
+                arrowLines.push(`    ${sapNodeId} ---> ${svcNodeId}`);
             });
         });
 
@@ -254,6 +256,16 @@ export function generateEpipeDiagram(
     if (noSdpGroup.epipes.length > 0) {
         renderSubset(noSdpGroup.epipes, noSdpGroup.hostnames, 'No SDP');
     }
+
+    // 클래스 적용
+    lines.push('    %% 클래스 적용');
+    if (allSapNodeIds.length > 0) lines.push(`    class ${allSapNodeIds.join(',')} hostNode`);
+    allServiceNodeIds.forEach(id => lines.push(`    class ${id} serviceNode`));
+    lines.push('');
+
+    // 관계 설정
+    lines.push('    %% 관계 설정 (렌더링 엔진이 간격을 벌리도록 화살표 길이를 늘림)');
+    lines.push(...arrowLines);
 
     return lines.join('\n');
 }
@@ -287,58 +299,60 @@ export function generateVPLSDiagram(
     }));
 
     const lines: string[] = [];
-    lines.push('graph LR');
-    lines.push('classDef default fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left;');
-    lines.push('classDef vpls fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000;');
-    // QoS는 SAP 노드 내부에 텍스트로 표시 (엣지 라벨 사용 안 함)
-    lines.push('classDef svcinfo fill:#fff9c4,stroke:#f9a825,stroke-width:2px,color:#000,text-align:left;');
+    lines.push('flowchart LR');
+    lines.push('    %% 렌더링 최적화 설정');
+    lines.push('    %% 텍스트 정렬을 위해 class에 직접 할당');
+    lines.push('    classDef hostNode fill:#ffffff,stroke:#333,stroke-width:1px,color:#000,text-align:left;');
+    lines.push('    classDef serviceNode fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000,text-align:left;');
+    lines.push('    classDef svcinfo fill:#fff9c4,stroke:#f9a825,stroke-width:2px,color:#000,text-align:left;');
     lines.push('');
 
     const firstVpls = vplsArray[0];
     const vplsNodeId = `VPLS_${firstVpls.serviceId}`;
 
+    const arrowLines: string[] = [];
+    const allSapNodeIds: string[] = [];
+    const allSdpNodeIds: string[] = [];
+    let vplsClassAssigned = false;
+
     // --- Helper: SAP 노드 라벨 생성 (SAP + QoS + Port + Ethernet) ---
-    // Config 구조: SAP 블록 안에 ingress/egress qos가 있으므로 QoS는 SAP 하위 항목으로 표시
     const buildSapLabel = (sap: SAP): string => {
-        let label = `\u003cdiv style='text-align: left'\u003e`;
+        let label = '';
         // SAP + QoS (SAP 하위 항목)
-        label += `\u003cb\u003eSAP:\u003c/b\u003e ${sap.sapId}<br/>`;
-        if (sap.ingressQos) label += qosHighlight(`\u2011\u00A0In\u2011QoS:\u00A0${formatRateKMG(sap.ingressQos)}`) + `<br/>`;
-        if (sap.egressQos) label += qosHighlight(`\u2011\u00A0Out\u2011QoS:\u00A0${formatRateKMG(sap.egressQos)}`) + `<br/>`;
+        label += `<b>SAP:</b> ${sap.sapId}<br/>`;
+        if (sap.ingressQos) label += qosHighlight(`- In-QoS: ${formatRateKMG(sap.ingressQos)}`) + `<br/>`;
+        if (sap.egressQos) label += qosHighlight(`- Out-QoS: ${formatRateKMG(sap.egressQos)}`) + `<br/>`;
         // Port
-        label += `\u003cb\u003ePort:\u003c/b\u003e ${sap.portId}<br/>`;
+        label += `<b>Port:</b> ${sap.portId}<br/>`;
         if (sap.portDescription) {
-            label += `\u2011\u00A0\u003cb\u003eDesc:\u003c/b\u003e ${noWrap(sap.portDescription)}<br/>`;
+            label += `- <b>Desc:</b> ${noWrap(sap.portDescription)}<br/>`;
         }
         if (sap.vlanId) {
-            label += `\u003cb\u003eVLAN:\u003c/b\u003e ${sap.vlanId}<br/>`;
+            label += `<b>VLAN:</b> ${sap.vlanId}<br/>`;
         }
         // Ethernet 하위 필드
         const pe = sap.portEthernet;
         const ethItems: string[] = [];
-        if (pe?.mode) ethItems.push(`\u00A0\u00A0\u2011\u00A0Mode:\u00A0${pe.mode}`);
-        if (pe?.mtu) ethItems.push(`\u00A0\u00A0\u2011\u00A0MTU:\u00A0${pe.mtu}`);
-        if (pe?.speed) ethItems.push(`\u00A0\u00A0\u2011\u00A0Speed:\u00A0${pe.speed}`);
-        if (pe?.autonegotiate) ethItems.push(`\u00A0\u00A0\u2011\u00A0AutoNego:\u00A0${pe.autonegotiate}`);
-        if (pe?.networkQueuePolicy) ethItems.push(`\u00A0\u00A0\u2011\u00A0Network:\u00A0${pe.networkQueuePolicy}`);
-        if (sap.llf) ethItems.push(`\u00A0\u00A0\u2011\u00A0LLF:\u00A0On`);
-        if (pe?.lldp) ethItems.push(`\u00A0\u00A0\u2011\u00A0LLDP:\u00A0${pe.lldp}`);
+        if (pe?.mode) ethItems.push(`&nbsp;&nbsp;&nbsp;- Mode: ${pe.mode}`);
+        if (pe?.mtu) ethItems.push(`&nbsp;&nbsp;&nbsp;- MTU: ${pe.mtu}`);
+        if (pe?.speed) ethItems.push(`&nbsp;&nbsp;&nbsp;- Speed: ${pe.speed}`);
+        if (pe?.autonegotiate) ethItems.push(`&nbsp;&nbsp;&nbsp;- AutoNego: ${pe.autonegotiate}`);
+        if (pe?.networkQueuePolicy) ethItems.push(`&nbsp;&nbsp;&nbsp;- Network: ${pe.networkQueuePolicy}`);
+        if (sap.llf) ethItems.push(`&nbsp;&nbsp;&nbsp;- LLF: On`);
+        if (pe?.lldp) ethItems.push(`&nbsp;&nbsp;&nbsp;- LLDP: ${pe.lldp}`);
         if (ethItems.length > 0) {
-            label += `\u2011\u00A0\u003cb\u003eEthernet:\u003c/b\u003e<br/>`;
+            label += `- <b>Ethernet:</b><br/>`;
             label += ethItems.join('<br/>') + '<br/>';
         }
-        label += `\u003c/div\u003e`;
         return label;
     };
-
-    // QoS는 SAP 노드 안에 표시하므로 엣지 라벨에는 사용하지 않음
 
     // --- Helper: 호스트 서브그래프 렌더링 (SAP 노드 ID 배열 반환) ---
     const renderHost = (currentVpls: VPLSService, vplsIdx: number, hostName: string): string[] => {
         const safeHost = sanitizeNodeId(hostName);
         const hostId = `HOST_${safeHost}_${vplsIdx}`;
-        lines.push(`subgraph ${hostId}["\u003cb\u003e${noWrap(hostName)}\u003c/b\u003e"]`);
-        lines.push('direction TB');
+        lines.push(`    subgraph ${hostId} ["${noWrap(hostName)}"]`);
+        lines.push('        direction TB');
 
         // SAP 노드들 (포트 정보만)
         // (L2) SAP는 장비 간 백홀 연결이므로 다이어그램에서 제외
@@ -348,8 +362,9 @@ export function generateVPLSDiagram(
             if (sap.description?.endsWith('(L2)') || sap.portDescription?.endsWith('(L2)')) return;
             const sapNodeId = `SAP_${safeHost}_${vplsIdx}_${sapIdx}`;
             sapIds.push(sapNodeId);
+            allSapNodeIds.push(sapNodeId);
             const label = buildSapLabel(sap);
-            lines.push(`${sapNodeId}["${label}"]`);
+            lines.push(`        ${sapNodeId}["${label}"]`);
         });
 
         // SDP 정보 노드 (서비스 레벨: Spoke-Sdp, Mesh-Sdp, MAC-Move)
@@ -359,31 +374,32 @@ export function generateVPLSDiagram(
         if (currentVpls.spokeSdps) currentVpls.spokeSdps.forEach(s => spokeSet.add(`${s.sdpId}:${s.vcId}`));
         if (currentVpls.meshSdps) currentVpls.meshSdps.forEach(m => meshSet.add(`${m.sdpId}:${m.vcId}`));
         spokeSet.forEach(key => {
-            sdpItems.push(`\u003cb\u003eSpoke\u2011Sdp:\u003c/b\u003e ${key}`);
+            sdpItems.push(`<b>Spoke-Sdp:</b> ${key}`);
         });
         meshSet.forEach(key => {
-            sdpItems.push(`\u003cb\u003eMesh\u2011Sdp:\u003c/b\u003e ${key}`);
+            sdpItems.push(`<b>Mesh-Sdp:</b> ${key}`);
         });
         if (currentVpls.macMoveShutdown) {
-            sdpItems.push(`\u003cb\u003eMAC\u2011MOVE:\u003c/b\u003e Detected`);
+            sdpItems.push(`<b>MAC-MOVE:</b> Detected`);
         }
         if (sdpItems.length > 0) {
             const sdpNodeId = `SDP_${safeHost}_${vplsIdx}`;
-            const sdpLabel = `\u003cdiv style='text-align: left'\u003e${sdpItems.join('<br/>')}\u003c/div\u003e`;
-            lines.push(`${sdpNodeId}["${sdpLabel}"]`);
-            lines.push(`class ${sdpNodeId} svcinfo;`);
+            const sdpLabel = sdpItems.join('<br/>');
+            lines.push(`        ${sdpNodeId}["${sdpLabel}"]`);
+            allSdpNodeIds.push(sdpNodeId);
         }
 
-        lines.push('end');
+        lines.push('    end');
+        lines.push('');
         return sapIds;
     };
 
     // --- Helper: VPLS 서비스 노드 렌더링 ---
     // 여러 호스트의 name/description이 다를 수 있으므로 모든 고유값 표시
     const renderServiceNode = () => {
-        lines.push('');
-        let vplsLabel = `\u003cdiv style='text-align: left'\u003e`;
-        vplsLabel += `\u003cb\u003eService:\u003c/b\u003e VPLS ${firstVpls.serviceId}<br/>`;
+        lines.push('    %% 서비스 노드');
+        let vplsLabel = '';
+        vplsLabel += `<b>Service:</b> VPLS ${firstVpls.serviceId}<br/>`;
 
         // Name: 고유값이 1개면 인라인, 여러개면 헤더 + 들여쓰기 목록
         const nameEntries: {hostname: string, value: string}[] = [];
@@ -392,15 +408,15 @@ export function generateVPLSDiagram(
         });
         const uniqueNameValues = new Set(nameEntries.map(e => e.value));
         if (uniqueNameValues.size === 1) {
-            vplsLabel += `\u003cb\u003eVPLS\u00A0Name:\u003c/b\u003e ${noWrap([...uniqueNameValues][0])}<br/>`;
+            vplsLabel += `<b>VPLS&nbsp;Name:</b> ${noWrap([...uniqueNameValues][0])}<br/>`;
         } else if (uniqueNameValues.size > 1) {
-            vplsLabel += `\u003cb\u003eVPLS\u00A0Name:\u003c/b\u003e<br/>`;
+            vplsLabel += `<b>VPLS&nbsp;Name:</b><br/>`;
             const seenNames = new Set<string>();
             nameEntries.forEach(e => {
                 const key = `${e.hostname}:${e.value}`;
                 if (!seenNames.has(key)) {
                     seenNames.add(key);
-                    vplsLabel += `\u2011\u00A0${noWrap(e.hostname)}:\u00A0${noWrap(e.value)}<br/>`;
+                    vplsLabel += `- ${noWrap(e.hostname)}: ${noWrap(e.value)}<br/>`;
                 }
             });
         }
@@ -411,22 +427,22 @@ export function generateVPLSDiagram(
         });
         const uniqueDescValues = new Set(descEntries.map(e => e.value));
         if (uniqueDescValues.size === 1) {
-            vplsLabel += `\u003cb\u003eVPLS\u00A0Desc:\u003c/b\u003e ${noWrap([...uniqueDescValues][0])}<br/>`;
+            vplsLabel += `<b>VPLS&nbsp;Desc:</b> ${noWrap([...uniqueDescValues][0])}<br/>`;
         } else if (uniqueDescValues.size > 1) {
-            vplsLabel += `\u003cb\u003eVPLS\u00A0Desc:\u003c/b\u003e<br/>`;
+            vplsLabel += `<b>VPLS&nbsp;Desc:</b><br/>`;
             const seenDescs = new Set<string>();
             descEntries.forEach(e => {
                 const key = `${e.hostname}:${e.value}`;
                 if (!seenDescs.has(key)) {
                     seenDescs.add(key);
-                    vplsLabel += `\u2011\u00A0${noWrap(e.hostname)}:\u00A0${noWrap(e.value)}<br/>`;
+                    vplsLabel += `- ${noWrap(e.hostname)}: ${noWrap(e.value)}<br/>`;
                 }
             });
         }
 
-        vplsLabel += `\u003c/div\u003e`;
-        lines.push(`${vplsNodeId}["${vplsLabel}"]`);
-        lines.push(`class ${vplsNodeId} vpls;`);
+        lines.push(`    ${vplsNodeId}["${vplsLabel}"]`);
+        vplsClassAssigned = true;
+        lines.push('');
     };
 
     // --- Hub 감지: SDP(Mesh + Spoke) 합산이 가장 많은 호스트 ---
@@ -469,17 +485,17 @@ export function generateVPLSDiagram(
         // 3. VPLS 서비스 노드 (오른쪽)
         renderServiceNode();
 
-        // 4. 연결: Spoke SAPs → Hub 첫 번째 SAP (QoS는 SAP 노드 안에 표시)
+        // 4. 화살표 수집: Spoke SAPs → Hub 첫 번째 SAP
         const hubTarget = hubSapIds[0];
         spokeSapMap.forEach(({ sapIds }) => {
             sapIds.forEach((sapId) => {
-                lines.push(`${sapId} --> ${hubTarget}`);
+                arrowLines.push(`    ${sapId} ---> ${hubTarget}`);
             });
         });
 
-        // 5. 연결: Hub SAPs → VPLS 서비스 (QoS는 SAP 노드 안에 표시)
+        // 5. 화살표 수집: Hub SAPs → VPLS 서비스
         hubSapIds.forEach((sapId) => {
-            lines.push(`${sapId} --> ${vplsNodeId}`);
+            arrowLines.push(`    ${sapId} ---> ${vplsNodeId}`);
         });
 
     } else {
@@ -495,10 +511,21 @@ export function generateVPLSDiagram(
 
         allSapMap.forEach(({ sapIds }) => {
             sapIds.forEach((sapId) => {
-                lines.push(`${sapId} --> ${vplsNodeId}`);
+                arrowLines.push(`    ${sapId} ---> ${vplsNodeId}`);
             });
         });
     }
+
+    // 클래스 적용
+    lines.push('    %% 클래스 적용');
+    if (allSapNodeIds.length > 0) lines.push(`    class ${allSapNodeIds.join(',')} hostNode`);
+    if (allSdpNodeIds.length > 0) lines.push(`    class ${allSdpNodeIds.join(',')} svcinfo`);
+    if (vplsClassAssigned) lines.push(`    class ${vplsNodeId} serviceNode`);
+    lines.push('');
+
+    // 관계 설정
+    lines.push('    %% 관계 설정 (렌더링 엔진이 간격을 벌리도록 화살표 길이를 늘림)');
+    lines.push(...arrowLines);
 
     return lines.join('\n');
 }
@@ -544,14 +571,20 @@ export function generateVPRNDiagram(
 
     const lines: string[] = [];
 
-    lines.push('graph LR');
-    lines.push('classDef default fill:#ffffff,stroke:#333,stroke-width:2px,color:#000,text-align:left;');
-    lines.push('classDef service fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000;');
-    lines.push('classDef routing fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000,text-align:left;');
+    lines.push('flowchart LR');
+    lines.push('    %% 렌더링 최적화 설정');
+    lines.push('    %% 텍스트 정렬을 위해 class에 직접 할당');
+    lines.push('    classDef hostNode fill:#ffffff,stroke:#333,stroke-width:1px,color:#000,text-align:left;');
+    lines.push('    classDef serviceNode fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000,text-align:left;');
+    lines.push('    classDef routing fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000,text-align:left;');
     lines.push('');
 
     const firstVprn = vprnArray[0];
     const serviceNodeId = `VPRN_SERVICE_${firstVprn.serviceId}`;
+
+    const arrowLines: string[] = [];
+    const allIfNodeIds: string[] = [];
+    const allRoutingNodeIds: string[] = [];
 
     // ========== Aggregate routing info from all hosts ==========
 
@@ -687,98 +720,99 @@ export function generateVPRNDiagram(
         const safeHost = sanitizeNodeId(host);
         const hostId = `HOST_${safeHost}_${idx}`;
 
-        lines.push(`subgraph ${hostId} ["\u003cb\u003e${noWrap(host)}\u003c/b\u003e"]`);
-        lines.push('direction TB');
+        lines.push(`    subgraph ${hostId} ["${noWrap(host)}"]`);
+        lines.push('        direction TB');
 
         if (currentVprn.interfaces) {
             currentVprn.interfaces.forEach((iface, ifIdx) => {
                 const ifId = `IF_${safeHost}_${idx}_${ifIdx}`;
+                allIfNodeIds.push(ifId);
 
-                let label = `\u003cdiv style='text-align: left'\u003e`;
+                let label = '';
 
                 // Interface (최상위 헤더)
-                label += `\u003cb\u003eInterface:\u003c/b\u003e ${noWrap(iface.interfaceName)}<br/>`;
+                label += `<b>Interface:</b> ${noWrap(iface.interfaceName)}<br/>`;
 
                 // Desc
                 if (iface.description) {
-                    label += `\u2011\u00A0Desc:\u00A0${noWrap(iface.description)}<br/>`;
+                    label += `- Desc: ${noWrap(iface.description)}<br/>`;
                 }
 
                 // IP
                 if (iface.ipAddress) {
-                    label += `\u2011\u00A0IP:\u00A0${iface.ipAddress}<br/>`;
+                    label += `- IP: ${iface.ipAddress}<br/>`;
                 }
 
                 // VRRP: priority >= 100 → MASTER, < 100 → BACKUP
                 if (iface.vrrpBackupIp) {
                     const role = (iface.vrrpPriority !== undefined && iface.vrrpPriority >= 100) ? 'MASTER' : 'BACKUP';
-                    label += `\u2011\u00A0VRRP:\u00A0${iface.vrrpBackupIp}\u00A0(${role})<br/>`;
+                    label += `- VRRP: ${iface.vrrpBackupIp} (${role})<br/>`;
                 }
 
                 // VPLS binding
                 if (iface.vplsName) {
-                    label += `\u2011\u00A0VPLS:\u00A0${noWrap(iface.vplsName)}<br/>`;
+                    label += `- VPLS: ${noWrap(iface.vplsName)}<br/>`;
                 }
 
                 // SAP + QoS (하위 항목)
                 if (iface.portId) {
-                    label += `\u2011\u00A0\u003cb\u003eSAP:\u003c/b\u003e ${iface.portId}<br/>`;
+                    label += `- <b>SAP:</b> ${iface.portId}<br/>`;
                     // In-QoS
                     const inRate = formatL3QosRate(iface, 'ingress');
                     if (inRate) {
-                        label += qosHighlight(`\u00A0\u00A0\u2011\u00A0In\u2011QoS:\u00A0${inRate}`) + `<br/>`;
+                        label += qosHighlight(`&nbsp;&nbsp;&nbsp;- In-QoS: ${inRate}`) + `<br/>`;
                     }
                     // Out-QoS
                     const outRate = formatL3QosRate(iface, 'egress');
                     if (outRate) {
-                        label += qosHighlight(`\u00A0\u00A0\u2011\u00A0Out\u2011QoS:\u00A0${outRate}`) + `<br/>`;
+                        label += qosHighlight(`&nbsp;&nbsp;&nbsp;- Out-QoS: ${outRate}`) + `<br/>`;
                     }
                 }
 
                 // Port (sapId에서 ':' 이전 부분)
                 if (iface.portId) {
                     const portOnly = iface.portId.split(':')[0];
-                    label += `\u2011\u00A0\u003cb\u003ePort:\u003c/b\u003e ${portOnly}<br/>`;
+                    label += `- <b>Port:</b> ${portOnly}<br/>`;
 
                     // Port Desc
                     if (iface.portDescription) {
-                        label += `\u00A0\u00A0\u2011\u00A0\u003cb\u003eDesc:\u003c/b\u003e ${noWrap(iface.portDescription)}<br/>`;
+                        label += `&nbsp;&nbsp;&nbsp;- <b>Desc:</b> ${noWrap(iface.portDescription)}<br/>`;
                     }
 
                     // Ethernet sub-fields
                     const pe = iface.portEthernet;
                     const ethItems: string[] = [];
-                    if (pe?.mode) ethItems.push(`\u00A0\u00A0\u00A0\u00A0\u2011\u00A0Mode:\u00A0${pe.mode}`);
-                    if (pe?.mtu) ethItems.push(`\u00A0\u00A0\u00A0\u00A0\u2011\u00A0MTU:\u00A0${pe.mtu}`);
-                    if (pe?.speed) ethItems.push(`\u00A0\u00A0\u00A0\u00A0\u2011\u00A0Speed:\u00A0${pe.speed}`);
-                    if (pe?.autonegotiate) ethItems.push(`\u00A0\u00A0\u00A0\u00A0\u2011\u00A0AutoNego:\u00A0${pe.autonegotiate.toUpperCase()}`);
-                    if (pe?.networkQueuePolicy) ethItems.push(`\u00A0\u00A0\u00A0\u00A0\u2011\u00A0Network:\u00A0${noWrap(pe.networkQueuePolicy)}`);
-                    if (pe?.lldp) ethItems.push(`\u00A0\u00A0\u00A0\u00A0\u2011\u00A0LLDP:\u00A0${pe.lldp}`);
+                    if (pe?.mode) ethItems.push(`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Mode: ${pe.mode}`);
+                    if (pe?.mtu) ethItems.push(`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- MTU: ${pe.mtu}`);
+                    if (pe?.speed) ethItems.push(`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Speed: ${pe.speed}`);
+                    if (pe?.autonegotiate) ethItems.push(`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- AutoNego: ${pe.autonegotiate.toUpperCase()}`);
+                    if (pe?.networkQueuePolicy) ethItems.push(`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Network: ${noWrap(pe.networkQueuePolicy)}`);
+                    if (pe?.lldp) ethItems.push(`&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- LLDP: ${pe.lldp}`);
                     if (ethItems.length > 0) {
-                        label += `\u00A0\u00A0\u2011\u00A0\u003cb\u003eEthernet:\u003c/b\u003e<br/>`;
+                        label += `&nbsp;&nbsp;&nbsp;- <b>Ethernet:</b><br/>`;
                         label += ethItems.join('<br/>') + '<br/>';
                     }
                 } else if (iface.portDescription) {
                     // Port Desc without portId (fallback)
-                    label += `\u2011\u00A0\u003cb\u003eDesc:\u003c/b\u003e ${noWrap(iface.portDescription)}<br/>`;
+                    label += `- <b>Desc:</b> ${noWrap(iface.portDescription)}<br/>`;
                 }
 
                 // IP-MTU
                 if (iface.mtu) {
-                    label += `\u2011\u00A0\u003cb\u003eIP\u2011MTU:\u003c/b\u003e ${iface.mtu}<br/>`;
+                    label += `- <b>IP-MTU:</b> ${iface.mtu}<br/>`;
                 }
 
                 // Spoke-Sdp
                 if (iface.spokeSdpId) {
-                    label += `\u2011\u00A0\u003cb\u003eSpoke\u2011Sdp:\u003c/b\u003e ${iface.spokeSdpId}<br/>`;
+                    label += `- <b>Spoke-Sdp:</b> ${iface.spokeSdpId}<br/>`;
                 }
 
-                label += `\u003c/div\u003e`;
-                lines.push(`${ifId}["${label}"]`);
+                lines.push(`        ${ifId}["${label}"]`);
             });
         }
 
-        lines.push('end');
+        lines.push('    end');
+        lines.push('');
     });
 
     // ========== 중간: Routing Nodes ==========
@@ -788,54 +822,52 @@ export function generateVPRNDiagram(
 
     // --- BGP Node ---
     if (hasBgp) {
-        let bgpLabel = `\u003cdiv style='text-align: left'\u003e`;
-        bgpLabel += `\u003cb\u003eBGP:\u003c/b\u003e<br/>`;
+        let bgpLabel = '';
+        bgpLabel += `<b>BGP:</b><br/>`;
         if (bgpRouterId) {
-            bgpLabel += `\u2011\u00A0Router\u2011ID:\u00A0${bgpRouterId}<br/>`;
+            bgpLabel += `- Router-ID: ${bgpRouterId}<br/>`;
         }
         if (bgpSplitHorizon) {
-            bgpLabel += `\u2011\u00A0Split\u2011Horizon:\u00A0On<br/>`;
+            bgpLabel += `- Split-Horizon: On<br/>`;
         }
         if (allBgpGroups.length > 0) {
             allBgpGroups.forEach(g => {
-                bgpLabel += `\u2011\u00A0Group:\u00A0${noWrap(g.groupName)}<br/>`;
+                bgpLabel += `- Group: ${noWrap(g.groupName)}<br/>`;
                 g.neighbors.forEach(n => {
                     const peerAs = n.peerAs || g.peerAs;
-                    bgpLabel += `\u00A0\u00A0\u2011\u00A0Peer:\u00A0${n.neighborIp}<br/>`;
+                    bgpLabel += `&nbsp;&nbsp;&nbsp;- Peer: ${n.neighborIp}<br/>`;
                     if (peerAs) {
-                        bgpLabel += `\u00A0\u00A0\u2011\u00A0Peer\u2011AS:\u00A0${peerAs}<br/>`;
+                        bgpLabel += `&nbsp;&nbsp;&nbsp;- Peer-AS: ${peerAs}<br/>`;
                     }
                 });
             });
         } else if (allBgpNeighbors.length > 0) {
             allBgpNeighbors.forEach(n => {
-                bgpLabel += `\u2011\u00A0Peer:\u00A0${n.neighborIp}`;
-                if (n.autonomousSystem) bgpLabel += `\u00A0(AS\u00A0${n.autonomousSystem})`;
+                bgpLabel += `- Peer: ${n.neighborIp}`;
+                if (n.autonomousSystem) bgpLabel += ` (AS ${n.autonomousSystem})`;
                 bgpLabel += `<br/>`;
             });
         }
-        bgpLabel += `\u003c/div\u003e`;
-        lines.push(`${bgpNodeId}["${bgpLabel}"]`);
-        lines.push(`class ${bgpNodeId} routing;`);
+        lines.push(`    ${bgpNodeId}["${bgpLabel}"]`);
+        allRoutingNodeIds.push(bgpNodeId);
     }
 
     // --- OSPF Node ---
     if (hasOspf) {
-        let ospfLabel = `\u003cdiv style='text-align: left'\u003e`;
-        ospfLabel += `\u003cb\u003eOSPF:\u003c/b\u003e<br/>`;
+        let ospfLabel = '';
+        ospfLabel += `<b>OSPF:</b><br/>`;
         allOspfAreas.forEach(a => {
-            ospfLabel += `\u2011\u00A0Area:\u00A0${a.areaId}<br/>`;
+            ospfLabel += `- Area: ${a.areaId}<br/>`;
             if (a.interfaces.length > 0) {
-                ospfLabel += `\u00A0\u00A0\u2011\u00A0Interface:<br/>`;
+                ospfLabel += `&nbsp;&nbsp;&nbsp;- Interface:<br/>`;
                 a.interfaces.forEach(i => {
-                    const typeStr = i.interfaceType ? `:\u00A0${i.interfaceType}` : '';
-                    ospfLabel += `\u00A0\u00A0\u00A0\u00A0\u2011\u00A0${noWrap(i.interfaceName)}${typeStr}<br/>`;
+                    const typeStr = i.interfaceType ? `: ${i.interfaceType}` : '';
+                    ospfLabel += `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- ${noWrap(i.interfaceName)}${typeStr}<br/>`;
                 });
             }
         });
-        ospfLabel += `\u003c/div\u003e`;
-        lines.push(`${ospfNodeId}["${ospfLabel}"]`);
-        lines.push(`class ${ospfNodeId} routing;`);
+        lines.push(`    ${ospfNodeId}["${ospfLabel}"]`);
+        allRoutingNodeIds.push(ospfNodeId);
     }
 
     // --- STATIC Nodes (one per next-hop) ---
@@ -845,68 +877,65 @@ export function generateVPRNDiagram(
         staticByNextHop.forEach((prefixes, nextHop) => {
             const nodeId = `ROUTING_STATIC_${firstVprn.serviceId}_${staticCounter}`;
             staticNodeIds.set(nextHop, nodeId);
-            let staticLabel = `\u003cdiv style='text-align: left'\u003e`;
-            staticLabel += `\u003cb\u003eSTATIC:\u003c/b\u003e ${allStaticRoutes.length}개<br/>`;
-            staticLabel += `\u003cb\u003eNext\u2011Hop:\u003c/b\u003e\u00A0${nextHop}<br/>`;
+            let staticLabel = '';
+            staticLabel += `<b>STATIC:</b> ${allStaticRoutes.length}개<br/>`;
+            staticLabel += `<b>Next-Hop:</b> ${nextHop}<br/>`;
             prefixes.forEach(p => {
-                staticLabel += `\u2011\u00A0${p}<br/>`;
+                staticLabel += `- ${p}<br/>`;
             });
-            staticLabel += `\u003c/div\u003e`;
-            lines.push(`${nodeId}["${staticLabel}"]`);
-            lines.push(`class ${nodeId} routing;`);
+            lines.push(`    ${nodeId}["${staticLabel}"]`);
+            allRoutingNodeIds.push(nodeId);
             staticCounter++;
         });
     }
 
-    // ========== 오른쪽: Service Node (BGP/OSPF/STATIC 제거) ==========
-    let svcLabel = `\u003cdiv style='text-align: left'\u003e`;
+    // ========== 오른쪽: Service Node ==========
+    let svcLabel = '';
 
     // Service header
     if (firstVprn.serviceName) {
-        svcLabel += `\u003cb\u003eService:\u003c/b\u003e ${noWrap(firstVprn.serviceName)}<br/>`;
+        svcLabel += `<b>Service:</b> ${noWrap(firstVprn.serviceName)}<br/>`;
     }
-    svcLabel += `\u003cb\u003eVPRN:\u003c/b\u003e ${firstVprn.serviceId}<br/>`;
+    svcLabel += `<b>VPRN:</b> ${firstVprn.serviceId}<br/>`;
     if (firstVprn.description) {
-        svcLabel += `\u003cb\u003eVPRN\u00A0Desc:\u003c/b\u003e ${noWrap(firstVprn.description)}<br/>`;
+        svcLabel += `<b>VPRN&nbsp;Desc:</b> ${noWrap(firstVprn.description)}<br/>`;
     }
 
     // ECMP
     if (firstVprn.ecmp) {
-        svcLabel += `\u003cb\u003eECMP:\u003c/b\u003e ${firstVprn.ecmp}<br/>`;
+        svcLabel += `<b>ECMP:</b> ${firstVprn.ecmp}<br/>`;
     }
 
     // AS NO
     if (firstVprn.autonomousSystem) {
-        svcLabel += `\u003cb\u003eAS\u00A0NO:\u003c/b\u003e ${firstVprn.autonomousSystem}<br/>`;
+        svcLabel += `<b>AS&nbsp;NO:</b> ${firstVprn.autonomousSystem}<br/>`;
     }
 
     // RD
     if (firstVprn.routeDistinguisher) {
-        svcLabel += `\u003cb\u003eRD:\u003c/b\u003e ${firstVprn.routeDistinguisher}<br/>`;
+        svcLabel += `<b>RD:</b> ${firstVprn.routeDistinguisher}<br/>`;
     }
 
     // VRF-TARGET
     if (firstVprn.vrfTarget) {
-        svcLabel += `\u003cb\u003eVRF\u2011TARGET:\u003c/b\u003e ${noWrap(firstVprn.vrfTarget)}<br/>`;
+        svcLabel += `<b>VRF-TARGET:</b> ${noWrap(firstVprn.vrfTarget)}<br/>`;
     }
 
-    svcLabel += `\u003c/div\u003e`;
-
+    lines.push('    %% 서비스 노드');
+    lines.push(`    ${serviceNodeId}["${svcLabel}"]`);
     lines.push('');
-    lines.push(`${serviceNodeId}["${svcLabel}"]`);
-    lines.push(`class ${serviceNodeId} service;`);
 
-    // ========== 연결선 ==========
+    // ========== 화살표 수집 ==========
 
     // Routing nodes → Service node
     if (hasBgp) {
-        lines.push(`${bgpNodeId} --> ${serviceNodeId}`);
+        arrowLines.push(`    ${bgpNodeId} ---> ${serviceNodeId}`);
     }
     if (hasOspf) {
-        lines.push(`${ospfNodeId} --> ${serviceNodeId}`);
+        arrowLines.push(`    ${ospfNodeId} ---> ${serviceNodeId}`);
     }
     staticNodeIds.forEach((nodeId) => {
-        lines.push(`${nodeId} --> ${serviceNodeId}`);
+        arrowLines.push(`    ${nodeId} ---> ${serviceNodeId}`);
     });
 
     // Interface → Routing nodes / Service node
@@ -924,18 +953,18 @@ export function generateVPRNDiagram(
 
             if (match) {
                 if (match.bgpMatched && hasBgp) {
-                    lines.push(`${ifId} --> ${bgpNodeId}`);
+                    arrowLines.push(`    ${ifId} ---> ${bgpNodeId}`);
                     hasAnyMatch = true;
                 }
                 if (match.ospfMatched && hasOspf) {
-                    lines.push(`${ifId} --> ${ospfNodeId}`);
+                    arrowLines.push(`    ${ifId} ---> ${ospfNodeId}`);
                     hasAnyMatch = true;
                 }
                 if (match.staticNextHops.length > 0) {
                     match.staticNextHops.forEach(nh => {
                         const staticNodeId = staticNodeIds.get(nh);
                         if (staticNodeId) {
-                            lines.push(`${ifId} --> ${staticNodeId}`);
+                            arrowLines.push(`    ${ifId} ---> ${staticNodeId}`);
                             hasAnyMatch = true;
                         }
                     });
@@ -944,10 +973,21 @@ export function generateVPRNDiagram(
 
             // 매칭 없으면 서비스 노드에 직접 연결
             if (!hasAnyMatch) {
-                lines.push(`${ifId} --> ${serviceNodeId}`);
+                arrowLines.push(`    ${ifId} ---> ${serviceNodeId}`);
             }
         });
     });
+
+    // 클래스 적용
+    lines.push('    %% 클래스 적용');
+    if (allIfNodeIds.length > 0) lines.push(`    class ${allIfNodeIds.join(',')} hostNode`);
+    if (allRoutingNodeIds.length > 0) lines.push(`    class ${allRoutingNodeIds.join(',')} routing`);
+    lines.push(`    class ${serviceNodeId} serviceNode`);
+    lines.push('');
+
+    // 관계 설정
+    lines.push('    %% 관계 설정 (렌더링 엔진이 간격을 벌리도록 화살표 길이를 늘림)');
+    lines.push(...arrowLines);
 
     return lines.join('\n');
 }
@@ -1019,7 +1059,7 @@ export function generateFullL2VPNTopology(
 ): string {
     const lines: string[] = [];
 
-    lines.push('graph TB');
+    lines.push('flowchart TB');
     lines.push('');
 
     // 라우터 노드
