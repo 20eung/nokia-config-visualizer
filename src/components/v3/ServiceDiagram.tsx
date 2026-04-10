@@ -28,9 +28,15 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
-        if (diagramRef.current && diagram) {
-            // 다이어그램 렌더링 (mermaid 동적 import - 첫 렌더링 시점에 lazy load)
-            const renderDiagram = async () => {
+        if (!diagramRef.current || !diagram) return;
+
+        let isMounted = true;
+
+        // 다이어그램 렌더링 (mermaid 동적 import - 첫 렌더링 시점에 lazy load)
+        // import()도 try-catch 안에 포함: 모듈 로드 실패(인증 만료, 네트워크 오류 등) 시
+        // unhandled rejection 방지 → 에러박스 표시
+        const renderDiagram = async () => {
+            try {
                 const { default: mermaid } = await import('mermaid');
                 if (!mermaidInitialized) {
                     mermaid.initialize({
@@ -45,67 +51,69 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
                     });
                     mermaidInitialized = true;
                 }
-                try {
-                    // Use serviceId AND hostname AND random string to ensure uniqueness
-                    // Replace special chars in hostname for ID safety
-                    const safeHost = hostname.replace(/[^a-zA-Z0-9]/g, '_');
-                    const uniqueSuffix = Math.random().toString(36).substring(2, 9);
-                    const id = `mermaid-${service.serviceId}-${safeHost}-${uniqueSuffix}`;
-                    const { svg } = await mermaid.render(id, diagram);
-                    if (diagramRef.current) {
-                        // NOTE: innerHTML은 mermaid 라이브러리의 SVG 출력을 DOM에 삽입하기 위해 사용
-                        // mermaid.render()가 sanitized SVG 문자열을 반환하므로 XSS 위험 없음
-                        diagramRef.current.innerHTML = svg;
-                        // 1) SVG 내부에 <style> 태그 직접 삽입:
-                        //    html2canvas가 foreignObject를 독립 렌더링 컨텍스트로 처리할 때
-                        //    SVG 내장 스타일은 해당 컨텍스트에서도 유효하므로 색상 유실 방지
-                        const svgEl = diagramRef.current.querySelector('svg');
-                        if (svgEl && !svgEl.querySelector('#qos-capture-style')) {
-                            const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
-                            styleEl.id = 'qos-capture-style';
-                            styleEl.textContent = [
-                                '.qos-hl {',
-                                '  background-color: #4caf50 !important;',
-                                '  color: #ffffff !important;',
-                                '  -webkit-text-fill-color: #ffffff !important;',
-                                '  padding: 1px 4px !important;',
-                                '  border-radius: 3px !important;',
-                                '  border: 1px solid #388e3c !important;',
-                                '  display: inline-block !important;',
-                                '}',
-                            ].join('\n');
-                            svgEl.insertBefore(styleEl, svgEl.firstChild);
-                        }
-                        // 2) .qos-hl 요소에 인라인 스타일 직접 주입 (이중 보험):
-                        //    display:inline-block 사용 — html2canvas가 inline 요소의
-                        //    background-color를 캡처하지 못하는 알려진 버그 우회
-                        diagramRef.current.querySelectorAll<HTMLElement>('.qos-hl').forEach(el => {
-                            el.style.setProperty('background-color', '#4caf50', 'important');
-                            el.style.setProperty('color', '#ffffff', 'important');
-                            el.style.setProperty('-webkit-text-fill-color', '#ffffff', 'important');
-                            el.style.setProperty('padding', '1px 4px', 'important');
-                            el.style.setProperty('border-radius', '3px', 'important');
-                            el.style.setProperty('border', '1px solid #388e3c', 'important');
-                            el.style.setProperty('display', 'inline-block', 'important');
-                        });
+                // Use serviceId AND hostname AND random string to ensure uniqueness
+                // Replace special chars in hostname for ID safety
+                const safeHost = hostname.replace(/[^a-zA-Z0-9]/g, '_');
+                const uniqueSuffix = Math.random().toString(36).substring(2, 9);
+                const id = `mermaid-${service.serviceId}-${safeHost}-${uniqueSuffix}`;
+                const { svg } = await mermaid.render(id, diagram);
+                if (isMounted && diagramRef.current) {
+                    // NOTE: innerHTML은 mermaid 라이브러리의 SVG 출력을 DOM에 삽입하기 위해 사용
+                    // mermaid.render()가 sanitized SVG 문자열을 반환하므로 XSS 위험 없음
+                    diagramRef.current.innerHTML = svg;
+                    // 1) SVG 내부에 <style> 태그 직접 삽입:
+                    //    html2canvas가 foreignObject를 독립 렌더링 컨텍스트로 처리할 때
+                    //    SVG 내장 스타일은 해당 컨텍스트에서도 유효하므로 색상 유실 방지
+                    const svgEl = diagramRef.current.querySelector('svg');
+                    if (svgEl && !svgEl.querySelector('#qos-capture-style')) {
+                        const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+                        styleEl.id = 'qos-capture-style';
+                        styleEl.textContent = [
+                            '.qos-hl {',
+                            '  background-color: #4caf50 !important;',
+                            '  color: #ffffff !important;',
+                            '  -webkit-text-fill-color: #ffffff !important;',
+                            '  padding: 1px 4px !important;',
+                            '  border-radius: 3px !important;',
+                            '  border: 1px solid #388e3c !important;',
+                            '  display: inline-block !important;',
+                            '}',
+                        ].join('\n');
+                        svgEl.insertBefore(styleEl, svgEl.firstChild);
                     }
-                } catch (error) {
-                    console.error('Mermaid rendering error:', error);
-                    if (diagramRef.current) {
-                        const errorMessage = error instanceof Error ? error.message : String(error);
-                        // NOTE: innerHTML은 에러 메시지 표시를 위해 사용
-                        // errorMessage는 mermaid 내부 에러이므로 사용자 입력이 아님
-                        diagramRef.current.innerHTML = `<div class="text-center p-5 bg-red-50 border border-red-200 rounded-lg w-full">
-                            <p class="text-red-500 font-semibold mb-2">Failed to render diagram</p>
-                            <pre class="text-red-700 text-sm font-mono bg-red-100 p-2 rounded text-left whitespace-pre-wrap break-all">${errorMessage}</pre>
-                        </div>`;
-                    }
+                    // 2) .qos-hl 요소에 인라인 스타일 직접 주입 (이중 보험):
+                    //    display:inline-block 사용 — html2canvas가 inline 요소의
+                    //    background-color를 캡처하지 못하는 알려진 버그 우회
+                    diagramRef.current.querySelectorAll<HTMLElement>('.qos-hl').forEach(el => {
+                        el.style.setProperty('background-color', '#4caf50', 'important');
+                        el.style.setProperty('color', '#ffffff', 'important');
+                        el.style.setProperty('-webkit-text-fill-color', '#ffffff', 'important');
+                        el.style.setProperty('padding', '1px 4px', 'important');
+                        el.style.setProperty('border-radius', '3px', 'important');
+                        el.style.setProperty('border', '1px solid #388e3c', 'important');
+                        el.style.setProperty('display', 'inline-block', 'important');
+                    });
                 }
-            };
+            } catch (error) {
+                console.error('Mermaid rendering error:', error);
+                if (isMounted && diagramRef.current) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    // NOTE: innerHTML은 에러 메시지 표시를 위해 사용
+                    // errorMessage는 mermaid 내부 에러이므로 사용자 입력이 아님
+                    diagramRef.current.innerHTML = `<div class="text-center p-5 bg-red-50 border border-red-200 rounded-lg w-full">
+                        <p class="text-red-500 font-semibold mb-2">Failed to render diagram</p>
+                        <pre class="text-red-700 text-sm font-mono bg-red-100 p-2 rounded text-left whitespace-pre-wrap break-all">${errorMessage}</pre>
+                    </div>`;
+                }
+            }
+        };
 
-            renderDiagram();
-        }
-    }, [diagram, service.serviceId]);
+        renderDiagram();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [diagram, service.serviceId, hostname]);
 
     const handleCopyImagePNG = async () => {
         if (!diagramRef.current) return;
