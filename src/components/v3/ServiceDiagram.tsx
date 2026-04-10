@@ -81,15 +81,17 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
                         ].join('\n');
                         svgEl.insertBefore(styleEl, svgEl.firstChild);
                     }
-                    // 2) .qos-hl 요소에 인라인 스타일 직접 주입 (이중 보험):
-                    //    display:inline-block 사용 — html2canvas가 inline 요소의
-                    //    background-color를 캡처하지 못하는 알려진 버그 우회
-                    diagramRef.current.querySelectorAll<HTMLElement>('.qos-hl').forEach(el => {
+                    // 2) .qos-hl / .qos-label 요소에 인라인 스타일 직접 주입 (이중 보험):
+                    //    .qos-hl: Epipe/VPLS/VPRN SAP 노드 내부 QoS 배지
+                    //    .qos-label: IES 엣지 레이블 QoS 배지 (buildQosEdgeLabel 생성)
+                    //    display:inline-block — html2canvas가 inline 요소의 background-color를 캡처하지 못하는 버그 우회
+                    diagramRef.current.querySelectorAll<HTMLElement>('.qos-hl, .qos-label').forEach(el => {
+                        const isLabel = el.classList.contains('qos-label');
                         el.style.setProperty('background-color', '#4caf50', 'important');
                         el.style.setProperty('color', '#ffffff', 'important');
                         el.style.setProperty('-webkit-text-fill-color', '#ffffff', 'important');
-                        el.style.setProperty('padding', '1px 4px', 'important');
-                        el.style.setProperty('border-radius', '3px', 'important');
+                        el.style.setProperty('padding', isLabel ? '2px 6px' : '1px 4px', 'important');
+                        el.style.setProperty('border-radius', isLabel ? '4px' : '3px', 'important');
                         el.style.setProperty('border', '1px solid #388e3c', 'important');
                         el.style.setProperty('display', 'inline-block', 'important');
                     });
@@ -128,8 +130,9 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
 
             // html2canvas는 VISUAL(getBoundingClientRect) 좌표 기반으로 캡처하므로,
             // canvas 좌표 = (visual relative position) * htmlScale
+            // .qos-hl: Epipe/VPLS/VPRN QoS 배지 / .qos-label: IES 엣지 레이블 QoS 배지
             const qosRects = Array.from(
-                diagramRef.current.querySelectorAll<HTMLElement>('.qos-hl')
+                diagramRef.current.querySelectorAll<HTMLElement>('.qos-hl, .qos-label')
             ).map(el => {
                 const r = el.getBoundingClientRect();
                 const cs = getComputedStyle(el);
@@ -163,12 +166,13 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
                             'border-radius:3px!important;border:1px solid #388e3c!important;}';
                         clonedSvg.insertBefore(styleEl, clonedSvg.firstChild);
                     }
-                    element.querySelectorAll<HTMLElement>('.qos-hl').forEach(el => {
+                    element.querySelectorAll<HTMLElement>('.qos-hl, .qos-label').forEach(el => {
+                        const isLabel = el.classList.contains('qos-label');
                         el.style.setProperty('background-color', '#4caf50', 'important');
                         el.style.setProperty('color', '#ffffff', 'important');
                         el.style.setProperty('display', 'inline-block', 'important');
-                        el.style.setProperty('padding', '1px 4px', 'important');
-                        el.style.setProperty('border-radius', '3px', 'important');
+                        el.style.setProperty('padding', isLabel ? '2px 6px' : '1px 4px', 'important');
+                        el.style.setProperty('border-radius', isLabel ? '4px' : '3px', 'important');
                         el.style.setProperty('border', '1px solid #388e3c', 'important');
                     });
                 },

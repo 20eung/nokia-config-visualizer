@@ -199,11 +199,16 @@ function formatQosEdgeRate(policyIdStr: string, rate?: number, rateMax?: boolean
 }
 
 // Build QoS edge label for IES diagrams
+// inline style 포함: html2canvas는 SVG foreignObject 내부에 외부 CSS 미적용 → qosHighlight()와 동일 패턴
 function buildQosEdgeLabel(intf: NokiaInterface): string {
   const inQos = formatQosEdgeRate(intf.ingressQos || 'Default', intf.ingressQosRate, intf.ingressQosRateMax);
   const outQos = formatQosEdgeRate(intf.egressQos || 'Default', intf.egressQosRate, intf.egressQosRateMax);
   const content = `In\u2011QoS:\u00A0${inQos}\u003cbr/\u003eOut\u2011QoS:\u00A0${outQos}`;
-  return `\u003cdiv class='qos-label'\u003e${content}\u003c/div\u003e`;
+  const style = 'background-color:#4caf50;color:#ffffff;-webkit-text-fill-color:#ffffff;'
+              + 'padding:2px 6px;border-radius:4px;display:inline-block;'
+              + 'border:1px solid #388e3c;white-space:nowrap;'
+              + 'font-size:0.75rem;line-height:1.2;text-align:center;';
+  return `\u003cdiv class='qos-label' style='${style}'\u003e${content}\u003c/div\u003e`;
 }
 
 // Build node label per DIAGRAM_RULES.md 5.3
