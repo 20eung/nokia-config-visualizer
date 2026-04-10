@@ -250,6 +250,26 @@ export function V3Page() {
           }
           return [...prev, parsed];
         });
+
+        // 이미 선택된 서비스와 동일한 serviceId를 가진 서비스 자동 선택 → 다이어그램 즉시 업데이트
+        setSelectedServiceIds(prev => {
+          const prevSet = new Set(prev);
+          const toAdd: string[] = [];
+          parsed.services.forEach(s => {
+            if (s.serviceType === 'ies') return; // IES는 인터페이스 단위 선택이므로 제외
+            const nt = s.networkType && s.networkType !== 'unknown' ? `-${s.networkType}` : '';
+            const key = `${s.serviceType}-${s.serviceId}${nt}`;
+            // 동일 serviceType+serviceId가 이미 선택돼 있으면 새 key도 추가
+            const alreadySelected = [...prevSet].some(k => k.startsWith(`${s.serviceType}-${s.serviceId}`));
+            if (alreadySelected && !prevSet.has(key)) {
+              toAdd.push(key);
+            }
+          });
+          return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
+        });
+
+        // Services 뷰로 전환 (Dashboard에서 호출된 경우)
+        setViewMode('services');
       }
     } catch (error) {
       console.error('[V3Page] Failed to load file from search:', error);
@@ -278,6 +298,13 @@ export function V3Page() {
     setDashboardFilterHostnames(hostnames);
     setViewMode('services');
   }, [configs]);
+
+  // 프론트엔드 실제 로드 파일명 Set (search-global-config isLoaded 판정용)
+  // activeFiles(WebSocket) + uploadedFiles(직접 업로드) 합산
+  const loadedFilenames = useMemo(
+    () => new Set([...(activeFiles.length > 0 ? activeFiles : uploadedFiles)]),
+    [activeFiles, uploadedFiles]
+  );
 
   const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
     mouseDownEvent.preventDefault();
@@ -657,6 +684,7 @@ export function V3Page() {
                   onToggleService={handleToggleService}
                   onSetSelected={handleSetSelected}
                   onLoadFile={handleLoadFile}
+                  loadedFilenames={loadedFilenames}
                 />
               </aside>
 

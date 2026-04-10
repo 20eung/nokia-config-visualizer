@@ -31,6 +31,7 @@ interface ServiceListProps {
   onToggleService: (serviceKey: string) => void;
   onSetSelected: (updater: string[] | ((prev: string[]) => string[])) => void;
   onLoadFile?: (filename: string) => void;
+  loadedFilenames?: Set<string>;
 }
 
 /**
@@ -69,6 +70,7 @@ export function ServiceListV3({
   onToggleService,
   onSetSelected,
   onLoadFile,
+  loadedFilenames,
 }: ServiceListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'epipe' | 'vpls' | 'vprn' | 'ies' | 'ha' | 'isp' | 'mpls' | 'cloud' | 'unknown'>('all');
@@ -1734,18 +1736,21 @@ export function ServiceListV3({
                 <span className="text-xs text-gray-400 dark:text-gray-500">검색 중...</span>
               )}
             </div>
-            {fileSearchResults.map(result => (
+            {fileSearchResults.map(result => {
+              // 프론트엔드 실제 로드 상태 우선 사용 (백엔드 configStore와 다를 수 있음)
+              const isLoadedInApp = loadedFilenames?.has(result.filename) ?? result.isLoaded;
+              return (
               <div
                 key={result.filename}
                 className="flex items-start gap-2 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-xs font-medium truncate ${result.isLoaded ? 'text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}>
+                    <span className={`text-xs font-medium truncate ${isLoadedInApp ? 'text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}>
                       {result.filename}
                     </span>
                     <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{result.matches}개 매칭</span>
-                    {result.isLoaded && (
+                    {isLoadedInApp && (
                       <span className="text-[10px] px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded shrink-0">로드됨</span>
                     )}
                   </div>
@@ -1759,7 +1764,7 @@ export function ServiceListV3({
                     </div>
                   )}
                 </div>
-                {!result.isLoaded && onLoadFile && (
+                {!isLoadedInApp && onLoadFile && (
                   <button
                     onClick={() => handleLoadFile(result.filename)}
                     className="shrink-0 flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-700 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
@@ -1769,7 +1774,7 @@ export function ServiceListV3({
                   </button>
                 )}
               </div>
-            ))}
+            );})}
           </div>
         )}
       </div>
