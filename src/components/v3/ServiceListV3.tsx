@@ -20,6 +20,9 @@ import { buildConfigSummary, type ConfigSummary } from '../../utils/configSummar
 import { toDictionaryCompact } from '../../utils/dictionaryStorage';
 import { loadDictionaryFromServer } from '../../services/dictionaryApi';
 import { sendChatMessage, type ChatResponse } from '../../services/chatApi';
+import { searchConfigFiles, type FileSearchResult } from '../../services/configApi';
+import FileText from 'lucide-react/dist/esm/icons/file-text';
+import Download from 'lucide-react/dist/esm/icons/download';
 
 interface ServiceListProps {
   services: NokiaServiceV3[];
@@ -27,6 +30,7 @@ interface ServiceListProps {
   selectedServiceIds: string[];
   onToggleService: (serviceKey: string) => void;
   onSetSelected: (updater: string[] | ((prev: string[]) => string[])) => void;
+  onLoadFile?: (filename: string) => void;
 }
 
 /**
@@ -64,6 +68,7 @@ export function ServiceListV3({
   selectedServiceIds,
   onToggleService,
   onSetSelected,
+  onLoadFile,
 }: ServiceListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'epipe' | 'vpls' | 'vprn' | 'ies' | 'ha' | 'isp' | 'mpls' | 'cloud' | 'unknown'>('all');
@@ -74,6 +79,9 @@ export function ServiceListV3({
   const [aiResponse, setAiResponse] = useState<ChatResponse | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const aiAbortRef = useRef<AbortController | null>(null);
+  const [fileSearchResults, setFileSearchResults] = useState<FileSearchResult[]>([]);
+  const [fileSearchLoading, setFileSearchLoading] = useState(false);
+  const fileSearchAbortRef = useRef<AbortController | null>(null);
   const [showDictionaryEditor, setShowDictionaryEditor] = useState(false);
   const [dictionary, setDictionary] = useState<NameDictionary | null>(null);
 
@@ -327,6 +335,31 @@ export function ServiceListV3({
     }
   }, [aiEnabled]);
 
+  // 파일 검색 debounce (search-global-config)
+  useEffect(() => {
+    if (searchQuery.length < 3 || aiEnabled) {
+      setFileSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      fileSearchAbortRef.current?.abort();
+      const controller = new AbortController();
+      fileSearchAbortRef.current = controller;
+      setFileSearchLoading(true);
+      try {
+        const results = await searchConfigFiles(searchQuery, controller.signal);
+        setFileSearchResults(results);
+      } catch (err) {
+        if (err instanceof Error && err.name !== 'AbortError') {
+          console.error('[FileSearch] Error:', err);
+        }
+      } finally {
+        setFileSearchLoading(false);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery, aiEnabled]);
+
   const handleAIResponse = useCallback((response: ChatResponse) => {
     onSetSelected(response.selectedKeys);
     if (response.filterType && response.filterType !== 'all') {
@@ -341,6 +374,11 @@ export function ServiceListV3({
   const handleExampleClick = useCallback((query: string) => {
     setSearchQuery(query);
   }, []);
+
+  // 미로드 파일 로드 핸들러 (search-global-config)
+  const handleLoadFile = useCallback((filename: string) => {
+    onLoadFile?.(filename);
+  }, [onLoadFile]);
 
   // AI 쿼리 전송
   const handleAISubmit = useCallback(async () => {
@@ -1683,6 +1721,55 @@ export function ServiceListV3({
         {filteredServices.length === 0 && (
           <div className="py-10 px-4 text-center text-gray-400 dark:text-gray-500">
             <p className="m-0 text-sm">No services found matching your filters.</p>
+          </div>
+        )}
+
+        {/* 파일에서도 발견됨 섹션 (search-global-config) */}
+        {searchQuery.length >= 3 && (fileSearchLoading || fileSearchResults.length > 0) && (
+          <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText size={14} className="text-gray-500 dark:text-gray-400" />
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">파일에서도 발견됨</span>
+              {fileSearchLoading && (
+                <span className="text-xs text-gray-400 dark:text-gray-500">검색 중...</span>
+              )}
+            </div>
+            {fileSearchResults.map(result => (
+              <div
+                key={result.filename}
+                className="flex items-start gap-2 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-xs font-medium truncate ${result.isLoaded ? 'text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}>
+                      {result.filename}
+                    </span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">{result.matches}개 매칭</span>
+                    {result.isLoaded && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded shrink-0">로드됨</span>
+                    )}
+                  </div>
+                  {result.snippets.length > 0 && (
+                    <div className="mt-1 space-y-0.5">
+                      {result.snippets.map((snippet, i) => (
+                        <p key={i} className="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate m-0">
+                          {snippet}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {!result.isLoaded && onLoadFile && (
+                  <button
+                    onClick={() => handleLoadFile(result.filename)}
+                    className="shrink-0 flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-700 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                  >
+                    <Download size={12} />
+                    로드
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>

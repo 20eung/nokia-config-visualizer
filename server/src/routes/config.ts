@@ -12,6 +12,7 @@ import { fileWatcher } from '../services/fileWatcher';
 import { scanConfigsRecursive, validatePath } from '../services/recursiveScanner';
 import { extractNetworkType } from '../utils/networkTypeExtractor';
 import type { VendorType } from '../services/vendorDetector';
+import { configStore } from '../services/configStore';
 
 const router = express.Router();
 
@@ -397,6 +398,94 @@ router.get('/server-status', async (req: Request, res: Response) => {
       error: 'Internal server error',
       message: error.message
     });
+  }
+});
+
+/**
+ * GET /api/config/search-files
+ * watchFolder 내 전체 파일 텍스트 검색 (search-global-config)
+ */
+router.get('/search-files', async (req: Request, res: Response) => {
+  try {
+    const q = ((req.query.q as string) || '').trim();
+
+    if (q.length < 3) {
+      return res.status(400).json({
+        success: false,
+        error: 'Query must be at least 3 characters'
+      });
+    }
+
+    const watchPath = fileWatcher.getWatchPath();
+    if (!watchPath || !fileWatcher.isWatching()) {
+      return res.json({ success: true, results: [], watchPath: '', totalFiles: 0 });
+    }
+
+    const allFiles = await fileWatcher.getAllFiles();
+    const loadedSet = configStore.getLoadedFilenames();
+    const queryLower = q.toLowerCase();
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+    interface FileSearchResult {
+      filename: string;
+      matches: number;
+      snippets: string[];
+      isLoaded: boolean;
+    }
+
+    const results: FileSearchResult[] = [];
+
+    for (const filename of allFiles) {
+      const filePath = fileWatcher.getFilePath(filename);
+      if (!filePath) continue;
+
+      // 파일 크기 제한
+      try {
+        const stat = await fs.stat(filePath);
+        if (stat.size > MAX_FILE_SIZE) continue;
+      } catch { continue; }
+
+      // 라인별 검색
+      let matchCount = 0;
+      const snippets: string[] = [];
+
+      try {
+        const content = await fs.readFile(filePath, 'utf-8');
+        for (const line of content.split('\n')) {
+          if (line.toLowerCase().includes(queryLower)) {
+            matchCount++;
+            if (snippets.length < 3) {
+              snippets.push(line.trim().slice(0, 120));
+            }
+          }
+        }
+      } catch { continue; }
+
+      if (matchCount > 0) {
+        results.push({
+          filename,
+          matches: matchCount,
+          snippets,
+          isLoaded: loadedSet.has(filename),
+        });
+      }
+    }
+
+    // 미로드 파일 먼저, 같은 그룹 내에선 매칭 수 내림차순
+    results.sort((a, b) => {
+      if (a.isLoaded !== b.isLoaded) return a.isLoaded ? 1 : -1;
+      return b.matches - a.matches;
+    });
+
+    res.json({
+      success: true,
+      results,
+      watchPath,
+      totalFiles: allFiles.length,
+    });
+  } catch (error: any) {
+    console.error('[API] Error searching config files:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

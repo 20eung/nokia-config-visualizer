@@ -80,6 +80,11 @@ class ConfigStore {
     }
   }
 
+  /** 현재 로드된 파일명 Set 반환 (isLoaded 판정용) */
+  getLoadedFilenames(): Set<string> {
+    return new Set(this.store.keys());
+  }
+
   /** 전체 삭제 */
   clear(): void {
     this.store.clear();
