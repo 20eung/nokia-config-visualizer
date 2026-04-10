@@ -7,6 +7,7 @@ import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import X from 'lucide-react/dist/esm/icons/x';
+import { normalizeSearchString } from '../../utils/stringUtils';
 import { findPeerAndRoutes } from '../../utils/mermaidGenerator';
 import { convertIESToV1Format } from '../../utils/v1IESAdapter';
 import { convertVPRNToV1Format } from '../../utils/v1VPRNAdapter';
@@ -56,17 +57,6 @@ const TYPE_COLORS = {
   unknown: { active: 'bg-gray-500 text-white border-gray-500', inactive: 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/20 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800' },
 } as const;
 
-/**
- * 검색어 정규화 헬퍼 함수 (v5.5.2, v5.6.0: Network Type Separation)
- * - Unicode 하이픈 문자들을 일반 하이픈(U+002D)으로 통일
- * - NFKD 정규화로 호환 문자 처리
- */
-function normalizeSearchString(str: string): string {
-  return str
-    .normalize('NFKD')
-    .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, '-') // 모든 하이픈 변형 → ASCII hyphen
-    .toLowerCase();
-}
 
 export function ServiceListV3({
   services,

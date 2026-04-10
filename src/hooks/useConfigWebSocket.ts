@@ -63,7 +63,7 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          handleMessage(message);
+          handleMessageRef.current(message);
         } catch (err) {
           console.error('[ConfigWebSocket] Failed to parse message:', err);
         }
@@ -226,6 +226,12 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
     },
     [activeFiles]
   );
+
+  // handleMessage가 교체되어도 ws.onmessage가 항상 최신 버전을 호출하도록 ref에 동기화
+  const handleMessageRef = useRef(handleMessage);
+  useEffect(() => {
+    handleMessageRef.current = handleMessage;
+  }, [handleMessage]);
 
   /**
    * 파일 토글 (추가/제거)

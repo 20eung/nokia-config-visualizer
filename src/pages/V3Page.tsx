@@ -245,21 +245,19 @@ export function V3Page() {
     setViewMode('services');
   }, [configs]);
 
-  const startResizing = (mouseDownEvent: React.MouseEvent) => {
+  const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
     mouseDownEvent.preventDefault();
     setIsResizing(true);
-  };
+  }, []);
 
-  const stopResizing = () => setIsResizing(false);
+  const stopResizing = useCallback(() => setIsResizing(false), []);
 
-  const resize = (mouseMoveEvent: MouseEvent) => {
-    if (isResizing) {
-      const newWidth = mouseMoveEvent.clientX;
-      if (newWidth > 200 && newWidth < 800) {
-        setSidebarWidth(newWidth);
-      }
+  const resize = useCallback((mouseMoveEvent: MouseEvent) => {
+    const newWidth = mouseMoveEvent.clientX;
+    if (newWidth > 200 && newWidth < 800) {
+      setSidebarWidth(newWidth);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (isResizing) {
@@ -273,7 +271,7 @@ export function V3Page() {
       window.removeEventListener('mousemove', resize);
       window.removeEventListener('mouseup', stopResizing);
     };
-  }, [isResizing]);
+  }, [isResizing, resize, stopResizing]);
 
   const allServices = useMemo(() =>
     configs.flatMap(c =>

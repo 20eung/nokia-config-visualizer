@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState, useCallback } from 'react';
 
 // mermaid 초기화는 앱 전체에서 단 한 번만 실행 (bundle-dynamic-imports + rendering-hoist-jsx)
 let mermaidInitialized = false;
@@ -117,7 +117,7 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
         };
     }, [diagram, service.serviceId, hostname]);
 
-    const handleCopyImagePNG = async () => {
+    const handleCopyImagePNG = useCallback(async () => {
         if (!diagramRef.current) return;
 
         try {
@@ -263,7 +263,7 @@ export const ServiceDiagram = memo(function ServiceDiagram({ service, diagram, h
             const errorMessage = error instanceof Error ? error.message : String(error);
             alert(`클립보드 복사 실패: ${errorMessage}`);
         }
-    };
+    }, [diagram, service.serviceId, hostname]);
 
     const handleCopyCode = async () => {
         try {

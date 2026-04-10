@@ -15,17 +15,7 @@ import type { ParsedConfigV3 } from '../../utils/v3/parserV3';
 import type { SiteGroup } from '../../types/site';
 import type { NetworkType } from '../../types/services';
 import { groupConfigsBySite } from '../../utils/siteGrouper';
-
-/**
- * 검색어 정규화 헬퍼 (v5.6.2: ServiceListV3와 동일 로직)
- * Unicode 하이픈 변형(U+2011 등)을 ASCII 하이픈으로 통일
- */
-function normalizeSearchString(str: string): string {
-  return str
-    .normalize('NFKD')
-    .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, '-')
-    .toLowerCase();
-}
+import { normalizeSearchString } from '../../utils/stringUtils';
 
 interface DashboardProps {
   configs: ParsedConfigV3[];
@@ -82,12 +72,12 @@ export function Dashboard({ configs, onSiteClick }: DashboardProps) {
     );
   }, [siteGroups, searchQuery]);
 
-  const statCards: Array<{ label: string; count: number; color: string; darkColor: string }> = [
+  const statCards = useMemo(() => [
     { label: 'Epipe', count: totalStats.epipe, color: 'bg-blue-500', darkColor: 'dark:bg-blue-600' },
     { label: 'VPLS', count: totalStats.vpls, color: 'bg-emerald-500', darkColor: 'dark:bg-emerald-600' },
     { label: 'VPRN', count: totalStats.vprn, color: 'bg-violet-500', darkColor: 'dark:bg-violet-600' },
     { label: 'IES', count: totalStats.ies, color: 'bg-amber-500', darkColor: 'dark:bg-amber-600' },
-  ];
+  ], [totalStats]);
 
   return (
     <div

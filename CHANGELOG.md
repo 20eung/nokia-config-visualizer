@@ -6,6 +6,17 @@
 이 프로젝트는 [Semantic Versioning](https://semver.org/spec/v2.0.0.html)을 준수합니다.
 
 
+## [5.8.0] - 2026-04-10
+
+### ⚡ 성능 (Performance)
+
+- **React 성능 최적화 (Vercel React Best Practices)**: 코드베이스 전체 점검 후 5종 이슈 일괄 해결
+  - `resize`/`stopResizing`/`startResizing` useCallback 적용 → 이벤트 리스너 메모리 누수 수정
+  - WebSocket `handleMessageRef` 패턴 적용 → Stale Closure 버그 수정
+  - `src/utils/stringUtils.ts` 신규 생성 → `normalizeSearchString` 공유 유틸 추출, 정규식 모듈 레벨 호이스팅
+  - `handleCopyImagePNG` useCallback 적용
+  - `statCards` useMemo 적용
+
 ## [5.7.3] - 2026-04-10
 
 ### ✨ 개선 (Enhancement)

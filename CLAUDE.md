@@ -160,6 +160,7 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 | 버전 | 날짜 | 주요 내용 |
 |---|---|---|
+| v5.8.0 | 2026-04-10 | React 성능 최적화 (메모리 누수, Stale Closure, 정규식 최적화, useCallback/useMemo) |
 | v5.7.1 | 2026-04-03 | 포털 iframe Nokia Visualizer Authentik 인증 흐름 수정 (TOP 프레임 리다이렉트) |
 | v5.7.0 | 2026-04-02 | Authentik SSO Forward Auth 인증 게이트, iframe 허용, 쿠키 도메인 공유 |
 | v5.6.3 | 2026-03-31 | Mermaid HTML 속성 따옴표 충돌, 노드 ID 하이픈 파싱 오류 수정 |
@@ -184,6 +185,6 @@ Minor/Major 변경 시: hook 비활성화 → `npm run version:minor/major` → 
 
 ---
 
-**Last Updated**: 2026-04-03
-**Current Version**: v5.7.1
+**Last Updated**: 2026-04-10
+**Current Version**: v5.8.0
 **Branch**: main
