@@ -71,4 +71,25 @@
 
 ---
 
+### dashboard-site-filter (v5.8.2)
+- **완료일**: 2026-04-10
+- **Match Rate**: 100% ✅
+- **문서**:
+  - [Plan](dashboard-site-filter/dashboard-site-filter.plan.md)
+  - [Design](dashboard-site-filter/dashboard-site-filter.design.md)
+  - [Analysis](dashboard-site-filter/dashboard-site-filter.analysis.md)
+  - [Report](dashboard-site-filter/dashboard-site-filter.report.md)
+- **주요 성과**:
+  - Dashboard 카드 클릭 시 해당 장비 서비스만 왼쪽 패널에 필터링
+  - `dashboardFilterHostnames` 상태 + `displayedServices` useMemo 추가
+  - 사이드바 상단 배너로 필터 상태 시각화 (장비명 + X 해제 버튼)
+  - 헤더 Services 탭 직접 클릭 시 필터 초기화
+  - `allServices` 원본 보존 — 다이어그램 로직 영향 없음
+- **통계**:
+  - 반복: 0회 (1차 완성)
+  - Match Rate: 100% (8/8)
+  - 수정 파일: 1개 (`V3Page.tsx`, ~30줄)
+
+---
+
 **Last Updated**: 2026-04-10
