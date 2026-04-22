@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { API_BASE } from '../utils/apiBase';
 import { parseL2VPNConfig } from '../utils/v3/parserV3';
 import { generateServiceDiagram } from '../utils/v3/mermaidGeneratorV3';
 import type { ParsedConfigV3 } from '../utils/v3/parserV3';
@@ -70,8 +71,8 @@ export function V3Page() {
     if (!isDemoEnvironment || configs.length > 0) return;
 
     Promise.all([
-      fetch('/config1.txt').then(r => r.text()),
-      fetch('/config2.txt').then(r => r.text())
+      fetch(`${API_BASE}/config1.txt`).then(r => r.text()),
+      fetch(`${API_BASE}/config2.txt`).then(r => r.text())
     ])
       .then(texts => {
         handleConfigLoaded(texts);
@@ -124,7 +125,7 @@ export function V3Page() {
       try {
         const results = await Promise.all(
           newActiveFiles.map(async (filename: string) => {
-            const res = await fetch(`/api/config/file/${filename}`);
+            const res = await fetch(`${API_BASE}/api/config/file/${filename}`);
             const networkType = res.headers.get('X-Network-Type') || undefined;
             const text = await res.text();
             return { text, filename, networkType };
@@ -160,7 +161,7 @@ export function V3Page() {
           const batch = filenames.slice(i, i + BATCH_SIZE);
           const batchResults = await Promise.all(
             batch.map(async (filename: string) => {
-              const res = await fetch(`/api/config/file/${filename}`);
+              const res = await fetch(`${API_BASE}/api/config/file/${filename}`);
               const networkType = res.headers.get('X-Network-Type') || undefined;
               const text = await res.text();
               return { text, filename, networkType };
@@ -229,7 +230,7 @@ export function V3Page() {
   // 파일 검색에서 미로드 파일 로드 (search-global-config)
   const handleLoadFile = useCallback(async (filename: string) => {
     try {
-      const res = await fetch(`/api/config/file/${encodeURIComponent(filename)}`);
+      const res = await fetch(`${API_BASE}/api/config/file/${encodeURIComponent(filename)}`);
       if (!res.ok) throw new Error(`파일 로드 실패 (${res.status})`);
       const networkType = res.headers.get('X-Network-Type') || undefined;
       const text = await res.text();

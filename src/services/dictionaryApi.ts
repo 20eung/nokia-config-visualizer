@@ -1,4 +1,5 @@
 import type { NameDictionary } from '../types/dictionary';
+import { API_BASE } from '../utils/apiBase';
 
 /** v4.4.0: Server response structure */
 export interface DictionaryGenerateResponse {
@@ -27,7 +28,7 @@ export async function generateDictionary(
   }
 
   try {
-    const res = await fetch('/api/dictionary/generate', {
+    const res = await fetch(`${API_BASE}/api/dictionary/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ descriptions }),
@@ -52,7 +53,7 @@ export async function generateDictionary(
 
 export async function loadDictionaryFromServer(): Promise<NameDictionary | null> {
   try {
-    const res = await fetch('/api/dictionary');
+    const res = await fetch(`${API_BASE}/api/dictionary`);
     if (res.status === 404) return null;
     if (!res.ok) return null;
     return await res.json() as NameDictionary;
@@ -65,7 +66,7 @@ export async function saveDictionaryToServer(
   dictionary: NameDictionary,
 ): Promise<boolean> {
   try {
-    const res = await fetch('/api/dictionary', {
+    const res = await fetch(`${API_BASE}/api/dictionary`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dictionary),

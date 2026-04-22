@@ -1,6 +1,7 @@
 /**
  * Config 파일 관련 API 클라이언트 (search-global-config)
  */
+import { API_BASE } from '../utils/apiBase';
 
 export interface FileSearchResult {
   filename: string;
@@ -28,7 +29,7 @@ export async function searchConfigFiles(
   signal?: AbortSignal,
 ): Promise<FileSearchResult[]> {
   const params = new URLSearchParams({ q: query });
-  const res = await fetch(`/api/config/search-files?${params}`, { signal });
+  const res = await fetch(`${API_BASE}/api/config/search-files?${params}`, { signal });
 
   if (!res.ok) {
     // 400 (query too short) → 빈 배열 반환 (에러 표시 불필요)

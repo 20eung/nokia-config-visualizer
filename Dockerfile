@@ -9,6 +9,8 @@ RUN npm ci
 
 # 소스 코드 복사 및 빌드
 COPY . .
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
 # 멀티 스테이지 빌드 - 프로덕션 단계

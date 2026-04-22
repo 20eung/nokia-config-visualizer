@@ -17,6 +17,8 @@ const packageJson = JSON.parse(
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [tailwindcss(), react()],
+  // Portal 프록시 환경: VITE_API_URL=/services/visualizer 로 빌드 시 base 경로 설정
+  base: process.env.VITE_API_URL ? `${process.env.VITE_API_URL}/` : '/',
   define: {
     // 빌드 시점에 환경변수로 주입
     __APP_VERSION__: JSON.stringify(packageJson.version),

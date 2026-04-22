@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { API_BASE } from '../utils/apiBase';
 import type {
   UseConfigWebSocketReturn,
   WebSocketStatus,
@@ -51,7 +52,7 @@ export function useConfigWebSocket(): UseConfigWebSocketReturn {
     try {
       // WebSocket 연결 (Backend 포트: 3001인데 Nginx가 3301에서 /ws로 프록시함)
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const wsUrl = `${protocol}//${window.location.host}${API_BASE}/ws`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {

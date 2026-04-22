@@ -1,4 +1,5 @@
 import type { ConfigSummary } from '../utils/configSummaryBuilder';
+import { API_BASE } from '../utils/apiBase';
 import type { DictionaryCompact } from '../types/dictionary';
 
 export interface MatchedEntry {
@@ -37,7 +38,7 @@ export async function sendChatMessage(
   }
 
   try {
-    const res = await fetch('/api/chat', {
+    const res = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, configSummary, dictionary, filterType }),
@@ -62,7 +63,7 @@ export async function sendChatMessage(
 
 export async function checkApiHealth(): Promise<boolean> {
   try {
-    const res = await fetch('/api/health', { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(`${API_BASE}/api/health`, { signal: AbortSignal.timeout(5000) });
     return res.ok;
   } catch {
     return false;
